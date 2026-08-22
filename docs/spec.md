@@ -29,3 +29,13 @@ Representa o centro de custos ao qual os desenvolvedores pertencem.
 * **nome:** Nome da equipe (ex: "Desenvolvimento Backend")
 * **orcamentoMensal:** Teto de gastos planejado para o mês (Double/BigDecimal)
 * **saldoDisponivel:** Valor restante liberado para novos provisionamentos (Double/BigDecimal)
+
+### Entidade: Requisicao
+Representa o pedido de infraestrutura submetido pelo Desenvolvedor.
+* **id:** Identificador único (UUID)
+* **desenvolvedorId:** Identificador do usuário que fez a solicitação
+* **departamentoId:** Identificador do departamento responsável pelo orçamento
+* **itens:** Lista de recursos solicitados (relação com RecursoCatalogo)
+* **custoTotalProjetado:** Soma do custo mensal de todos os itens (Double/BigDecimal)
+* **status:** Estado atual do pedido (ex: "Aprovado", "Revisão Pendente", "Rejeitado")
+* **justificativaArquiteto:** Observação preenchida pelo Arquiteto Cloud caso o pedido seja rejeitado ou alterado (Texto)
