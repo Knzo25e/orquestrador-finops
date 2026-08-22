@@ -22,3 +22,10 @@ Representa um item de infraestrutura disponível para contratação.
 * **armazenamento:** Capacidade de disco em GB
 * **sistemaOperacional:** Software base (ex: Ubuntu, Windows)
 * **custoMensal:** Valor financeiro projetado por mês (Double/BigDecimal)
+
+### Entidade: Departamento
+Representa o centro de custos ao qual os desenvolvedores pertencem.
+* **id:** Identificador único (UUID)
+* **nome:** Nome da equipe (ex: "Desenvolvimento Backend")
+* **orcamentoMensal:** Teto de gastos planejado para o mês (Double/BigDecimal)
+* **saldoDisponivel:** Valor restante liberado para novos provisionamentos (Double/BigDecimal)
