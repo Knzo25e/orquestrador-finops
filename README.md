@@ -15,4 +15,4 @@ A documentação principal do sistema, incluindo os requisitos em formato EARS, 
 - [Tarefas (tasks.md)](docs/tasks.md)
 
 ---
-*Projeto acadêmico desenvolvido para a disciplina de Modelagem de Sistena.*
+*Projeto acadêmico desenvolvido para a disciplina de Modelagem de Sistema.*
