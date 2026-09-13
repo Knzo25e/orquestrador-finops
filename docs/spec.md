@@ -4,26 +4,21 @@
 * **Desenvolvedor (Solicitante):** Busca agilidade para subir ambientes. Acessa o catálogo, seleciona instâncias (ex: Máquinas, Bancos de Dados) e monta requisições. Possui um orçamento departamental que atua como teto de gastos.
 * **Arquiteto Cloud (Aprovador/Gestor):** Responsável por FinOps e segurança. Intervém apenas quando há quebra de limites orçamentários, possuindo autonomia para aprovar exceções, alterar a infraestrutura solicitada (downgrade) ou rejeitar o pedido.
 
-## 2. Requisitos Funcionais (EARS) e Regras de Negócio
+## 2. Requisitos Funcionais, Não Funcionais e Regras (EARS)
 
-### [RF-01] Montar ambiente via catálogo de recursos
-O sistema deve permitir que o perfil Desenvolvedor acesse um catálogo de infraestrutura e adicione itens a uma requisição.
-* **[RN-01]** Cada item do catálogo deve possuir um custo mensal predefinido no banco de dados.
-* **Cenário 1:** Quando o Desenvolvedor acessar a tela de requisição, o sistema deve exibir o catálogo com os valores atualizados.
-* **Cenário 2:** O sistema deve calcular dinamicamente e exibir o valor projetado total conforme o usuário seleciona os itens.
+### 2.1. Requisitos Funcionais (RF)
+* **RF-01:** O sistema deve permitir que o perfil Desenvolvedor acesse um catálogo de infraestrutura e adicione itens a uma requisição.
+* **RF-02:** O sistema deve avaliar o custo projetado da requisição frente ao orçamento do departamento, decidindo o roteamento automático do pedido.
+* **RF-03:** O sistema deve fornecer uma fila de aprovação para o Arquiteto Cloud atuar sobre os pedidos em "Revisão Pendente".
 
-### [RF-02] Validação Automática de Orçamento (Máquina de Estados)
-O sistema deve avaliar o custo projetado da requisição frente ao orçamento do departamento do Desenvolvedor, decidindo o roteamento automático do pedido.
-* **[RN-02]** O sistema não pode aprovar automaticamente pedidos que ultrapassem o saldo disponível da equipe.
-* **Cenário 1:** Se o custo projetado for menor ou igual ao orçamento, o sistema deve mudar o status da requisição para "Provisionamento Liberado".
-* **Cenário 2:** Se o custo projetado estourar a verba do departamento, o sistema deve bloquear o pedido e alterar o status para "Revisão Pendente".
+### 2.2. Requisitos Não Funcionais (RNF)
+* **RNF-01 (Desempenho):** O sistema deve processar a validação automática de orçamento em menos de 2 segundos.
+* **RNF-02 (Segurança):** O sistema deve garantir o isolamento de dados, impedindo que um Desenvolvedor utilize o orçamento de um departamento ao qual não está vinculado.
 
-### [RF-03] Avaliação de Requisições Pendentes pelo Arquiteto Cloud
-O sistema deve fornecer uma fila de aprovação para o Arquiteto Cloud atuar sobre os pedidos em "Revisão Pendente", permitindo intervenção manual.
-* **[RN-03]** O Arquiteto Cloud possui permissão para sobrescrever a trava de orçamento mediante justificativa, ou alterar os itens originais do pedido.
-* **Cenário 1:** Quando o Arquiteto escolher "Aprovar", o sistema deve registrar a aprovação manual e mudar o status para "Provisionamento Liberado".
-* **Cenário 2:** Quando o Arquiteto escolher "Rejeitar", o sistema deve encerrar o fluxo e mudar o status para "Cancelado".
-* **Cenário 3:** Quando o Arquiteto escolher "Alterar", o sistema deve permitir a remoção ou downgrade de instâncias para adequar o custo antes da aprovação.
+### 2.3. Regras de Negócio (RB) - Formato EARS
+* **RB-01 (Catálogo Fixo):** **WHILE** o sistema estiver operando, **IT HAS TO** garantir que cada item do catálogo possua um custo mensal predefinido no banco de dados.
+* **RB-02 (Trava de Orçamento):** **WHILE** a requisição estiver em validação, **IF** o custo projetado ultrapassar o saldo disponível da equipe, **THEN** o sistema não pode aprovar automaticamente o pedido, bloqueando-o com o status "Revisão Pendente".
+* **RB-03 (Intervenção Manual):** **WHILE** o pedido estiver bloqueado em "Revisão Pendente", **IF** o Arquiteto Cloud fornecer uma justificativa, **THEN** o sistema deve permitir a aprovação manual sobrescrevendo a trava de orçamento.
 
 ## 3. Modelo de Domínio (Entidades Principais)
 
