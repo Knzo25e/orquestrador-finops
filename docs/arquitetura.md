@@ -7,6 +7,7 @@ O sistema adota uma arquitetura em camadas (Layers) baseada nos princípios de C
 * **DA-01. Consistência Forte de Saldo:** (Origem: RN-02, RF-02). O saldo disponível do Departamento não pode ficar negativo em cenários de concorrência.
 * **DA-02. Isolamento do Domínio:** (Origem: RN-02, RN-03). As regras de validação e roteamento da requisição precisam rodar de forma independente da UI e do banco de dados para garantir alta testabilidade.
 * **DA-03. Intervenção Manual de Exceções:** (Origem: RF-03). O fluxo precisa de um mecanismo para pausar o estado de uma requisição para aprovação assíncrona do Arquiteto.
+* **DA-04. Auditabilidade de Decisões Financeiras:** (Origem: RF-05). A exigência de um histórico imutável afeta diretamente a persistência. Não podemos apenas sobrescrever o status da requisição atualizando a mesma linha no banco; precisamos adotar uma tabela de log (append-only) para garantir a rastreabilidade das aprovações manuais do Arquiteto Cloud em caso de auditoria financeira.
 
 ## 3. Decisões Técnicas (DT) e ADRs
 * **DT-01:** Utilização de Arquitetura em Camadas, isolando as entidades do framework (Responde a DA-02). -> *Requer ADR (Difícil reversão)*

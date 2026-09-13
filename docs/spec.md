@@ -1,8 +1,16 @@
 # Especificação do Sistema (Spec)
 
-## 1. Personas (Perfis de Usuário)
-* **Desenvolvedor (Solicitante):** Busca agilidade para subir ambientes. Acessa o catálogo, seleciona instâncias (ex: Máquinas, Bancos de Dados) e monta requisições. Possui um orçamento departamental que atua como teto de gastos.
-* **Arquiteto Cloud (Aprovador/Gestor):** Responsável por FinOps e segurança. Intervém apenas quando há quebra de limites orçamentários, possuindo autonomia para aprovar exceções, alterar a infraestrutura solicitada (downgrade) ou rejeitar o pedido.
+## 1. Personas e Contexto de Uso
+
+**Carlos, o Desenvolvedor Ágil (Solicitante)**
+* **Contexto:** Trabalha em uma squad e precisa provisionar bancos de dados e máquinas para testar aplicações.
+* **Dores:** Sofre com tickets de TI lentos e burocracia que travam suas entregas.
+* **Comportamento no Sistema:** Acessa o catálogo, monta o pedido e espera aprovação instantânea para seguir trabalhando, sem interagir com gestores caso o custo da infraestrutura caiba no orçamento.
+
+**Ana, a Arquiteta Cloud (Aprovadora/FinOps)**
+* **Contexto:** Controla a governança e o orçamento de infraestrutura da empresa inteira.
+* **Dores:** Lida com o desperdício gerado por máquinas superdimensionadas e orçamentos departamentais estourados.
+* **Comportamento no Sistema:** Não solicita infraestrutura. Acessa uma fila central de requisições retidas, analisa as justificativas técnicas e detém a permissão exclusiva para sobrescrever a trava financeira, fazer downgrade de instâncias ou rejeitar compras.
 
 ## 2. Requisitos Funcionais, Não Funcionais e Regras (EARS)
 
@@ -10,6 +18,8 @@
 * **RF-01:** O sistema deve permitir que o perfil Desenvolvedor acesse um catálogo de infraestrutura e adicione itens a uma requisição.
 * **RF-02:** O sistema deve avaliar o custo projetado da requisição frente ao orçamento do departamento, decidindo o roteamento automático do pedido.
 * **RF-03:** O sistema deve fornecer uma fila de aprovação para o Arquiteto Cloud atuar sobre os pedidos em "Revisão Pendente".
+* **RF-04 (Gestão de Teto):** O sistema deve permitir que o Arquiteto Cloud configure e altere o orçamento mensal (teto de gastos) de cada departamento.
+* **RF-05 (Auditoria Imutável):** O sistema deve registrar um histórico imutável (log de auditoria) de todas as intervenções manuais, armazenando o ID de quem aprovou/rejeitou, a data, a requisição e a justificativa.
 
 ### 2.2. Requisitos Não Funcionais (RNF)
 * **RNF-01 (Desempenho):** O sistema deve processar a validação automática de orçamento em menos de 2 segundos.
