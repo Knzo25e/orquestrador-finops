@@ -1,22 +1,34 @@
-package main.java.br.mackenzie.finops.dominio.entidades;
+package br.mackenzie.finops.dominio.entidades;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class Requisicao {
+    
     private UUID id;
+    private Departamento departamento; // Exigência da Spec 002
     private UUID desenvolvedorId;
     private String status;
     private Double custoTotalProjetado;
     private String justificativaArquiteto;
+    private List<ItemRequisicao> itens; // Exigência para o Caso de Uso
 
-    public Requisicao(UUID id, UUID desenvolvedorId, Double custoTotalProjetado) {
-        this.id = id;
-        this.desenvolvedorId = desenvolvedorId;
-        this.custoTotalProjetado = custoTotalProjetado;
-        this.status = "Em Analise";
+    // Novo construtor adaptado para obedecer à Spec 002
+    public Requisicao(Departamento departamento) {
+        this.id = UUID.randomUUID();
+        this.departamento = departamento;
+        this.status = "INICIAL"; // Status padronizado pela documentação
+        this.custoTotalProjetado = 0.0;
+        this.itens = new ArrayList<>();
     }
 
-    // Interação direta com a classe Departamento
+    // Método exigido pela orquestração do nosso Caso de Uso
+    public void adicionarItem(ItemRequisicao item) {
+        this.itens.add(item);
+    }
+
+    // Mantendo a sua lógica original de FinOps!
     public void processarRoteamento(Departamento departamento) {
         if (departamento.verificarDisponibilidade(this.custoTotalProjetado)) {
             aprovarAutomaticamente(departamento);
@@ -34,7 +46,10 @@ public class Requisicao {
         this.status = "Revisao Pendente";
     }
 
+    // Getters
     public UUID getId() { return id; }
     public String getStatus() { return status; }
     public Double getCustoTotalProjetado() { return custoTotalProjetado; }
+    public Departamento getDepartamento() { return departamento; }
+    public List<ItemRequisicao> getItens() { return itens; }
 }

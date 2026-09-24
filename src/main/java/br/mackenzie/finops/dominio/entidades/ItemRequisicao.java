@@ -1,4 +1,4 @@
-package main.java.br.mackenzie.finops.dominio.entidades;
+package br.mackenzie.finops.dominio.entidades;
 
 public class ItemRequisicao {
     private RecursoCatalogo recurso;
