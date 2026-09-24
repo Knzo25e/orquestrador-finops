@@ -1,4 +1,4 @@
-package main.java.br.mackenzie.finops.dominio.entidades;
+package br.mackenzie.finops.dominio.entidades;
 
 import java.util.UUID;
 
