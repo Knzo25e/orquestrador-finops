@@ -1,7 +1,0 @@
-package br.mackenzie.finops.dominio.excecoes;
-
-public class OrcamentoExcedidoException extends RuntimeException {
-    public OrcamentoExcedidoException(String mensagem) {
-        super(mensagem);
-    }
-}
