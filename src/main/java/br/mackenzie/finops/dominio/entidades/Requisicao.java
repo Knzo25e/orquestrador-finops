@@ -23,10 +23,21 @@ public class Requisicao {
         this.itens = new ArrayList<>();
     }
 
-    // Método exigido pela orquestração do nosso Caso de Uso
     public void adicionarItem(ItemRequisicao item) {
-        this.itens.add(item);
+    this.itens.add(item);
+    calcularTotalProjetado();
+}
+
+public Double calcularTotalProjetado() {
+    double total = 0.0;
+
+    for (ItemRequisicao item : this.itens) {
+        total += item.getCustoSubtotal();
     }
+
+    this.custoTotalProjetado = total;
+    return total;
+}
 
     // Mantendo a sua lógica original de FinOps!
     public void processarRoteamento(Departamento departamento) {

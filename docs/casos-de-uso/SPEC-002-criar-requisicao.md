@@ -26,5 +26,37 @@
 * **Quando** o usuário solicita a criação da requisição
 * **Então** o sistema gera a requisição com o status `INICIAL` e calcula o valor total corretamente com base nos itens.
 
+**Cenário 2: Total atualizado após adicionar outro item**
+* **Dado** uma requisição em status `INICIAL`, contendo duas unidades de um recurso de R$ 1.500,00, com total de R$ 3.000,00
+* **Quando** são adicionadas três unidades de outro recurso de R$ 200,00
+* **Então** o total passa a ser R$ 3.600,00 e o status permanece `INICIAL`.
+
+**Cenário 3: Recálculo sem duplicação**
+* **Dado** uma requisição cujo total dos itens é R$ 3.600,00
+* **Quando** o cálculo do total é executado novamente sem alteração dos itens
+* **Então** o valor retornado e o total armazenado permanecem R$ 3.600,00.
+
 ## Questões em Aberto
 * **OPEN-01:** O mecanismo de persistência (SGBD relacional ou NoSQL) ainda não foi definido pela arquitetura. A implementação atual utilizará repositórios em memória ou interfaces (Ports) para isolar essa decisão.
+
+## Registro de Verificação — Issue #26
+
+**Data:** 08/10/2026  
+**Forma de execução:** comando Run do VS Code, executando a classe `Main`.  
+**Ambiente observado:** Eclipse Adoptium JDK 25.0.2.  
+**Evidência:** saída da execução local compartilhada pelo responsável pela alteração.
+
+Verificações executadas:
+- Total inicial de duas unidades de R$ 1.500,00: R$ 3.000,00.
+- Status inicial da requisição: `INICIAL`.
+- Total após adicionar três unidades de R$ 200,00: R$ 3.600,00.
+- Recálculo sem alteração dos itens: valor retornado e armazenado de R$ 3.600,00.
+- Status após adicionar itens: `INICIAL`.
+
+**Resultado:** as cinco verificações passaram.
+
+**Limite da verificação:** execução de verificações programadas em `Main.java`, sem framework de testes. Não comprova validação de orçamento, persistência ou atendimento a todas as invariantes da Spec.
+
+**Arquivos envolvidos:**
+- `src/main/java/br/mackenzie/finops/dominio/entidades/Requisicao.java`
+- `src/main/java/br/mackenzie/finops/aplicacao/Main.java`
