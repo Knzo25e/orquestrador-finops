@@ -36,8 +36,12 @@
 * **Quando** o cálculo do total é executado novamente sem alteração dos itens
 * **Então** o valor retornado e o total armazenado permanecem R$ 3.600,00.
 
-## Questões em Aberto
-* **OPEN-01:** O mecanismo de persistência (SGBD relacional ou NoSQL) ainda não foi definido pela arquitetura. A implementação atual utilizará repositórios em memória ou interfaces (Ports) para isolar essa decisão.
+## Decisões e Pendências de Persistência
+
+* **OPEN-01 — Resolvida quanto à escolha do SGBD:** MySQL foi definido como banco relacional do projeto, conforme o ADR-002 em [arquitetura.md](../arquitetura.md).
+* **Estratégia inicial:** O ADR-002 prevê repositórios em memória, isolados por interfaces, nas fases iniciais de validação do domínio. Essa decisão não comprova que esses repositórios já estejam implementados.
+* **Limite desta Spec:** A persistência definitiva em banco de dados continua fora do escopo da SPEC-002, conforme sua seção de escopo.
+* **Trabalho posterior:** A implementação e a verificação da persistência entre sessões serão detalhadas na Spec 005 do [mapa de Specs](../mapa-de-specs.md).
 
 ## Registro de Verificação — Issue #26
 
