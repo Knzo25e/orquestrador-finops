@@ -4,10 +4,10 @@
 O sistema adota uma arquitetura em camadas (Layers) baseada nos princípios de Clean Architecture. O objetivo principal é garantir que as regras de negócio de aprovação de orçamento sejam isoladas da infraestrutura, frameworks (como Spring Boot) e interface de usuário.
 
 ## 2. Drivers Arquiteturais (DA)
-* **DA-01. Consistência do Saldo:** (Origem: RB-02, RF-02). Na aprovação automática, a validação e o desconto devem preservar o saldo não negativo do Departamento, inclusive em cenários de concorrência. O tratamento financeiro da aprovação manual acima do saldo está pendente em OPEN-ARQ-01.
-* **DA-02. Isolamento do Domínio:** (Origem: RB-02, RB-03). As regras de validação e roteamento da requisição precisam rodar de forma independente da UI e do banco de dados para garantir alta testabilidade.
-* **DA-03. Intervenção Manual de Exceções:** (Origem: RF-03). O fluxo precisa de um mecanismo para pausar o estado de uma requisição para aprovação assíncrona do Arquiteto.
-* **DA-04. Auditabilidade de Decisões Financeiras:** (Origem: RF-05). A exigência de um histórico imutável afeta diretamente a persistência. Não podemos apenas sobrescrever o status da requisição atualizando a mesma linha no banco; precisamos adotar uma tabela de log (append-only) para garantir a rastreabilidade das aprovações manuais do Arquiteto Cloud em caso de auditoria financeira.
+* **DA-01. Consistência do Saldo:** (Origem: RF-02, RF-04, RB-02, RB-03, RB-04 e RB-05). Toda liberação deve verificar o saldo e comprometer o valor de forma consistente, inclusive em concorrência, impedindo saldo negativo e comprometimento duplicado da mesma requisição. Alterações de teto devem preservar os compromissos existentes e rejeitar reduções abaixo desse valor.
+* **DA-02. Isolamento do Domínio:** (Origem: RB-02, RB-03, RB-04 e RB-05). As regras de validação, alteração de teto e transição de estados precisam permanecer independentes da interface, do framework e do banco de dados.
+* **DA-03. Separação entre Aprovação Técnica e Liberação:** (Origem: RF-03, RF-04 e RB-03). A aprovação técnica encaminha a requisição para AGUARDANDO_AJUSTE_ORCAMENTARIO sem comprometer saldo. O fluxo deve permitir espera por ajuste autorizado e posterior revalidação antes da liberação.
+* **DA-04. Auditabilidade das Intervenções:** (Origem: RF-05). Aprovações técnicas, rejeições e ajustes orçamentários devem produzir registros imutáveis com ação, responsável, data, justificativa e departamento ou requisição afetada. Ajustes devem registrar teto anterior, novo teto e valor do ajuste. A tabela de log append-only prevista deve preservar o histórico, em vez de apenas sobrescrever o estado atual.
 
 ## 3. Decisões Técnicas (DT) e ADRs
 * **DT-01:** Utilização de Arquitetura em Camadas, isolando as entidades do framework (Responde a DA-02). -> *Requer ADR (Difícil reversão)*
@@ -69,16 +69,26 @@ O sistema adota uma arquitetura em camadas (Layers) baseada nos princípios de C
 * **Situação de implementação:** A decisão está documentada; a implementação dos stubs não foi identificada no código analisado.
 
 
-## 4. Questões Arquiteturais em Aberto
+## 4. Registro de Resolução de Questões
 
 ### OPEN-ARQ-01 — Efeito da aprovação manual sobre o saldo
 
-**Referências:** RB-02, RB-03, RF-02, RF-03 e DA-01.
+**Referências:** Issue #31; RF-02, RF-03, RF-04, RF-05; RB-02, RB-03, RB-04 e RB-05.
 
-**Dúvida:** A RB-03 permite que o Arquiteto Cloud aprove uma requisição acima do saldo disponível mediante justificativa. A documentação ainda não define como essa aprovação afeta o saldo e o orçamento do Departamento.
+**Status:** Decisão definida em 08/10/2026; implementação pendente.
 
-**Decisão necessária:** Definir se a aprovação excepcional permite saldo negativo, exige ajuste prévio do orçamento ou utiliza outro tratamento financeiro explicitamente aprovado pela equipe.
+**Questão original:** Como tratar a aprovação de uma solicitação cujo custo excede o saldo disponível, preservando a consistência financeira?
 
-**Status:** Pendente de decisão da equipe; consultar o professor se necessário.
+**Decisão:** Manter dois perfis no MVP: Desenvolvedor e Arquiteto Cloud. O Arquiteto Cloud acumula a análise técnica e a gestão orçamentária, executadas como ações separadas.
 
-**Impacto:** A definição deve anteceder a implementação do efeito financeiro da aprovação manual. As alternativas acima são possibilidades para discussão, não decisões tomadas.
+A aprovação técnica não altera o orçamento, não compromete saldo e não autoriza provisionamento. A requisição passa para AGUARDANDO_AJUSTE_ORCAMENTARIO.
+
+A liberação depende de ajuste orçamentário autorizado pelo Arquiteto Cloud, devidamente auditado, seguido de revalidação do saldo. Se o saldo continuar insuficiente, a requisição permanece aguardando. Se suficiente, a liberação deve respeitar a operação consistente e a proteção contra comprometimento duplicado da RB-05.
+
+**Regra complementar — OPEN-MAPA-01:** Alterar o teto preserva o valor comprometido e recalcula o saldo disponível. Reduções abaixo do valor comprometido são rejeitadas, mantendo os valores anteriores e explicando o motivo, conforme RB-04.
+
+**Justificativa do recorte:** Manter os dois perfis existentes reduz a complexidade do MVP acadêmico, preservando a distinção entre aprovação técnica e autorização de orçamento.
+
+**Limitação assumida:** A mesma pessoa pode aprovar tecnicamente uma solicitação e autorizar o ajuste do orçamento. Não há segregação dessas responsabilidades entre pessoas distintas no MVP. Um perfil Financeiro separado é uma possibilidade futura, fora do escopo atual.
+
+**Situação de implementação:** Este registro documenta a decisão. Não comprova implementação do novo estado, do ajuste de teto, da auditoria ou da revalidação.
