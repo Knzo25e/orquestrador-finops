@@ -64,3 +64,30 @@ Verificações executadas:
 **Arquivos envolvidos:**
 - `src/main/java/br/mackenzie/finops/dominio/entidades/Requisicao.java`
 - `src/main/java/br/mackenzie/finops/aplicacao/Main.java`
+
+## Registro de Verificação — Issue #33
+
+**Data:** 09/10/2026.
+**Forma de execução:** Run do VS Code, executando a classe Main.
+**Ambiente observado:** Eclipse Adoptium JDK 25.0.2.
+**Evidência:** saída da execução local compartilhada pelo responsável pela alteração.
+
+### Correção realizada
+
+O construtor de Requisicao passou a rejeitar departamento nulo com IllegalArgumentException, protegendo a invariante mesmo quando a entidade é criada diretamente, sem passar pelo caso de uso.
+
+### Novas verificações
+
+- A criação válida preserva o departamento informado.
+- O construtor rejeita departamento nulo.
+- O caso de uso rejeita departamento nulo.
+- O caso de uso rejeita lista de itens nula.
+- O caso de uso rejeita lista de itens vazia.
+
+### Resultado
+
+As cinco novas verificações e as cinco verificações anteriores de cálculo e status passaram, totalizando dez verificações.
+
+### Limites
+
+As verificações foram executadas em Main.java, sem framework de testes. Não comprovam atendimento integral à SPEC-002, validação completa dos itens, proteção da lista interna, controle orçamentário, concorrência ou persistência.

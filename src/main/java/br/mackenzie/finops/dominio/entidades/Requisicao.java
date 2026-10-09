@@ -14,15 +14,19 @@ public class Requisicao {
     private String justificativaArquiteto;
     private List<ItemRequisicao> itens; // Exigência para o Caso de Uso
 
-    // Novo construtor adaptado para obedecer à Spec 002
     public Requisicao(Departamento departamento) {
-        this.id = UUID.randomUUID();
-        this.departamento = departamento;
-        this.status = "INICIAL"; // Status padronizado pela documentação
-        this.custoTotalProjetado = 0.0;
-        this.itens = new ArrayList<>();
+    if (departamento == null) {
+        throw new IllegalArgumentException(
+                "Uma requisição não pode ser criada sem um departamento solicitante."
+        );
     }
 
+    this.id = UUID.randomUUID();
+    this.departamento = departamento;
+    this.status = "INICIAL";
+    this.custoTotalProjetado = 0.0;
+    this.itens = new ArrayList<>();
+}
     public void adicionarItem(ItemRequisicao item) {
     this.itens.add(item);
     calcularTotalProjetado();
