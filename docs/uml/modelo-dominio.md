@@ -52,7 +52,7 @@ A entidade associativa que vincula o pedido ao catálogo, especificando o volume
 | `quantidade` | Integer | Quantas instâncias daquele recurso específico foram pedidas. |
 | `custoSubtotal` | Double | O `custoMensal` do recurso multiplicado pela `quantidade`. |
 
-## 3. Responsabilidades previstas — Issue #31
+## 3. Responsabilidades previstas — Issues #31 e #35
 
 Este modelo descreve o comportamento esperado do domínio. Não comprova que todas as regras e operações estejam implementadas.
 
@@ -61,27 +61,54 @@ Este modelo descreve o comportamento esperado do domínio. Não comprova que tod
 - Preservar o valor já comprometido ao alterar o teto mensal.
 - Recalcular o saldo disponível conforme RB-04.
 - Rejeitar um novo teto inferior ao valor comprometido, mantendo os valores anteriores e informando o motivo.
+- Participar da avaliação da reserva, calculada inicialmente como 10% do orçamento mensal.
 - Participar da verificação e do comprometimento consistente do saldo na liberação, conforme RB-05.
 
-O valor comprometido corresponde aos custos estimados das requisições já liberadas no período considerado. Não representa uma fatura real da AWS. Sua representação técnica será definida na Spec de implementação.
+O valor comprometido corresponde aos custos estimados das requisições já liberadas no período considerado. Não representa uma fatura real da AWS.
+
+A reserva utiliza o teto mensal como base, não o saldo restante. Alterações do teto afetam o valor da reserva considerado nas avaliações seguintes.
+
+A representação técnica do valor comprometido, da reserva e de seu percentual será definida nas Specs de implementação. A abrangência da configuração do percentual permanece em OPEN-003-04; este modelo não presume que ela seja um atributo de cada departamento.
 
 ### Requisição
 
-- Manter o fluxo automático de validação descrito no UC-02.
-- Encaminhar pedidos sem saldo suficiente para "Revisão Pendente", sem desconto.
-- Após aprovação técnica justificada, permanecer em AGUARDANDO_AJUSTE_ORCAMENTARIO, sem comprometer saldo ou autorizar provisionamento.
-- Para pedidos nesse estado, permitir liberação somente após ajuste orçamentário autorizado e revalidação com saldo suficiente.
-- Permanecer aguardando se a revalidação encontrar saldo insuficiente.
-- Registrar a rejeição conforme RF-03.
+- Utilizar exclusivamente o departamento vinculado ao pedido na validação orçamentária.
+- Manter o fluxo automático descrito no UC-02 e na SPEC-003.
+- Permitir aprovação automática somente quando o custo couber no saldo e o saldo após o pedido ficar estritamente acima da reserva.
+- Encaminhar pedidos para Revisão Pendente, sem desconto, quando faltar saldo ou quando a liberação atingir ou consumir a reserva.
+- Tornar identificável o motivo do encaminhamento: insuficiência de saldo ou utilização da reserva.
+- Registrar aprovação técnica ou rejeição conforme RF-03.
+- Após aprovação técnica, não comprometer saldo nem autorizar provisionamento por esse ato isolado.
+- Encaminhar pedidos aprovados tecnicamente para AGUARDANDO_AJUSTE_ORCAMENTARIO quando faltar saldo.
+- Encaminhar pedidos aprovados tecnicamente para AGUARDANDO_AUTORIZACAO_FINANCEIRA quando houver saldo suficiente, mas a liberação depender de autorização para utilizar a reserva.
+- Exigir ajuste autorizado quando faltar saldo e autorização explícita quando a liberação atingir ou consumir a reserva vigente.
+- Revalidar as condições financeiras antes da liberação, respeitando RB-05.
 - Preservar o estado e o comprometimento de uma requisição já liberada quando houver repetição de processamento.
 
-A aprovação técnica e o ajuste do teto são ações separadas. No MVP, ambas são realizadas pelo perfil Arquiteto Cloud e devem ser auditadas conforme RF-05.
+Os estados e as transições seguem a seção 3.3 de spec.md. Os casos manuais ainda não definidos permanecem em OPEN-003-05 e deverão ser detalhados na Spec 009.
 
-As assinaturas das novas operações serão definidas nas Specs de implementação. A autorização dos usuários e a coordenação da auditoria devem respeitar a arquitetura em camadas.
+### Separação de responsabilidades
+
+A aprovação técnica, o ajuste do teto e a autorização de uso da reserva são ações separadas. No MVP, são realizadas pelo perfil Arquiteto Cloud e devem ser auditadas conforme RF-05.
+
+A autorização para utilizar a reserva não permite saldo negativo. O aumento do teto não é obrigatório quando já existe saldo suficiente e o impedimento é apenas a utilização da reserva.
+
+A autorização dos usuários e a coordenação da auditoria devem respeitar a arquitetura em camadas. O domínio permanece responsável pelas regras financeiras e pelas mudanças de estado.
+
+### Limites da representação atual
+
+As assinaturas das novas operações serão definidas nas Specs de implementação.
+
+Os tipos Double apresentados no dicionário refletem a modelagem existente. A representação monetária e o arredondamento da reserva permanecem pendentes em OPEN-003-01.
+
+A verificação isolada de disponibilidade de saldo não é suficiente para aprovar automaticamente: a condição de reserva também deve ser atendida.
+
+A consistência em concorrência depende do mecanismo e do alcance a definir em OPEN-003-02.
 
 ### Referências
 
 - Requisitos, regras e estados: [spec.md](../spec.md).
 - Decisões financeiras: seção 4 de [arquitetura.md](../arquitetura.md).
-- Validação automática: [UC-02](../casos-de-uso/UC-02-validacao-orcamento.md).
-- Planejamento das Specs 003, 008 e 009: [mapa-de-specs.md](../mapa-de-specs.md).
+- Caso de uso: [UC-02](../casos-de-uso/UC-02-validacao-orcamento.md).
+- Critérios da validação automática: [SPEC-003](../casos-de-uso/SPEC-003-validar-orcamento.md).
+- Planejamento das Specs: [mapa-de-specs.md](../mapa-de-specs.md).
