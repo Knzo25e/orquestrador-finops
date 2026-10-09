@@ -38,7 +38,7 @@ A reserva inicial de 10% do orçamento mensal foi aprovada pela equipe, conforme
 
 A reserva é uma referência para encaminhamento à revisão, não uma proibição absoluta de utilização do saldo. Seu cálculo utiliza o teto mensal, não o saldo restante.
 
-As permissões, os limites, a abrangência e a auditoria da configuração do percentual ainda serão detalhados em OPEN-003-04 da SPEC-003. A política de precisão e arredondamento permanece em OPEN-003-01.
+As permissões, os limites, a abrangência e a auditoria da configuração do percentual ainda serão detalhados em OPEN-003-04 da SPEC-003. As decisões de precisão e arredondamento foram definidas na Issue #37 e registradas em OPEN-003-01; o cálculo da reserva permanece pendente de implementação.
 
 A regra está documentada; sua implementação e seus testes permanecem pendentes.
 
@@ -59,20 +59,20 @@ Representa um item de infraestrutura disponível para contratação.
   * cpu: Integer
   * ram: Integer (GB)
   * armazenamento: Integer (GB)
-  * custoMensal: Double
+  * custoMensal: BigDecimal
 * **Operações:**
-  * atualizarCusto(novoValor: Double)
+  * atualizarCusto(novoValor: BigDecimal)
 
 **Entidade: Departamento**
 Representa o centro de custos ao qual os desenvolvedores pertencem.
 * **Atributos:**
   * id: UUID
   * nome: String
-  * orcamentoMensal: Double
-  * saldoDisponivel: Double
+  * orcamentoMensal: BigDecimal
+  * saldoDisponivel: BigDecimal
 * **Operações:**
-  * descontarSaldo(valor: Double): void
-  * verificarDisponibilidade(valor: Double): boolean
+  * descontarSaldo(valor: BigDecimal): void
+  * verificarDisponibilidade(valor: BigDecimal): boolean
 * **Responsabilidades previstas pela Issue #31:**
   * Alterar o teto mensal preservando o valor já comprometido.
   * Recalcular o saldo disponível conforme RB-04.
@@ -87,10 +87,10 @@ Representa o pedido submetido pelo Desenvolvedor.
   * id: UUID
   * desenvolvedorId: UUID
   * status: String — estados e transições definidos na seção 3.3.
-  * custoTotalProjetado: Double
+  * custoTotalProjetado: BigDecimal
   * justificativaArquiteto: String
 * **Operações:**
-  * calcularTotalProjetado(): Double
+  * calcularTotalProjetado(): BigDecimal
   * aprovarAutomaticamente(): void
   * enviarParaRevisao(): void
 * **Responsabilidades previstas pelas Issues #31 e #35:**
@@ -110,7 +110,7 @@ Vincula o recurso solicitado à quantidade desejada nesta requisição específi
 * **Atributos:**
   * id: UUID
   * quantidade: Integer
-  * custoSubtotal: Double
+  * custoSubtotal: BigDecimal
 
 ### 3.3. Estados e Transições da Requisição
 
