@@ -56,7 +56,8 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
 - **OPEN-MAPA-03:** Localizar ou elaborar o caso de uso UC-01 referenciado pela SPEC-002; o documento não foi encontrado no material analisado.
 - Padronizar versões do Java, Spring Boot e ferramenta de build antes da integração do framework.
 - Conferir a cobertura integral dos requisitos e a ordem de execução na revisão do grupo.
-- **OPEN-003-01 a OPEN-003-05:** detalhar entradas e precisão financeira, concorrência, protocolo de desempenho, configuração do percentual e continuidade manual, conforme a SPEC-003. A atribuição da configuração do percentual a uma Spec de implementação ainda precisa ser definida.
+- **OPEN-003-01:** decisões sobre entradas e precisão financeira definidas na Issue #37, com validações e migração monetária verificadas localmente; aplicação do arredondamento ao cálculo da reserva ainda pendente.
+- **OPEN-003-02 a OPEN-003-05:** detalhar concorrência, protocolo de desempenho, configuração do percentual e continuidade manual, conforme a SPEC-003. A atribuição da configuração do percentual a uma Spec de implementação ainda precisa ser definida.
 
 
 ## Governança e evidências

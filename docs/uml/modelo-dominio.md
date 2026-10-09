@@ -17,8 +17,8 @@ Representa o centro de custos que agrupa os desenvolvedores, definindo e control
 | :--- | :--- | :--- |
 | `id` | UUID | Identificador único do departamento. |
 | `nome` | String | Nome do setor (ex: "Marketing", "Engenharia"). |
-| `orcamentoMensal` | Double | Limite total de gastos estabelecido pela empresa para o mês. |
-| `saldoDisponivel` | Double | Orçamento mensal menos o valor já comprometido. A aprovação técnica, isoladamente, não altera esse saldo. |
+| `orcamentoMensal` | BigDecimal | Limite total de gastos estabelecido pela empresa para o mês. |
+| `saldoDisponivel` | BigDecimal | Orçamento mensal menos o valor já comprometido. A aprovação técnica, isoladamente, não altera esse saldo. |
 | `descontarSaldo(valor)` | void | Deduz o valor na liberação orçamentária da requisição, respeitando a consistência e a proteção contra desconto duplicado previstas na RB-05. |
 | `verificarDisponibilidade(valor)` | boolean | Retorna verdadeiro se o saldo disponível cobrir o valor recebido como parâmetro. |
 
@@ -30,8 +30,8 @@ O pedido central submetido pelo Desenvolvedor, que trafega pela máquina de esta
 | `id` | UUID | Identificador único da requisição. |
 | `desenvolvedorId` | UUID | Referência ao usuário solicitante. |
 | `status` | String | Estado atual da requisição, conforme os estados e as transições definidos na seção 3.3 de [spec.md](../spec.md). |
-| `custoTotalProjetado` | Double | Soma do custo subtotal de todos os itens vinculados. |
-| `calcularTotalProjetado()`| Double | Itera sobre os itens do pedido e atualiza o custo total. |
+| `custoTotalProjetado` | BigDecimal | Soma do custo subtotal de todos os itens vinculados. |
+| `calcularTotalProjetado()`| BigDecimal | Itera sobre os itens do pedido e atualiza o custo total. |
 | `aprovarAutomaticamente()`| void | Altera o status para liberado e aciona o desconto do saldo. |
 | `enviarParaRevisao()` | void | Bloqueia o pedido para análise manual do Arquiteto Cloud. |
 
@@ -42,7 +42,7 @@ O "cardápio" fixo de infraestrutura mantido pela equipe de governança/FinOps.
 | :--- | :--- | :--- |
 | `id` | UUID | Identificador único do recurso. |
 | `nome` | String | Descrição do recurso (ex: "Banco de Dados 16GB"). |
-| `custoMensal` | Double | O preço interno fixado (Chargeback) para o consumo daquele recurso. |
+| `custoMensal` | BigDecimal | O preço interno fixado (Chargeback) para o consumo daquele recurso. |
 
 **ItemRequisicao**
 A entidade associativa que vincula o pedido ao catálogo, especificando o volume solicitado.
@@ -50,7 +50,7 @@ A entidade associativa que vincula o pedido ao catálogo, especificando o volume
 | Atributo / Método | Tipo | Descrição |
 | :--- | :--- | :--- |
 | `quantidade` | Integer | Quantas instâncias daquele recurso específico foram pedidas. |
-| `custoSubtotal` | Double | O `custoMensal` do recurso multiplicado pela `quantidade`. |
+| `custoSubtotal` | BigDecimal | O `custoMensal` do recurso multiplicado pela `quantidade`. |
 
 ## 3. Responsabilidades previstas — Issues #31 e #35
 
@@ -99,7 +99,7 @@ A autorização dos usuários e a coordenação da auditoria devem respeitar a a
 
 As assinaturas das novas operações serão definidas nas Specs de implementação.
 
-Os tipos Double apresentados no dicionário refletem a modelagem existente. A representação monetária e o arredondamento da reserva permanecem pendentes em OPEN-003-01.
+Os valores monetários utilizam BigDecimal, com duas casas decimais e rejeição de entradas com frações de centavo, conforme a Issue #37. A política de arredondamento da reserva foi definida como HALF_UP para duas casas decimais; sua aplicação permanece pendente na implementação do cálculo da reserva.
 
 A verificação isolada de disponibilidade de saldo não é suficiente para aprovar automaticamente: a condição de reserva também deve ser atendida.
 

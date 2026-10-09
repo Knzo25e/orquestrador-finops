@@ -91,7 +91,7 @@ Uma nova tentativa sobre uma requisição já liberada segue o tratamento de rep
 
 A ausência de autenticação nesta etapa não comprova atendimento integral ao RNF-02. O fluxo deve utilizar o departamento da requisição e não aceitar outro departamento para substituí-lo.
 
-As validações das entradas financeiras e a política de precisão estão pendentes em OPEN-003-01.
+As regras de validação das entradas financeiras e a política de precisão foram definidas na Issue #37, conforme OPEN-003-01. As validações e a migração para BigDecimal foram implementadas nesta branch; o cálculo da reserva permanece pendente.
 
 ## Fluxo Principal
 
@@ -334,11 +334,39 @@ A ferramenta e a organização dos testes serão definidas na preparação da im
 
 ### OPEN-003-01 — Entradas e precisão financeira
 
-Definir limites aceitos para quantidades, custos, subtotais e teto, incluindo zero, valores negativos, nulos e não finitos.
+**Status:** decisões definidas na Issue #37; validações e migração monetária implementadas nesta branch. O cálculo da reserva com a política abaixo permanece para a implementação da SPEC-003.
 
-Definir a representação monetária e a regra de arredondamento da reserva quando o percentual produzir frações de centavo.
+#### Decisões
 
-O código atual utiliza Double e Departamento não rejeita desconto negativo. A implementação deverá tratar essas limitações antes de considerar o fluxo seguro para entradas externas.
+- O recurso de um item é obrigatório.
+- A quantidade é obrigatória e deve ser um inteiro maior que zero.
+- O custo mensal e o teto mensal são obrigatórios e não negativos.
+- Recursos gratuitos e departamentos com teto zero são permitidos.
+- Valores monetários utilizam BigDecimal, normalizados para duas casas decimais.
+- Entradas com frações de centavo são rejeitadas, sem arredondamento silencioso. Zeros adicionais são aceitos: 1.230 equivale a 1.23.
+- A reserva calculada deverá ser arredondada para duas casas decimais com HALF_UP.
+- Entradas inválidas devem produzir IllegalArgumentException com mensagem explicativa.
+- Consultas e descontos rejeitam valores nulos, negativos ou com frações de centavo.
+- Descontos acima do saldo são rejeitados sem alterar o saldo.
+- Pedidos gratuitos continuam sujeitos à condição de reserva da RB-02.
+
+#### Verificação — Issue #37
+
+**Data:** 09/10/2026.
+**Execução:** Run do VS Code.
+**Ambiente observado:** Eclipse Adoptium JDK 25.0.2.
+**Evidência:** saída de execução local compartilhada pelo responsável pela alteração.
+
+- Main: dez verificações anteriores adaptadas para BigDecimal, todas aprovadas.
+- VerificarValoresMonetarios: 34 verificações aprovadas, abrangendo entradas inválidas, valores zero, precisão decimal e preservação dos dados após rejeições.
+
+#### Limites
+
+As verificações foram executadas por classes Java com método main, sem framework de testes.
+
+Não comprovam implementação da reserva ou de seu arredondamento, consistência concorrente, proteção completa contra comprometimento duplicado, persistência ou atendimento integral à SPEC-003.
+
+A lista interna de itens ainda é exposta por getItens(); sua proteção permanece pendente. As validações de adicionarItem não impedem alterações realizadas diretamente nessa lista.
 
 ### OPEN-003-02 — Concorrência e estado Em Analise
 

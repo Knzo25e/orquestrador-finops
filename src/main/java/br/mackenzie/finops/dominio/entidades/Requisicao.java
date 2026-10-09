@@ -1,49 +1,56 @@
 package br.mackenzie.finops.dominio.entidades;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class Requisicao {
-    
     private UUID id;
-    private Departamento departamento; // Exigência da Spec 002
+    private Departamento departamento;
     private UUID desenvolvedorId;
     private String status;
-    private Double custoTotalProjetado;
+    private BigDecimal custoTotalProjetado;
     private String justificativaArquiteto;
-    private List<ItemRequisicao> itens; // Exigência para o Caso de Uso
+    private List<ItemRequisicao> itens;
 
     public Requisicao(Departamento departamento) {
-    if (departamento == null) {
-        throw new IllegalArgumentException(
-                "Uma requisição não pode ser criada sem um departamento solicitante."
-        );
+        if (departamento == null) {
+            throw new IllegalArgumentException(
+                    "Uma requisição não pode ser criada sem um departamento solicitante."
+            );
+        }
+
+        this.id = UUID.randomUUID();
+        this.departamento = departamento;
+        this.status = "INICIAL";
+        this.custoTotalProjetado = new BigDecimal("0.00");
+        this.itens = new ArrayList<>();
     }
 
-    this.id = UUID.randomUUID();
-    this.departamento = departamento;
-    this.status = "INICIAL";
-    this.custoTotalProjetado = 0.0;
-    this.itens = new ArrayList<>();
-}
     public void adicionarItem(ItemRequisicao item) {
-    this.itens.add(item);
-    calcularTotalProjetado();
-}
+        if (item == null) {
+            throw new IllegalArgumentException(
+                    "O item da requisição é obrigatório."
+            );
+        }
 
-public Double calcularTotalProjetado() {
-    double total = 0.0;
-
-    for (ItemRequisicao item : this.itens) {
-        total += item.getCustoSubtotal();
+        this.itens.add(item);
+        calcularTotalProjetado();
     }
 
-    this.custoTotalProjetado = total;
-    return total;
-}
+    public BigDecimal calcularTotalProjetado() {
+        BigDecimal total = new BigDecimal("0.00");
 
-    // Mantendo a sua lógica original de FinOps!
+        for (ItemRequisicao item : this.itens) {
+            total = total.add(item.getCustoSubtotal());
+        }
+
+        this.custoTotalProjetado = total;
+        return total;
+    }
+
+    // Roteamento existente; ainda não implementa a reserva da SPEC-003.
     public void processarRoteamento(Departamento departamento) {
         if (departamento.verificarDisponibilidade(this.custoTotalProjetado)) {
             aprovarAutomaticamente(departamento);
@@ -61,10 +68,23 @@ public Double calcularTotalProjetado() {
         this.status = "Revisao Pendente";
     }
 
-    // Getters
-    public UUID getId() { return id; }
-    public String getStatus() { return status; }
-    public Double getCustoTotalProjetado() { return custoTotalProjetado; }
-    public Departamento getDepartamento() { return departamento; }
-    public List<ItemRequisicao> getItens() { return itens; }
+    public UUID getId() {
+        return id;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public BigDecimal getCustoTotalProjetado() {
+        return custoTotalProjetado;
+    }
+
+    public Departamento getDepartamento() {
+        return departamento;
+    }
+
+    public List<ItemRequisicao> getItens() {
+        return itens;
+    }
 }

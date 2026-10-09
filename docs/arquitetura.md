@@ -124,7 +124,7 @@ A reserva é uma referência de governança para aprovação automática, não u
 #### Pendências e implementação
 
 - A configuração do percentual, suas permissões, limites, abrangência e auditoria permanecem em OPEN-003-04.
-- A representação monetária e o arredondamento permanecem em OPEN-003-01.
+- A representação monetária utiliza BigDecimal. As decisões de precisão e arredondamento foram definidas na Issue #37, conforme OPEN-003-01. A aplicação do arredondamento ao cálculo da reserva permanece pendente de implementação.
 - O mecanismo e o alcance da consistência concorrente permanecem em OPEN-003-02.
 - Os casos manuais ainda não definidos permanecem em OPEN-003-05.
 

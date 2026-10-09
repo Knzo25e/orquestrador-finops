@@ -1,34 +1,90 @@
 package br.mackenzie.finops.dominio.entidades;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 public class Departamento {
     private UUID id;
     private String nome;
-    private Double orcamentoMensal;
-    private Double saldoDisponivel;
+    private BigDecimal orcamentoMensal;
+    private BigDecimal saldoDisponivel;
 
-    public Departamento(UUID id, String nome, Double orcamentoMensal) {
+    public Departamento(UUID id, String nome, BigDecimal orcamentoMensal) {
+        BigDecimal orcamentoValidado = validarValorMonetario(
+                orcamentoMensal,
+                "O orçamento mensal"
+        );
+
         this.id = id;
         this.nome = nome;
-        this.orcamentoMensal = orcamentoMensal;
-        this.saldoDisponivel = orcamentoMensal;
+        this.orcamentoMensal = orcamentoValidado;
+        this.saldoDisponivel = orcamentoValidado;
     }
 
-    public boolean verificarDisponibilidade(Double valor) {
-        return this.saldoDisponivel >= valor;
+    public boolean verificarDisponibilidade(BigDecimal valor) {
+        BigDecimal valorValidado = validarValorMonetario(
+                valor,
+                "O valor da consulta"
+        );
+
+        return this.saldoDisponivel.compareTo(valorValidado) >= 0;
     }
 
-    public void descontarSaldo(Double valor) {
-        if (verificarDisponibilidade(valor)) {
-            this.saldoDisponivel -= valor;
-        } else {
-            throw new IllegalArgumentException("Saldo insuficiente para aprovação automática.");
+    public void descontarSaldo(BigDecimal valor) {
+        BigDecimal valorValidado = validarValorMonetario(
+                valor,
+                "O valor do desconto"
+        );
+
+        if (this.saldoDisponivel.compareTo(valorValidado) < 0) {
+            throw new IllegalArgumentException(
+                    "Saldo insuficiente para o desconto."
+            );
+        }
+
+        this.saldoDisponivel = this.saldoDisponivel.subtract(valorValidado);
+    }
+
+    private static BigDecimal validarValorMonetario(
+            BigDecimal valor,
+            String campo
+    ) {
+        if (valor == null) {
+            throw new IllegalArgumentException(
+                    campo + " é obrigatório."
+            );
+        }
+
+        if (valor.signum() < 0) {
+            throw new IllegalArgumentException(
+                    campo + " não pode ser negativo."
+            );
+        }
+
+        try {
+            return valor.setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException excecao) {
+            throw new IllegalArgumentException(
+                    campo + " não pode conter frações de centavo.",
+                    excecao
+            );
         }
     }
 
-    public UUID getId() { return id; }
-    public String getNome() { return nome; }
-    public Double getOrcamentoMensal() { return orcamentoMensal; }
-    public Double getSaldoDisponivel() { return saldoDisponivel; }
+    public UUID getId() {
+        return id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public BigDecimal getOrcamentoMensal() {
+        return orcamentoMensal;
+    }
+
+    public BigDecimal getSaldoDisponivel() {
+        return saldoDisponivel;
+    }
 }
