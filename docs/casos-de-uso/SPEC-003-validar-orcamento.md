@@ -274,7 +274,7 @@ Proposta vinculada à alternativa A3:
 
 A validação automática deve terminar em menos de dois segundos, conforme RNF-01.
 
-O protocolo de medição será definido em OPEN-003-03.
+O protocolo de medição está definido em OPEN-003-03. Os resultados das três execuções estão no Registro de Desempenho — Issue #41.
 
 ### C10 — Pedido imediatamente abaixo do limite de revisão
 
@@ -390,9 +390,62 @@ Essa garantia não abrange múltiplas instâncias da aplicação nem objetos Dep
 
 ### OPEN-003-03 — Protocolo de desempenho
 
-Definir ambiente, quantidade de itens, carga concorrente, número de execuções e pontos de início e fim da medição.
+**Status:** protocolo definido e executado na Issue #41. As três execuções atenderam ao limite do RNF-01/C9 no ambiente e nas cargas documentados, com resultados funcionais corretos.
 
-Uma execução isolada abaixo de dois segundos não comprova desempenho para qualquer carga.
+#### Ambiente
+
+- Windows 10 Pro, versão 10.0.19045.
+- AMD Ryzen 7 5700X, com oito núcleos e 16 processadores lógicos.
+- Memória RAM informada pelo sistema: 15,9 GB.
+- Registrar a versão efetiva do Java em cada execução.
+- Executar sem depurador e registrar interferências relevantes, como outras cargas intensivas no computador.
+
+#### Cargas
+
+Combinar:
+- Requisições com 1, 10 e 100 itens.
+- Liberação, revisão por reserva e revisão por insuficiência de saldo.
+- Execução sequencial e execução com oito tarefas concorrentes compartilhando o mesmo objeto Departamento.
+
+Cada combinação terá 100 validações de aquecimento, excluídas das estatísticas, e 1.000 validações medidas. Essas quantidades são totais por combinação, não por tarefa.
+
+O programa completo será executado três vezes, em processos Java separados.
+
+Cada validação utilizará uma requisição nova. Os dados serão preparados para manter o resultado esperado durante todo o lote. Aquecimento e medição utilizarão lotes independentes.
+
+#### Intervalo medido
+
+A duração será calculada com System.nanoTime(), imediatamente antes da chamada a ValidarOrcamentoUseCase.executar() e imediatamente após seu retorno.
+
+O intervalo inclui a espera pelo bloqueio do departamento e a execução da validação.
+
+Criação das requisições, preparação das tarefas, verificação dos resultados e impressão ficam fora do intervalo medido. A espera na fila do executor, anterior à chamada ao caso de uso, também não integra esta medição.
+
+#### Resultados registrados
+
+Para cada combinação e execução:
+- Quantidade de validações medidas.
+- Mediana.
+- Percentil 95.
+- Duração máxima.
+- Quantidade de validações com duração maior ou igual a dois segundos.
+- Confirmação dos resultados funcionais, estados, motivos de revisão e saldo final.
+
+O percentil 95 utilizará o método do posto mais próximo: ordenar as durações e selecionar a posição correspondente ao teto de 0,95 multiplicado pelo número de amostras.
+
+A mediana, para quantidade par de amostras, será a média dos dois valores centrais.
+
+#### Critério de aceitação
+
+Todas as validações medidas devem terminar em menos de dois segundos e produzir o resultado funcional esperado.
+
+Uma falha funcional invalida a aprovação daquela execução, mesmo que as durações atendam ao limite.
+
+#### Alcance
+
+Os resultados serão evidência do RNF-01/C9 exclusivamente para o ambiente, as cargas e o intervalo medido neste protocolo.
+
+Não comprovam desempenho com banco de dados, API, rede, múltiplas instâncias ou cargas diferentes das exercitadas.
 
 ### OPEN-003-04 — Configuração do percentual
 
@@ -429,7 +482,7 @@ O fluxo automático inicial foi implementado na Issue #39, incluindo reserva, mo
 
 As verificações funcionais e concorrentes estão registradas abaixo. A garantia concorrente considera uma única instância da aplicação com o mesmo objeto Departamento compartilhado pelas requisições.
 
-O desempenho exigido pelo RNF-01 ainda não foi comprovado. O C8 foi exercitado apenas para Revisão Pendente. A configuração editável do percentual e o fluxo manual permanecem pendentes.
+O RNF-01/C9 foi verificado na Issue #41 para o ambiente e as cargas do protocolo documentado. O C8 foi exercitado apenas para Revisão Pendente. A configuração editável do percentual e o fluxo manual permanecem pendentes.
 
 Esses resultados não representam atendimento integral à SPEC-003.
 
@@ -476,7 +529,48 @@ As tarefas aguardaram um sinal comum de início. A ordem de execução não foi 
 - Concorrência verificada em uma única instância da aplicação, compartilhando o mesmo objeto Departamento.
 - Os resultados não comprovam todas as possíveis intercalações de execução.
 - O C8 foi exercitado para Revisão Pendente; os estados exclusivos do fluxo manual não foram exercitados.
-- O RNF-01 e o C9 permanecem sem comprovação, dependendo do protocolo de OPEN-003-03.
+- Na conclusão da Issue #39, o RNF-01/C9 ainda não havia sido medido. A medição posterior está registrada na Issue #41.
 - Os limites de tempo dos testes concorrentes detectam travamentos; não constituem medição de desempenho.
 - Configuração editável do percentual, fluxo manual, persistência, autenticação e interface permanecem fora deste recorte.
 - As verificações utilizam classes com método main, sem framework de testes.
+
+## Registro de Desempenho — Issue #41
+
+**Data:** 13/10/2026.
+**Programa:** MedirDesempenhoOrcamentario.
+**Execução:** três processos Java separados, iniciados pelo Run do VS Code.
+**Java observado:** Eclipse Adoptium 25.0.2.
+**Ambiente:** Windows 10 Pro 10.0.19045; AMD Ryzen 7 5700X, oito núcleos e 16 processadores lógicos; 15,9 GB de RAM.
+**Evidência:** saídas de execução local compartilhadas pelo responsável pela alteração.
+**Interferências externas:** não informadas até este registro.
+
+Cada execução contemplou 18 combinações: três tamanhos de pedido, três resultados de roteamento e dois modos de execução.
+
+Foram realizadas 100 validações de aquecimento e 1.000 validações medidas por combinação, conforme OPEN-003-03.
+
+| Execução | Início UTC | Validações medidas | Máximo observado (ms) | Durações >= 2 s | Resultado funcional |
+|---|---|---:|---:|---:|---|
+| 1 | 2026-10-13T15:59:08.642625800Z | 18000 | 2,4087 | 0 | Todas corretas |
+| 2 | 2026-10-13T16:00:31.120426900Z | 18000 | 3,6951 | 0 | Todas corretas |
+| 3 | 2026-10-13T16:00:55.923233Z | 18000 | 4,2438 | 0 | Todas corretas |
+
+Total: 54.000 validações medidas, além de 5.400 validações de aquecimento.
+
+O maior tempo observado foi 4,2438 ms, na terceira execução, para revisão por insuficiência de saldo com cem itens e oito tarefas.
+
+### Conclusão e alcance
+
+As três execuções atenderam ao critério de duração estritamente inferior a dois segundos por validação, com resultados funcionais corretos.
+
+Esta evidência atende ao RNF-01/C9 dentro do protocolo documentado. Não comprova desempenho para outras cargas, banco de dados, API, rede ou múltiplas instâncias.
+
+A medição inclui a espera pelo bloqueio do departamento, mas exclui criação dos dados, espera anterior à chamada no executor, conferência dos resultados e impressão.
+
+As 54.000 amostras de desempenho são registradas separadamente das 75 verificações anteriores; não representam 54.000 casos de teste distintos.
+
+**Interferências externas:** a carga de outros programas durante as execuções não foi monitorada.
+
+**Saídas completas:**
+- [Execução 1](../evidencias/issue-41/execucao-1.txt)
+- [Execução 2](../evidencias/issue-41/execucao-2.txt)
+- [Execução 3](../evidencias/issue-41/execucao-3.txt)

@@ -40,7 +40,7 @@ A reserva é uma referência para encaminhamento à revisão, não uma proibiç�
 
 As permissões, os limites, a abrangência e a auditoria da configuração do percentual ainda serão detalhados em OPEN-003-04 da SPEC-003. As decisões de precisão e arredondamento foram definidas na Issue #37 e registradas em OPEN-003-01; o cálculo da reserva com HALF_UP foi implementado e verificado localmente na Issue #39.
 
-A implementação inicial da regra de reserva e suas verificações estão registradas na Issue #39. A configuração editável do percentual, o fluxo manual e a comprovação de desempenho permanecem pendentes.
+A implementação inicial da regra de reserva e suas verificações estão registradas na Issue #39. O desempenho foi verificado na Issue #41 para o ambiente e as cargas documentados na SPEC-003. A configuração editável do percentual e o fluxo manual permanecem pendentes.
 
 ## 3. Modelo de Domínio (Entidades Principais)
 
