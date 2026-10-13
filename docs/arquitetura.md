@@ -38,20 +38,25 @@ O sistema adota uma arquitetura em camadas (Layers) baseada nos princípios de C
 * **Alternativas:** O mapa anterior mencionava PostgreSQL e NoSQL. Não há justificativa comparativa registrada para a escolha do MySQL; este ADR não presume que essa avaliação tenha sido realizada.
 * **Situação de implementação:** A decisão tecnológica não comprova que os repositórios em memória ou a integração com MySQL já estejam implementados.
 
-### ADR-003: Java e Spring Boot
+### ADR-003: Java, Spring Boot e padronização do build
 
-* **Status:** Decisão registrada no mapa de Specs; formalizada neste ADR.
-* **Origem:** DECISÃO-01 do mapa de Specs.
-* **Referências:** ADR 01 e DA-02.
-* **Contexto:** O projeto possui entidades e um caso de uso implementados em Java. A evolução da aplicação deve preservar o isolamento das regras de domínio em relação ao framework.
-* **Decisão:** Desenvolver o projeto em Java utilizando Spring Boot, mantendo as entidades de domínio independentes do framework, conforme a arquitetura em camadas já adotada.
+* **Status:** Decisão registrada no mapa de Specs; complementada na Issue #43 com Java 25 e Maven Wrapper.
+* **Origem:** DECISÃO-01 do mapa de Specs e Issue #43.
+* **Referências:** ADR-001, DA-02 e docs/plan.md.
+* **Contexto:** O projeto possui entidades e casos de uso em Java. A compilação e a execução das verificações precisam ser reproduzíveis pelo terminal, preservando o isolamento do domínio em relação ao framework.
+* **Decisão:** Utilizar Java 25 e Maven Wrapper, com Maven 3.10.0 e Wrapper 3.3.4. Fixar as versões dos plugins no pom.xml, compilar com release 25 e utilizar UTF-8. Manter Spring Boot como decisão para integração futura, sem adicioná-lo nesta etapa.
 * **Consequências:**
-  * A configuração do Spring Boot deverá respeitar as dependências entre as camadas.
-  * As regras do domínio deverão continuar verificáveis sem iniciar o framework ou conectar a um banco.
-  * A integração do framework exigirá configuração de dependências e verificação própria.
-* **Alternativas:** Não há avaliação comparativa de frameworks registrada nos materiais analisados.
-* **Situação de implementação:** Java já é utilizado no código analisado. A adoção de Spring Boot está documentada, mas sua configuração não foi identificada nesse código.
-* **Definições pendentes:** Padronizar a versão do Java, a versão do Spring Boot e a ferramenta de build antes da integração do framework.
+  * O desenvolvimento requer JDK 25 configurado localmente.
+  * O Wrapper permite executar o build sem instalação global do Maven.
+  * A primeira execução depende de acesso à internet para baixar Maven e plugins.
+  * Caminhos pessoais de instalação do JDK não devem ser obrigatórios nos arquivos versionados.
+  * As entidades permanecem independentes de frameworks.
+  * A futura integração com Spring Boot deverá respeitar as camadas e receber verificação própria.
+  * As classes atuais de verificação possuem método main e precisam ser executadas explicitamente; não são descobertas automaticamente por mvn test.
+* **Alternativas:** Não há avaliação comparativa de frameworks registrada. Java 25 e Maven Wrapper foram confirmados pelo responsável pelo projeto na Issue #43.
+* **Situação de implementação:** O Wrapper, a compilação com release 25 e a execução das 75 verificações foram validados localmente com Eclipse Adoptium JDK 25.0.2. A limpeza e recompilação também foram verificadas após corrigir o atributo ReadOnly em target. Spring Boot permanece sem integração.
+* **Definições pendentes:** Definir a versão do Spring Boot e os detalhes de sua integração na Spec correspondente.
+
 
 ### ADR-004: Adiamento da integração real com a AWS
 
