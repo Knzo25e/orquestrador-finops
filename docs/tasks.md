@@ -15,7 +15,7 @@
 - [x] Executar e conferir as 75 verificações existentes.
 - [x] Atualizar README e arquitetura.
 - [x] Registrar evidências e limitações.
-- [ ] Revisar o diff e criar commit.
-- [ ] Publicar a branch e abrir PR para revisão.
+- [x] Revisar o diff e criar commit.
+- [x] Publicar a branch e abrir PR para revisão.
 
 A conclusão desta issue não representa implementação da persistência ou atendimento integral à SPEC-003.
