@@ -132,4 +132,4 @@ Os cenários numéricos, de fronteira e de concorrência estão definidos na SPE
 - Estados e regras: seção 3.3 de [spec.md](../spec.md).
 - Decisões financeiras: Issues #31 e #35 e seção 4 de [arquitetura.md](../arquitetura.md).
 
-Este documento descreve comportamento esperado. A implementação e sua verificação completa permanecem pendentes.
+O fluxo automático inicial foi implementado na Issue #39, com verificações funcionais e concorrentes registradas na SPEC-003. A comprovação de desempenho, a cobertura integral dos critérios e o fluxo manual permanecem pendentes.

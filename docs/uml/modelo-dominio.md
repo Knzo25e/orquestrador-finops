@@ -32,9 +32,9 @@ O pedido central submetido pelo Desenvolvedor, que trafega pela máquina de esta
 | `status` | String | Estado atual da requisição, conforme os estados e as transições definidos na seção 3.3 de [spec.md](../spec.md). |
 | `custoTotalProjetado` | BigDecimal | Soma do custo subtotal de todos os itens vinculados. |
 | `calcularTotalProjetado()`| BigDecimal | Itera sobre os itens do pedido e atualiza o custo total. |
-| `aprovarAutomaticamente()`| void | Altera o status para liberado e aciona o desconto do saldo. |
-| `enviarParaRevisao()` | void | Bloqueia o pedido para análise manual do Arquiteto Cloud. |
-
+| `processarRoteamento()` | ResultadoValidacao | Valida saldo e reserva do departamento vinculado, coordena a liberação ou revisão e trata tentativas repetidas. |
+| `enviarParaRevisao(motivo)` | ResultadoValidacao | Operação privada que registra o motivo e altera o estado para Revisão Pendente dentro da operação coordenada. |
+ResultadoValidacao representa o resultado da tentativa: LIBERADA, REVISAO_POR_SALDO_INSUFICIENTE, REVISAO_POR_RESERVA, JA_LIBERADA ou ESTADO_NAO_PERMITIDO. Ele não substitui o estado da requisição. O motivo de revisão pode ser consultado por getMotivoRevisao().
 **RecursoCatalogo**
 O "cardápio" fixo de infraestrutura mantido pela equipe de governança/FinOps.
 
@@ -99,11 +99,11 @@ A autorização dos usuários e a coordenação da auditoria devem respeitar a a
 
 As assinaturas das novas operações serão definidas nas Specs de implementação.
 
-Os valores monetários utilizam BigDecimal, com duas casas decimais e rejeição de entradas com frações de centavo, conforme a Issue #37. A política de arredondamento da reserva foi definida como HALF_UP para duas casas decimais; sua aplicação permanece pendente na implementação do cálculo da reserva.
+Os valores monetários utilizam BigDecimal, com duas casas decimais e rejeição de entradas com frações de centavo, conforme a Issue #37. O cálculo da reserva com HALF_UP para duas casas foi implementado e verificado na Issue #39.
 
 A verificação isolada de disponibilidade de saldo não é suficiente para aprovar automaticamente: a condição de reserva também deve ser atendida.
 
-A consistência em concorrência depende do mecanismo e do alcance a definir em OPEN-003-02.
+A implementação inicial coordena as operações pelo mesmo objeto Departamento, em uma única instância da aplicação, conforme OPEN-003-02. Os cenários concorrentes verificados estão registrados na SPEC-003.
 
 ### Referências
 

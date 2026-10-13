@@ -5,7 +5,7 @@
 **Objetivo:** Avaliar o custo de uma requisição frente ao saldo disponível e à reserva orçamentária do departamento, decidindo sua liberação automática ou encaminhamento para revisão.
 
 **Issue:** #35.
-**Status:** Em revisão; decisão sobre reserva aprovada pela equipe conforme confirmação do responsável pelo projeto em 09/10/2026. Implementação completa pendente.
+**Status:** implementação inicial da Issue #39 em revisão, com verificações funcionais e concorrentes executadas localmente. Desempenho e cobertura integral dos critérios permanecem pendentes.
 
 ## Rastreabilidade
 
@@ -91,7 +91,7 @@ Uma nova tentativa sobre uma requisição já liberada segue o tratamento de rep
 
 A ausência de autenticação nesta etapa não comprova atendimento integral ao RNF-02. O fluxo deve utilizar o departamento da requisição e não aceitar outro departamento para substituí-lo.
 
-As regras de validação das entradas financeiras e a política de precisão foram definidas na Issue #37, conforme OPEN-003-01. As validações e a migração para BigDecimal foram implementadas nesta branch; o cálculo da reserva permanece pendente.
+As regras de validação das entradas financeiras e a política de precisão foram definidas e implementadas na Issue #37, conforme OPEN-003-01. O cálculo da reserva com HALF_UP foi implementado e verificado na Issue #39.
 
 ## Fluxo Principal
 
@@ -155,7 +155,7 @@ Se a requisição estiver em Revisão Pendente, AGUARDANDO_AJUSTE_ORCAMENTARIO, 
 
 Outros estados que venham a ser definidos para espera por autorização financeira deverão ser contemplados nesse tratamento.
 
-O tratamento de uma tentativa que encontre Em Analise permanece pendente em OPEN-003-02.
+O tratamento de tentativas simultâneas e do estado Em Analise segue a decisão registrada em OPEN-003-02.
 
 ## Continuidade Manual e Responsabilidades
 
@@ -258,7 +258,7 @@ Não se exige qual das duas requisições será liberada primeiro.
 
 **Então** ela é liberada uma única vez e o saldo final é R$ 2.000,00.
 
-O resultado apresentado pela tentativa adicional depende da resolução de OPEN-003-02.
+A tentativa adicional aguarda a operação em andamento e retorna JA_LIBERADA, sem novo comprometimento, conforme OPEN-003-02.
 
 ### C8 — Estados fora do fluxo
 
@@ -334,7 +334,7 @@ A ferramenta e a organização dos testes serão definidas na preparação da im
 
 ### OPEN-003-01 — Entradas e precisão financeira
 
-**Status:** decisões definidas na Issue #37; validações e migração monetária implementadas nesta branch. O cálculo da reserva com a política abaixo permanece para a implementação da SPEC-003.
+**Status:** decisões de entradas e precisão implementadas na Issue #37; cálculo e arredondamento da reserva implementados e verificados na Issue #39.
 
 #### Decisões
 
@@ -366,15 +366,27 @@ As verificações foram executadas por classes Java com método main, sem framew
 
 Não comprovam implementação da reserva ou de seu arredondamento, consistência concorrente, proteção completa contra comprometimento duplicado, persistência ou atendimento integral à SPEC-003.
 
-A lista interna de itens ainda é exposta por getItens(); sua proteção permanece pendente. As validações de adicionarItem não impedem alterações realizadas diretamente nessa lista.
+Na conclusão da Issue #37, getItens() ainda expunha a lista interna. Essa limitação foi tratada na Issue #39 com uma cópia não modificável e bloqueio de adições após a saída de INICIAL.
 
 ### OPEN-003-02 — Concorrência e estado Em Analise
 
-Definir o mecanismo de coordenação e o resultado de uma tentativa que encontre processamento em andamento.
+**Status:** mecanismo inicial implementado na Issue #39 com synchronized sobre o objeto Departamento; cenários C6, C7 e C14 verificados localmente. O alcance permanece restrito a uma instância da aplicação com o mesmo objeto Departamento compartilhado.
 
-A solução deve impedir saldo negativo, aprovação automática indevida por reserva e desconto duplicado.
+A primeira implementação coordenará as operações por departamento, em uma única instância da aplicação. As requisições do mesmo departamento deverão compartilhar o mesmo objeto Departamento.
 
-A garantia da primeira implementação deve declarar seu alcance, especialmente quanto a uma ou várias instâncias da aplicação.
+A coordenação deverá abranger a verificação do estado da requisição, a leitura dos valores financeiros, a decisão de roteamento, o comprometimento do valor e a mudança de estado. Operações que alterem o saldo deverão participar da mesma coordenação.
+
+Uma tentativa simultânea aguardará a operação em andamento e, ao obter acesso, verificará o estado resultante:
+
+- Se a requisição já estiver liberada, retornará esse resultado sem novo desconto.
+- Se estiver em estado que não admite validação automática, informará essa condição sem alterar estado ou saldo.
+- Se estiver em INICIAL, poderá executar a validação.
+
+Em Analise será um estado transitório dentro da operação coordenada. Uma tentativa que encontre esse estado após obter acesso deverá informar que ele não admite uma nova validação automática, sem realizar desconto ou reiniciar o fluxo.
+
+A solução deverá impedir saldo negativo, aprovação automática indevida por reserva e comprometimento duplicado.
+
+Essa garantia não abrange múltiplas instâncias da aplicação nem objetos Departamento distintos que representem o mesmo departamento. A etapa de persistência deverá definir e verificar a coordenação correspondente no banco de dados.
 
 ### OPEN-003-03 — Protocolo de desempenho
 
@@ -384,11 +396,15 @@ Uma execução isolada abaixo de dois segundos não comprova desempenho para qua
 
 ### OPEN-003-04 — Configuração do percentual
 
-O percentual inicial de 10% foi aprovado.
+**Status:** percentual da primeira implementação definido; configuração editável permanece pendente.
 
-Ainda é necessário definir se a configuração será global ou por departamento, os limites permitidos, quem pode alterá-la, sua auditoria e seu efeito sobre pedidos pendentes.
+Na Issue #39, a validação utilizará percentual fixo de 10% do teto mensal para todos os departamentos, sem interface ou operação para alteração desse percentual.
 
-A implementação da configuração não deve ser presumida como concluída nem incluída silenciosamente nesta Spec.
+A reserva será calculada com BigDecimal e arredondada para duas casas decimais com HALF_UP, conforme a decisão da Issue #37.
+
+A configuração futura ainda deverá definir abrangência global ou por departamento, limites permitidos, responsável autorizado, auditoria e efeito sobre pedidos pendentes.
+
+A utilização do percentual fixo não comprova implementação da configuração editável.
 
 ### OPEN-003-05 — Detalhamento e revisão do fluxo manual
 
@@ -409,8 +425,58 @@ Esta questão permanece aberta para esses detalhes. A documentação atualizada 
 
 ## Situação de Implementação
 
-Há comparação de saldo e roteamento parcial nas entidades atuais.
+O fluxo automático inicial foi implementado na Issue #39, incluindo reserva, motivos de revisão, proteção dos itens e prevenção de comprometimento duplicado na operação coordenada.
 
-A reserva, a distinção dos motivos de revisão, a proteção completa contra processamento duplicado, a consistência concorrente e o desempenho exigido ainda não foram implementados ou comprovados neste recorte.
+As verificações funcionais e concorrentes estão registradas abaixo. A garantia concorrente considera uma única instância da aplicação com o mesmo objeto Departamento compartilhado pelas requisições.
 
-A aprovação da decisão pela equipe não equivale à aprovação integral desta Spec nem à conclusão de sua implementação.
+O desempenho exigido pelo RNF-01 ainda não foi comprovado. O C8 foi exercitado apenas para Revisão Pendente. A configuração editável do percentual e o fluxo manual permanecem pendentes.
+
+Esses resultados não representam atendimento integral à SPEC-003.
+
+## Registro de Verificação — Issue #39
+
+**Data:** 13/10/2026.
+**Execução:** Run do VS Code.
+**Ambiente observado:** Eclipse Adoptium JDK 25.0.2.
+**Evidência:** saídas de execução local compartilhadas pelo responsável pela alteração.
+
+### Comportamentos implementados
+
+- Reserva fixa de 10% do teto mensal, calculada com BigDecimal e HALF_UP para duas casas decimais.
+- Aprovação automática somente com saldo suficiente e saldo resultante estritamente acima da reserva.
+- Revisão por insuficiência de saldo ou por reserva, com motivo identificável e sem desconto.
+- Utilização exclusiva do departamento vinculado à requisição.
+- Repetição após liberação sem comprometimento adicional.
+- Rejeição de validação de requisição sem itens, preservando seu estado inicial.
+- Lista de itens retornada como cópia não modificável.
+- Adição de itens permitida somente em INICIAL.
+- Coordenação pelo mesmo objeto Departamento, abrangendo decisão, desconto e mudança de estado.
+- Caso de uso ValidarOrcamentoUseCase delegando as regras ao domínio.
+
+### Resultados
+
+| Classe executada | Resultado |
+|---|---|
+| Main | Dez verificações anteriores aprovadas |
+| VerificarValoresMonetarios | 34 verificações anteriores aprovadas |
+| VerificarValidacaoOrcamentaria | 25 verificações funcionais aprovadas |
+| VerificarConcorrenciaOrcamentaria | Três cenários concorrentes, com seis verificações aprovadas |
+
+Total: 75 verificações aprovadas.
+
+Os cenários concorrentes cobriram:
+- C6: dois pedidos disputando saldo; somente um liberado.
+- C7: duas tentativas sobre a mesma requisição; comprometimento único.
+- C14: dois pedidos cuja aprovação conjunta atingiria a reserva; somente um liberado.
+
+As tarefas aguardaram um sinal comum de início. A ordem de execução não foi presumida.
+
+### Limites da evidência
+
+- Concorrência verificada em uma única instância da aplicação, compartilhando o mesmo objeto Departamento.
+- Os resultados não comprovam todas as possíveis intercalações de execução.
+- O C8 foi exercitado para Revisão Pendente; os estados exclusivos do fluxo manual não foram exercitados.
+- O RNF-01 e o C9 permanecem sem comprovação, dependendo do protocolo de OPEN-003-03.
+- Os limites de tempo dos testes concorrentes detectam travamentos; não constituem medição de desempenho.
+- Configuração editável do percentual, fluxo manual, persistência, autenticação e interface permanecem fora deste recorte.
+- As verificações utilizam classes com método main, sem framework de testes.
