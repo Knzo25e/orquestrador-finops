@@ -106,7 +106,7 @@ Os casos em que a necessidade de utilizar a reserva desaparece durante a espera,
 
 - **RB-02:** A aprovação automática exige saldo suficiente e saldo projetado estritamente acima da reserva.
 - **RB-05:** A liberação preserva saldo não negativo e impede comprometimento duplicado, inclusive em concorrência.
-- **RNF-01:** A validação automática deve ser processada em menos de dois segundos, segundo protocolo a definir em OPEN-003-03.
+- **RNF-01:** A validação automática deve ser processada em menos de dois segundos, conforme o protocolo definido em OPEN-003-03. A evidência da Issue #41 está limitada ao ambiente e às cargas documentados.
 - **IF** o custo exceder o saldo, **THEN** o sistema **SHALL** encaminhar o pedido para revisão por insuficiência de saldo, sem desconto.
 - **IF** o custo couber no saldo e o saldo projetado for menor ou igual à reserva, **THEN** o sistema **SHALL** encaminhar o pedido para revisão por reserva, sem desconto.
 - **WHEN** houver nova tentativa de processar uma requisição já liberada, o sistema **SHALL** preservar o comprometimento existente sem realizar novo desconto.
@@ -132,4 +132,4 @@ Os cenários numéricos, de fronteira e de concorrência estão definidos na SPE
 - Estados e regras: seção 3.3 de [spec.md](../spec.md).
 - Decisões financeiras: Issues #31 e #35 e seção 4 de [arquitetura.md](../arquitetura.md).
 
-O fluxo automático inicial foi implementado na Issue #39, com verificações funcionais e concorrentes registradas na SPEC-003. A comprovação de desempenho, a cobertura integral dos critérios e o fluxo manual permanecem pendentes.
+O fluxo automático inicial foi implementado na Issue #39, com verificações funcionais e concorrentes registradas na SPEC-003. O desempenho foi verificado na Issue #41 para o protocolo documentado. A cobertura integral dos critérios e o fluxo manual permanecem pendentes.
