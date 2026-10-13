@@ -38,9 +38,9 @@ A reserva inicial de 10% do orçamento mensal foi aprovada pela equipe, conforme
 
 A reserva é uma referência para encaminhamento à revisão, não uma proibição absoluta de utilização do saldo. Seu cálculo utiliza o teto mensal, não o saldo restante.
 
-As permissões, os limites, a abrangência e a auditoria da configuração do percentual ainda serão detalhados em OPEN-003-04 da SPEC-003. As decisões de precisão e arredondamento foram definidas na Issue #37 e registradas em OPEN-003-01; o cálculo da reserva permanece pendente de implementação.
+As permissões, os limites, a abrangência e a auditoria da configuração do percentual ainda serão detalhados em OPEN-003-04 da SPEC-003. As decisões de precisão e arredondamento foram definidas na Issue #37 e registradas em OPEN-003-01; o cálculo da reserva com HALF_UP foi implementado e verificado localmente na Issue #39.
 
-A regra está documentada; sua implementação e seus testes permanecem pendentes.
+A implementação inicial da regra de reserva e suas verificações estão registradas na Issue #39. A configuração editável do percentual, o fluxo manual e a comprovação de desempenho permanecem pendentes.
 
 ## 3. Modelo de Domínio (Entidades Principais)
 
@@ -91,8 +91,8 @@ Representa o pedido submetido pelo Desenvolvedor.
   * justificativaArquiteto: String
 * **Operações:**
   * calcularTotalProjetado(): BigDecimal
-  * aprovarAutomaticamente(): void
-  * enviarParaRevisao(): void
+  * processarRoteamento(): ResultadoValidacao
+  * enviarParaRevisao(motivo: ResultadoValidacao): ResultadoValidacao — operação privada.
 * **Responsabilidades previstas pelas Issues #31 e #35:**
   * Registrar aprovação técnica ou rejeição conforme RF-03.
   * Distinguir encaminhamento para revisão por insuficiência de saldo e por atingir ou consumir a reserva.

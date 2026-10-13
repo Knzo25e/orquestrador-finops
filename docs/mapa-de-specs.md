@@ -16,7 +16,7 @@ Os IDs existentes foram preservados. A ordem de execução é indicada pela posi
 |---|---|---|---|---|
 | 001 | Fundação do domínio: representar departamentos, recursos, itens e requisições | Modelo de domínio; ADR-001; DA-02 | Nenhuma | Entidades existentes; aderência completa ao modelo e invariantes ainda pendente |
 | 002 | Criar requisição com itens, total calculado e status INICIAL | RF-01; modelo de domínio; ADR-001; SPEC-002 | 001 | Implementação parcial; cálculo e status verificados na Issue #26/PR #27; proteção contra departamento nulo e dez verificações registradas na Issue #33/PR #34 |
-| 003 | Validar saldo e reserva, liberando automaticamente somente pedidos cujo saldo resultante fique acima da reserva | RF-02; RB-02; RB-05; RNF-01; RNF-02; UC-02; DA-01 | 001, 002 | SPEC-003 elaborada na Issue #35, em revisão; reserva, consistência concorrente e verificação completa pendentes de implementação |
+| 003 | Validar saldo e reserva, liberando automaticamente somente pedidos cujo saldo resultante fique acima da reserva | RF-02; RB-02; RB-05; RNF-01; RNF-02; UC-02; DA-01 | 001, 002 | Implementação inicial na Issue #39, em revisão; verificações funcionais e concorrentes locais aprovadas; desempenho e cobertura integral pendentes |
 | 005 | Salvar e recuperar dados do fluxo de requisições entre sessões | Exigência de persistência do projeto final, seção 6.2; ADR-002; DA-01 | 001, 002, 003 | MySQL decidido; implementação e critérios detalhados pendentes |
 | 006 | Restringir ações por perfil e vincular solicitações ao departamento do desenvolvedor | Personas; RF-01; RF-03; RF-04; RNF-02 | 001 | Spec individual e implementação pendentes |
 | 004 | Expor consulta do catálogo e envio de requisições pela interface de aplicação | RF-01; RF-02; RNF-02; ADR-001; ADR-003 | 002, 003, 005, 006 | Recorte inicial proposto; contrato REST e critérios de aceite ainda precisam ser especificados |
@@ -47,7 +47,7 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
 - **OPEN-MAPA-01 — Decisão preservada:** alterações do teto preservam compromissos e recalculam o saldo. Reduções abaixo do valor comprometido são bloqueadas com explicação, conforme RB-04.
 - **Perfis do MVP:** Desenvolvedor e Arquiteto Cloud. O arquiteto acumula as responsabilidades técnica e orçamentária, executando ações separadas e auditadas.
 - **Referências:** seção 4 de [arquitetura.md](arquitetura.md) e [SPEC-003](casos-de-uso/SPEC-003-validar-orcamento.md).
-- **Situação:** regra de reserva aprovada; detalhamento das Specs em revisão e implementação pendente.
+- **Situação:** fluxo automático inicial implementado e verificado localmente na Issue #39; configuração editável do percentual e fluxo manual permanecem pendentes.
 
 
 ## Questões e verificações pendentes
@@ -56,8 +56,9 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
 - **OPEN-MAPA-03:** Localizar ou elaborar o caso de uso UC-01 referenciado pela SPEC-002; o documento não foi encontrado no material analisado.
 - Padronizar versões do Java, Spring Boot e ferramenta de build antes da integração do framework.
 - Conferir a cobertura integral dos requisitos e a ordem de execução na revisão do grupo.
-- **OPEN-003-01:** decisões sobre entradas e precisão financeira definidas na Issue #37, com validações e migração monetária verificadas localmente; aplicação do arredondamento ao cálculo da reserva ainda pendente.
-- **OPEN-003-02 a OPEN-003-05:** detalhar concorrência, protocolo de desempenho, configuração do percentual e continuidade manual, conforme a SPEC-003. A atribuição da configuração do percentual a uma Spec de implementação ainda precisa ser definida.
+- **OPEN-003-01:** entradas e precisão implementadas na Issue #37; cálculo da reserva com HALF_UP implementado e verificado na Issue #39.
+- **OPEN-003-02:** coordenação inicial por objeto Departamento implementada e verificada na Issue #39; garantia entre múltiplas instâncias deverá ser tratada na persistência.
+- **OPEN-003-03 a OPEN-003-05:** permanecem pendentes o protocolo de desempenho, a configuração editável do percentual e o detalhamento do fluxo manual.
 
 
 ## Governança e evidências

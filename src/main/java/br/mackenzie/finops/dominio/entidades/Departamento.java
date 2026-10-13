@@ -5,9 +5,12 @@ import java.math.RoundingMode;
 import java.util.UUID;
 
 public class Departamento {
-    private UUID id;
-    private String nome;
-    private BigDecimal orcamentoMensal;
+    private static final BigDecimal PERCENTUAL_RESERVA =
+            new BigDecimal("0.10");
+
+    private final UUID id;
+    private final String nome;
+    private final BigDecimal orcamentoMensal;
     private BigDecimal saldoDisponivel;
 
     public Departamento(UUID id, String nome, BigDecimal orcamentoMensal) {
@@ -22,7 +25,7 @@ public class Departamento {
         this.saldoDisponivel = orcamentoValidado;
     }
 
-    public boolean verificarDisponibilidade(BigDecimal valor) {
+    public synchronized boolean verificarDisponibilidade(BigDecimal valor) {
         BigDecimal valorValidado = validarValorMonetario(
                 valor,
                 "O valor da consulta"
@@ -31,7 +34,7 @@ public class Departamento {
         return this.saldoDisponivel.compareTo(valorValidado) >= 0;
     }
 
-    public void descontarSaldo(BigDecimal valor) {
+    public synchronized void descontarSaldo(BigDecimal valor) {
         BigDecimal valorValidado = validarValorMonetario(
                 valor,
                 "O valor do desconto"
@@ -44,6 +47,12 @@ public class Departamento {
         }
 
         this.saldoDisponivel = this.saldoDisponivel.subtract(valorValidado);
+    }
+
+    public BigDecimal calcularReserva() {
+        return this.orcamentoMensal
+                .multiply(PERCENTUAL_RESERVA)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal validarValorMonetario(
@@ -84,7 +93,7 @@ public class Departamento {
         return orcamentoMensal;
     }
 
-    public BigDecimal getSaldoDisponivel() {
+    public synchronized BigDecimal getSaldoDisponivel() {
         return saldoDisponivel;
     }
 }

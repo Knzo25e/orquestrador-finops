@@ -75,7 +75,7 @@ O sistema adota uma arquitetura em camadas (Layers) baseada nos princípios de C
 
 **Referências:** Issues #31 e #35; RF-02, RF-03, RF-04, RF-05; RB-02, RB-03, RB-04 e RB-05.
 
-**Status:** Decisão inicial registrada em 08/10/2026 e ampliada em 09/10/2026. A equipe aprovou a regra de reserva conforme confirmação do responsável pelo projeto. O detalhamento documental permanece em revisão; implementação pendente.
+**Status:** Decisão inicial registrada em 08/10/2026 e ampliada em 09/10/2026. A equipe aprovou a regra de reserva conforme confirmação do responsável pelo projeto. O fluxo automático inicial foi implementado e verificado localmente na Issue #39; o fluxo manual permanece pendente.
 
 #### Histórico — Issue #31
 
@@ -124,7 +124,7 @@ A reserva é uma referência de governança para aprovação automática, não u
 #### Pendências e implementação
 
 - A configuração do percentual, suas permissões, limites, abrangência e auditoria permanecem em OPEN-003-04.
-- A representação monetária utiliza BigDecimal. As decisões de precisão e arredondamento foram definidas na Issue #37, conforme OPEN-003-01. A aplicação do arredondamento ao cálculo da reserva permanece pendente de implementação.
+- A representação monetária utiliza BigDecimal, conforme a Issue #37. O cálculo da reserva com HALF_UP foi implementado e verificado localmente na Issue #39, conforme OPEN-003-01.
 - O mecanismo e o alcance da consistência concorrente permanecem em OPEN-003-02.
 - Os casos manuais ainda não definidos permanecem em OPEN-003-05.
 
