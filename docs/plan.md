@@ -83,4 +83,37 @@ Esta issue não inclui código de implementação, instalação de banco ou nova
 A etapa em memória não conclui a SPEC-005. A implementação de cada etapa depende da revisão de seu recorte e da resolução das questões que o bloqueiam.
 
 ### Situação
-Proposta documental elaborada; revisão pendente.
+Proposta documental integrada à main pelo PR #46. As decisões necessárias à implementação continuam sujeitas ao detalhamento e à revisão de cada recorte.
+
+## Contratos dos repositórios em memória — Issue #47
+
+### Objetivo
+Detalhar o primeiro recorte da etapa A da SPEC-005 antes da implementação.
+
+### Recorte proposto
+- A1: interfaces e implementações em memória para cadastro e consulta.
+- A2: integração dos repositórios com os casos de uso, dependente de definição adicional sobre coordenação e falhas.
+
+### Decisões propostas para A1
+- Interfaces em aplicacao.portas.
+- Implementações em infraestrutura.repositorios.memoria.
+- Consultas por UUID com ausência explícita.
+- Rejeição de identificadores duplicados.
+- Preservação das instâncias cadastradas e dos vínculos compartilhados.
+- Coleções de consulta não modificáveis, contendo referências às entidades.
+- Proteção das estruturas internas contra acesso concorrente.
+- Dados de teste cadastrados explicitamente em contextos independentes.
+
+### Verificação prevista
+- Exercitar os critérios MEM-01 a MEM-14 da SPEC-005.
+- Preservar as 75 verificações existentes.
+- Identificar as verificações como armazenamento em memória.
+- Não apresentar A1 como evidência de rollback, persistência após reinício ou integração financeira completa.
+
+### Limites
+Esta issue é documental. Não inclui implementação Java, novas dependências ou MySQL.
+
+A política de referências compartilhadas não oferece rollback automático. O tratamento de falhas da integração A2 permanece em OPEN-005-03.
+
+### Situação
+Detalhamento proposto; revisão pendente.

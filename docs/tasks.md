@@ -28,7 +28,21 @@ A conclusão desta issue não representa implementação da persistência ou ate
 - [x] Registrar etapas, critérios de aceitação e questões em aberto.
 - [x] Alinhar mapa, plano e tarefas.
 - [x] Conferir a consistência do conjunto documental.
-- [ ] Criar commit e publicar a branch.
-- [ ] Abrir PR e submeter a proposta à revisão.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR e submeter a proposta à revisão.
 
 A elaboração da Spec não comprova implementação da persistência.
+
+## Issue #47 — Contratos dos repositórios em memória
+
+- [x] Conferir os casos de uso e a estrutura atual.
+- [x] Criar a branch docs/47-contratos-repositorios-memoria.
+- [x] Elaborar a proposta dos contratos de A1.
+- [x] Explicitar identidade compartilhada e referências mutáveis.
+- [x] Separar cadastro e consulta da integração financeira A2.
+- [x] Definir critérios MEM-01 a MEM-14.
+- [x] Conferir a consistência entre Spec, mapa, plano e tarefas.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão.
+
+A implementação de A1 permanece pendente. A2 depende de detalhamento adicional.
