@@ -19,3 +19,16 @@
 - [x] Publicar a branch e abrir PR para revisão.
 
 A conclusão desta issue não representa implementação da persistência ou atendimento integral à SPEC-003.
+
+## Issue #45 — Especificação da persistência
+
+- [x] Conferir o mapa de Specs e o ADR-002.
+- [x] Criar a branch docs/45-spec-005-persistencia.
+- [x] Elaborar a proposta da SPEC-005.
+- [x] Registrar etapas, critérios de aceitação e questões em aberto.
+- [x] Alinhar mapa, plano e tarefas.
+- [x] Conferir a consistência do conjunto documental.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR e submeter a proposta à revisão.
+
+A elaboração da Spec não comprova implementação da persistência.

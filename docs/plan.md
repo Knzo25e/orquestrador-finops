@@ -57,4 +57,30 @@ O programa de desempenho permanece disponível. As evidências da Issue #41 desc
 - Alteração das regras de negócio.
 
 ### Situação
-Build configurado e verificado localmente com Java 25 e Maven Wrapper. Limpeza, compilação e 75 verificações aprovadas, conforme docs/evidencias/issue-43/build.md. Revisão do PR pendente.
+Build configurado e verificado localmente com Java 25 e Maven Wrapper. Limpeza, compilação e 75 verificações aprovadas, conforme docs/evidencias/issue-43/build.md. Alterações integradas à main pelo PR #44.
+
+## Especificação da persistência — Issue #45
+
+### Objetivo
+Elaborar e revisar a SPEC-005 antes da implementação dos repositórios e da integração MySQL.
+
+### Base
+- ADR-001: separação entre domínio, aplicação e infraestrutura.
+- ADR-002: MySQL e repositórios iniciais em memória.
+- SPEC-002 e SPEC-003: preservar criação, roteamento e consistência financeira.
+- Issue #43 / PR #44: build com Java 25 e Maven Wrapper.
+
+### Escopo documental
+- Definir dados, vínculos e comportamentos de armazenamento e recuperação.
+- Separar a etapa em memória da persistência entre sessões.
+- Especificar gravação consistente, recuperação após reinício e proteção contra comprometimento duplicado.
+- Registrar decisões técnicas pendentes em OPEN-005-01 a OPEN-005-07.
+- Alinhar o mapa de Specs e submeter a proposta à revisão.
+
+### Limites
+Esta issue não inclui código de implementação, instalação de banco ou novas dependências.
+
+A etapa em memória não conclui a SPEC-005. A implementação de cada etapa depende da revisão de seu recorte e da resolução das questões que o bloqueiam.
+
+### Situação
+Proposta documental elaborada; revisão pendente.
