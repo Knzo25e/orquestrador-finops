@@ -12,6 +12,7 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Coordenação concorrente em uma única instância, desde que as requisições compartilhem o mesmo objeto Departamento.
 - Fluxo manual, configuração editável da reserva, persistência e integração com Spring Boot ainda pendentes.
 - Não há provisionamento real na AWS.
+- Repositórios de cadastro e consulta em memória implementados no recorte A1 da SPEC-005; integração com os casos de uso ainda pendente.
 
 ## Requisitos para desenvolvimento
 
@@ -54,7 +55,9 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
         "Main",
         "VerificarValoresMonetarios",
         "VerificarValidacaoOrcamentaria",
-        "VerificarConcorrenciaOrcamentaria"
+        "VerificarConcorrenciaOrcamentaria",
+        "VerificarRepositoriosMemoria",
+        "VerificarConcorrenciaRepositorios"
     )
 
     foreach ($classe in $classes) {
@@ -68,11 +71,15 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
 }
 ```
 
-São 75 verificações:
+São 128 verificações:
 - Main: 10.
 - VerificarValoresMonetarios: 34.
 - VerificarValidacaoOrcamentaria: 25.
 - VerificarConcorrenciaOrcamentaria: seis verificações em três cenários.
+- VerificarRepositoriosMemoria: 44.
+- VerificarConcorrenciaRepositorios: nove verificações em três cenários.
+
+Evidências dos repositórios e limites: [Issue #49](docs/evidencias/issue-49/repositorios-memoria.md).
 
 Essas classes possuem método main e não são executadas automaticamente por mvn test.
 

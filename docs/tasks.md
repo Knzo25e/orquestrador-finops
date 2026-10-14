@@ -42,7 +42,24 @@ A elaboração da Spec não comprova implementação da persistência.
 - [x] Separar cadastro e consulta da integração financeira A2.
 - [x] Definir critérios MEM-01 a MEM-14.
 - [x] Conferir a consistência entre Spec, mapa, plano e tarefas.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+A implementação de A1 é acompanhada na Issue #49. A2 depende de detalhamento adicional.
+
+## Issue #49 — Implementação dos repositórios em memória
+
+- [x] Confirmar aprovação do recorte A1.
+- [x] Criar interfaces dos três repositórios.
+- [x] Implementar cadastro e consulta em memória.
+- [x] Validar duplicidade, vínculos e identidade dos objetos.
+- [x] Verificar coleções retornadas e referências compartilhadas.
+- [x] Executar 44 verificações funcionais dos repositórios.
+- [x] Executar nove verificações concorrentes dos repositórios.
+- [x] Preservar as 75 verificações anteriores.
+- [x] Registrar evidências e limitações.
+- [x] Conferir implementação e documentação finais.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-A implementação de A1 permanece pendente. A2 depende de detalhamento adicional.
+A conclusão de A1 não conclui A2 nem a persistência MySQL.
