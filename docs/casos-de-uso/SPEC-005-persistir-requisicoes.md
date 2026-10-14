@@ -567,3 +567,172 @@ A compilação de 20 arquivos Java com release 25 foi concluída pelo Maven Wrap
 Os resultados e seus limites estão registrados em [Evidência da Issue #49](../evidencias/issue-49/repositorios-memoria.md).
 
 Essas evidências se referem ao cadastro e à consulta em memória. A integração A2, o tratamento de falhas financeiras e a persistência MySQL continuam pendentes.
+
+## Detalhamento da etapa A2 — Issue #51
+
+**Status:** proposta para revisão; implementação pendente.
+
+### Objetivo e alcance
+
+Integrar a criação e a validação automática de requisições aos repositórios em memória de A1.
+
+Os casos de uso integrados receberão identificadores e utilizarão as entidades cadastradas no mesmo contexto de repositórios.
+
+Este recorte funciona em uma única instância da aplicação, com objetos compartilhados. Não implementa MySQL, persistência após reinício ou transações com rollback.
+
+### Entradas propostas
+
+Criação:
+- Identificador do departamento.
+- Lista de itens solicitados, cada um contendo identificador do recurso e quantidade.
+
+Validação:
+- Identificador da requisição cadastrada.
+
+O chamador não fornecerá saldo, preço, subtotal, total, estado ou motivo de revisão. Esses dados serão obtidos dos registros e das regras de domínio.
+
+As estruturas de entrada não devem permitir alteração da lista de solicitações durante seu processamento. A aplicação deverá trabalhar com uma cópia estável das entradas.
+
+### Organização e compatibilidade
+
+Serão introduzidos casos de uso próprios para a integração:
+- CriarRequisicaoArmazenadaUseCase.
+- ValidarRequisicaoArmazenadaUseCase.
+
+As dependências serão recebidas pelo construtor, por interfaces de repositório.
+
+Os casos de uso atuais permanecerão disponíveis para preservar as verificações existentes e o uso direto do domínio.
+
+Os novos casos de uso deverão reutilizar as regras existentes de criação e roteamento, sem duplicar as decisões financeiras.
+
+Os contratos e as garantias desta integração são específicos do contexto em memória. Uma implementação MySQL não poderá ser considerada compatível apenas por implementar as mesmas interfaces de consulta.
+
+### Entradas inválidas e registros inexistentes
+
+Serão rejeitados com IllegalArgumentException e mensagem explicativa:
+- Dependências obrigatórias nulas.
+- Identificadores nulos.
+- Lista nula ou vazia.
+- Item solicitado nulo.
+- Identificador de recurso nulo.
+- Quantidade nula, zero ou negativa.
+- Departamento, recurso ou requisição inexistente.
+
+Uma rejeição anterior à alteração do domínio preservará os registros, os estados e os valores financeiros existentes.
+
+Identificadores repetidos de recurso em itens diferentes serão permitidos, preservando o comportamento atual de criação. Não haverá consolidação automática de itens neste recorte.
+
+### Criação integrada
+
+1. Validar as entradas e obter uma cópia estável da lista.
+2. Consultar o departamento e todos os recursos solicitados.
+3. Construir os itens com os recursos cadastrados.
+4. Criar a requisição aplicando a SPEC-002.
+5. Cadastrar a requisição completa no repositório.
+6. Retornar a requisição cadastrada.
+
+Nenhuma requisição será cadastrada antes da validação de todos os itens.
+
+Uma falha na preparação dos itens não deixará uma requisição parcialmente cadastrada.
+
+O cadastro deverá respeitar a coordenação e as verificações de A1.
+
+A criação não executará roteamento nem comprometerá saldo.
+
+Cada chamada bem-sucedida de criação produzirá uma nova requisição. Repetir a mesma entrada não será interpretado como repetição do mesmo pedido.
+
+A idempotência da criação mediante uma chave fornecida pelo cliente permanece pendente e deverá ser definida antes de oferecer essa garantia.
+
+### Validação integrada
+
+1. Consultar a requisição por identificador.
+2. Obter seu departamento.
+3. Adquirir a coordenação pelo objeto Departamento.
+4. Confirmar que a requisição e seus vínculos pertencem ao mesmo contexto.
+5. Aplicar a validação da SPEC-003.
+6. Retornar ResultadoValidacao.
+
+A coordenação deverá abranger a conferência dos vínculos, a leitura financeira, a decisão, o comprometimento e a mudança de estado.
+
+A conferência deverá verificar:
+- A requisição consultada continua sendo a instância cadastrada.
+- O departamento é a instância cadastrada.
+- Cada recurso dos itens é a instância cadastrada.
+
+Essa conferência é necessária porque A1 permite alterações posteriores nas entidades compartilhadas.
+
+Não será permitido acrescentar uma operação de salvar ou atualizar após o roteamento para simular confirmação da alteração financeira.
+
+Na implementação em memória, as alterações são realizadas nas instâncias cadastradas e ficam visíveis às consultas posteriores.
+
+### Estados e repetição da validação
+
+Para uma requisição com vínculos válidos:
+- INICIAL: executar as regras da SPEC-003.
+- Provisionamento Liberado: retornar JA_LIBERADA, sem novo comprometimento.
+- Demais estados: retornar ESTADO_NAO_PERMITIDO, sem alterar estado ou saldo.
+
+A conferência dos vínculos não autoriza reiniciar o fluxo de uma requisição já processada.
+
+### Concorrência
+
+Os casos de uso utilizarão os mesmos objetos Departamento compartilhados pelos repositórios.
+
+A ordem de aquisição de bloqueios deverá permanecer compatível com A1.
+
+As consultas não poderão manter um bloqueio do mapa enquanto aguardam o bloqueio de um departamento.
+
+Duas validações concorrentes da mesma requisição não poderão comprometer seu valor duas vezes.
+
+Requisições diferentes do mesmo departamento deverão considerar o saldo resultante das operações anteriores.
+
+Essas garantias não abrangem múltiplas instâncias da aplicação ou objetos Departamento independentes com o mesmo identificador.
+
+### Falhas e limite da confirmação em memória
+
+Consultas, validações de entrada e conferências de vínculos deverão ocorrer antes da alteração financeira.
+
+Falhas nessas etapas serão propagadas sem informar sucesso e sem alterar estado ou saldo.
+
+A criação dependerá da inclusão única e completa oferecida por A1. Não haverá gravação individual dos itens após cadastrar a requisição.
+
+Durante a alteração financeira não haverá chamadas a repositórios, serviços externos ou operações de entrada e saída.
+
+A implementação deverá revisar o caminho de mutação do domínio para evitar exceções previsíveis depois da primeira alteração de estado ou saldo.
+
+A sincronização, isoladamente, não oferece rollback.
+
+Este recorte não garante recuperação de falhas arbitrárias ocorridas depois de iniciar a mutação, nem recuperação após encerramento do processo.
+
+Uma falha posterior à conclusão da operação, como perda da resposta pelo chamador, não desfaz a alteração. Repetir a validação do mesmo identificador deverá reconhecer a liberação existente.
+
+O critério C6 da SPEC-005, envolvendo falha durante uma operação financeira e ausência de confirmação parcial, não será declarado atendido por este recorte.
+
+A estratégia transacional completa permanece em OPEN-005-03.
+
+### Critérios específicos de A2
+
+- INT-01: criar por identificadores cadastra uma requisição completa em INICIAL, com total correto e saldo preservado.
+- INT-02: entradas inválidas são rejeitadas sem cadastrar requisições.
+- INT-03: departamento ou recurso inexistente impede a criação, inclusive quando o recurso inválido aparece após um item válido.
+- INT-04: validar um identificador inexistente informa erro sem alterar registros.
+- INT-05: uma liberação altera o saldo e o estado da instância cadastrada conforme a SPEC-003.
+- INT-06: revisão por reserva e por insuficiência preserva saldo e registra o motivo correspondente.
+- INT-07: repetir a validação de uma requisição liberada não provoca novo comprometimento.
+- INT-08: requisição em revisão não retorna ao fluxo automático.
+- INT-09: vínculo inválido introduzido após o cadastro é rejeitado antes de alterar estado ou saldo.
+- INT-10: duas validações concorrentes da mesma requisição provocam somente um comprometimento.
+- INT-11: duas requisições concorrentes do mesmo departamento respeitam saldo e reserva.
+- INT-12: uma falha controlada de consulta, anterior à mutação, é propagada e preserva estado e saldo.
+- INT-13: as 128 verificações existentes permanecem aprovadas.
+- INT-14: as evidências distinguem integração em memória de persistência e rollback.
+
+Os critérios INT complementam os critérios MEM. Não substituem os critérios C1 a C14 da SPEC-005.
+
+### Relação com as questões em aberto
+
+- OPEN-005-01: proposta de entradas e integração em memória definida neste detalhamento.
+- OPEN-005-03: coordenação e falhas anteriores à mutação delimitadas; rollback, transações MySQL e idempotência da criação permanecem pendentes.
+- OPEN-005-02 e OPEN-005-04 a OPEN-005-07: permanecem abertas nos aspectos ainda não resolvidos pelas etapas A1 e A2.
+
+A aprovação deste recorte não representa conclusão integral da SPEC-005.
