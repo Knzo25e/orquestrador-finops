@@ -144,4 +144,41 @@ Sem integração dos casos de uso aos repositórios, rollback automático ou per
 A2 e MySQL permanecem pendentes.
 
 ### Situação
-Implementação e verificações locais concluídas; revisão do PR pendente.
+Implementação e verificações locais concluídas; alterações integradas à main pelo PR #50.
+
+## Integração dos repositórios aos casos de uso — Issue #51
+
+### Objetivo
+Detalhar a integração A2 da SPEC-005 antes de implementar os casos de uso que acessam os repositórios.
+
+### Base
+- SPEC-002: criação de requisições.
+- SPEC-003: validação orçamentária.
+- SPEC-005: contratos e limites do armazenamento.
+- Issue #49 / PR #50: repositórios em memória de A1 implementados e integrados.
+
+### Recorte proposto
+- Receber identificadores de departamentos, recursos e requisições.
+- Introduzir casos de uso de criação e validação integrados aos repositórios.
+- Preservar os casos de uso atuais e reutilizar as regras de domínio.
+- Conferir os vínculos antes de executar alterações financeiras.
+- Coordenar a validação pelo mesmo objeto Departamento.
+- Propagar falhas anteriores à mutação sem informar sucesso.
+- Não acrescentar uma gravação posterior ao desconto nas entidades compartilhadas.
+
+### Verificação prevista
+- Exercitar os critérios INT-01 a INT-14 da SPEC-005.
+- Preservar as 128 verificações existentes.
+- Verificar criação completa, roteamento, repetição e concorrência.
+- Provocar falha controlada de consulta antes da mutação.
+- Registrar resultados e limites do armazenamento em memória.
+
+### Limites
+Esta issue é documental e não inclui implementação Java ou novas dependências.
+
+O recorte proposto não oferece rollback de falhas arbitrárias após iniciar a mutação. O critério C6 e a estratégia transacional completa permanecem pendentes em OPEN-005-03.
+
+A idempotência da criação, a persistência MySQL, o login e o portal não fazem parte desta entrega.
+
+### Situação
+Proposta de A2 elaborada; revisão e aprovação pendentes.

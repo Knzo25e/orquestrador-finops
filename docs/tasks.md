@@ -59,7 +59,22 @@ A implementação de A1 é acompanhada na Issue #49. A2 depende de detalhamento 
 - [x] Preservar as 75 verificações anteriores.
 - [x] Registrar evidências e limitações.
 - [x] Conferir implementação e documentação finais.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+A conclusão de A1 não conclui A2 nem a persistência MySQL.
+
+## Issue #51 — Detalhamento da integração A2
+
+- [x] Criar a branch docs/51-integracao-repositorios-a2.
+- [x] Registrar a proposta de A2 na SPEC-005.
+- [x] Definir entradas por identificadores e responsabilidades dos casos de uso.
+- [x] Delimitar coordenação, repetição e tratamento de falhas.
+- [x] Definir os critérios INT-01 a INT-14.
+- [x] Alinhar mapa, plano e tarefas.
+- [x] Conferir a consistência do conjunto documental.
+- [ ] Revisar e aprovar o recorte antes da implementação.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-A conclusão de A1 não conclui A2 nem a persistência MySQL.
+A implementação de A2 permanece pendente. Esta proposta não conclui a SPEC-005 nem comprova rollback ou persistência MySQL.
