@@ -116,4 +116,32 @@ Esta issue é documental. Não inclui implementação Java, novas dependências 
 A política de referências compartilhadas não oferece rollback automático. O tratamento de falhas da integração A2 permanece em OPEN-005-03.
 
 ### Situação
-Detalhamento proposto; revisão pendente.
+Detalhamento integrado pelo PR #48. O recorte A1 foi aprovado conforme confirmação do responsável pelo projeto. A integração A2 permanece pendente.
+
+## Implementação dos repositórios em memória — Issue #49
+
+### Base
+SPEC-005, recorte A1 detalhado na Issue #47 e integrado pelo PR #48, com aprovação confirmada pelo responsável pelo projeto.
+
+### Implementação
+- Três interfaces em aplicacao.portas.
+- Três implementações em infraestrutura.repositorios.memoria.
+- Cadastro sem substituição de identificadores existentes.
+- Consulta por UUID e listagem de requisições por departamento.
+- Validação de vínculos no cadastro e preservação das instâncias.
+- Proteção das estruturas internas contra acesso concorrente.
+
+### Verificação
+Compilação de 20 arquivos Java com release 25 concluída.
+
+Foram aprovadas 44 verificações funcionais dos repositórios, nove verificações concorrentes e as 75 verificações anteriores: 128 no total.
+
+Evidência: docs/evidencias/issue-49/repositorios-memoria.md.
+
+### Limites
+Sem integração dos casos de uso aos repositórios, rollback automático ou persistência após reinício.
+
+A2 e MySQL permanecem pendentes.
+
+### Situação
+Implementação e verificações locais concluídas; revisão do PR pendente.

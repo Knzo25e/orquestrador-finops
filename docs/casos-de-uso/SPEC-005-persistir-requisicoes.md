@@ -356,13 +356,13 @@ Definir preparação e isolamento do banco de testes, execução entre processos
 
 O build foi padronizado na Issue #43.
 
-Os repositórios e a integração MySQL ainda não foram demonstrados no material analisado.
+Os repositórios de cadastro e consulta em memória do recorte A1 foram implementados e verificados localmente na Issue #49. A integração A2 e a persistência MySQL permanecem pendentes.
 
-Este documento é uma proposta para revisão. Não comprova implementação nem autoriza preencher silenciosamente as decisões em aberto.
+O recorte A1 foi aprovado conforme confirmação do responsável e possui evidências locais registradas na Issue #49. A SPEC-005 integral permanece incompleta; as decisões abertas de A2 e MySQL precisam ser resolvidas antes das implementações correspondentes.
 
 ## Detalhamento da etapa A — Issue #47
 
-**Status:** proposta para revisão; contratos e implementação ainda não concluídos.
+**Status:** recorte A1 aprovado conforme confirmação do responsável pelo projeto; implementação e verificações locais realizadas na Issue #49, ainda sujeitas à revisão do PR. A2 permanece pendente.
 
 Este detalhamento define o primeiro recorte dos repositórios em memória. Não altera os requisitos de persistência MySQL nem representa atendimento integral à SPEC-005.
 
@@ -555,3 +555,15 @@ Os critérios MEM não substituem os critérios C1 a C14 da SPEC-005.
 - OPEN-005-07: critérios de memória definidos; protocolo MySQL permanece pendente.
 
 A aprovação deste detalhamento autoriza somente o recorte explicitamente aprovado. Não implica aprovação das decisões ainda abertas.
+
+## Evidências de implementação — Issue #49
+
+O recorte A1 recebeu três interfaces e três implementações de repositórios em memória.
+
+Foram aprovadas 44 verificações funcionais dos repositórios, nove verificações concorrentes e as 75 verificações anteriores, totalizando 128.
+
+A compilação de 20 arquivos Java com release 25 foi concluída pelo Maven Wrapper.
+
+Os resultados e seus limites estão registrados em [Evidência da Issue #49](../evidencias/issue-49/repositorios-memoria.md).
+
+Essas evidências se referem ao cadastro e à consulta em memória. A integração A2, o tratamento de falhas financeiras e a persistência MySQL continuam pendentes.
