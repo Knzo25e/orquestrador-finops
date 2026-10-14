@@ -359,3 +359,199 @@ O build foi padronizado na Issue #43.
 Os repositórios e a integração MySQL ainda não foram demonstrados no material analisado.
 
 Este documento é uma proposta para revisão. Não comprova implementação nem autoriza preencher silenciosamente as decisões em aberto.
+
+## Detalhamento da etapa A — Issue #47
+
+**Status:** proposta para revisão; contratos e implementação ainda não concluídos.
+
+Este detalhamento define o primeiro recorte dos repositórios em memória. Não altera os requisitos de persistência MySQL nem representa atendimento integral à SPEC-005.
+
+### Divisão da etapa
+
+#### A1 — Cadastro e consulta em memória
+
+Inclui:
+- Interfaces de repositório.
+- Implementações em memória.
+- Cadastro e consulta de departamentos, recursos e requisições.
+- Validação dos vínculos no cadastro das requisições.
+- Preservação da identidade compartilhada dos objetos.
+- Verificações dos contratos.
+
+Não inclui alteração dos casos de uso existentes nem gravação transacional da validação financeira.
+
+#### A2 — Integração com os casos de uso
+
+Deverá integrar os repositórios à criação e à validação de requisições.
+
+Antes dessa implementação, deverão ser definidos:
+- Entradas dos casos de uso baseadas em identificadores.
+- Coordenação entre consulta, alteração do domínio e confirmação da operação.
+- Tratamento de falhas após alterações em objetos compartilhados.
+- Estratégia de compatibilidade ou adaptação das verificações existentes.
+
+A conclusão de A1 não comprova conclusão de A2.
+
+### Localização nas camadas
+
+- Interfaces: br.mackenzie.finops.aplicacao.portas.
+- Implementações: br.mackenzie.finops.infraestrutura.repositorios.memoria.
+- Entidades: permanecem em br.mackenzie.finops.dominio.entidades.
+
+A aplicação depende das interfaces. A infraestrutura implementa essas interfaces e pode utilizar as entidades.
+
+As entidades não dependem dos repositórios.
+
+A montagem dos repositórios e seu fornecimento aos futuros casos de uso ocorrerão fora das entidades.
+
+### Contratos propostos para A1
+
+| Interface | Operação | Resultado |
+|---|---|---|
+| DepartamentoRepository | adicionar(Departamento departamento) | void |
+| DepartamentoRepository | buscarPorId(UUID id) | Optional<Departamento> |
+| RecursoCatalogoRepository | adicionar(RecursoCatalogo recurso) | void |
+| RecursoCatalogoRepository | buscarPorId(UUID id) | Optional<RecursoCatalogo> |
+| RequisicaoRepository | adicionar(Requisicao requisicao) | void |
+| RequisicaoRepository | buscarPorId(UUID id) | Optional<Requisicao> |
+| RequisicaoRepository | listarPorDepartamento(UUID departamentoId) | List<Requisicao> |
+
+Os nomes e assinaturas acima são uma proposta documental, não código implementado.
+
+Não há operação genérica salvar, atualizar ou excluir neste recorte.
+
+Adicionar significa cadastrar um identificador ainda inexistente. Não significa substituir o registro anterior.
+
+### Entradas e ausência
+
+- Entidade nula: IllegalArgumentException.
+- Identificador nulo, na entidade cadastrada ou na consulta: IllegalArgumentException.
+- Identificador inexistente em buscarPorId: Optional.empty().
+- Cadastro com identificador já existente: IllegalArgumentException, inclusive quando for fornecida a mesma instância.
+- Departamento inexistente em listarPorDepartamento: lista vazia.
+- As exceções devem possuir mensagem explicativa.
+
+Um cadastro rejeitado não altera os registros existentes.
+
+Nomes iguais com identificadores diferentes não são tratados como duplicidade neste recorte.
+
+### Identidade dos objetos
+
+Cada conjunto de repositórios representa um contexto de armazenamento em memória de uma execução.
+
+Dentro desse contexto:
+- Existe no máximo uma instância cadastrada de Departamento por UUID.
+- Existe no máximo uma instância cadastrada de RecursoCatalogo por UUID.
+- Existe no máximo uma instância cadastrada de Requisicao por UUID.
+- Consultas retornam a instância cadastrada.
+- O cadastro não substitui uma instância existente.
+
+Repositórios diferentes, criados independentemente, não representam automaticamente o mesmo contexto.
+
+Não utilizar estado estático global para compartilhar dados entre testes ou execuções.
+
+### Vínculos da requisição
+
+O RequisicaoRepository em memória deverá receber acesso aos repositórios de departamentos e recursos do mesmo contexto.
+
+Antes do cadastro, deverá verificar:
+- Requisição com identificador válido.
+- Estado INICIAL.
+- Existência de pelo menos um item válido.
+- Departamento previamente cadastrado.
+- Mesma instância de Departamento retornada pelo repositório.
+- Recursos dos itens previamente cadastrados.
+- Mesmas instâncias de RecursoCatalogo retornadas pelo repositório.
+
+Uma entidade diferente com o mesmo UUID não satisfaz a exigência de identidade desta implementação em memória.
+
+Essa comparação de referências é uma condição da implementação em memória. Não é um requisito de identidade entre objetos recuperados por conexões MySQL diferentes.
+
+Todas as verificações devem ocorrer antes da inclusão da requisição.
+
+O cadastro não altera estado, itens, total ou saldo e não executa validação orçamentária.
+
+### Referências mutáveis e coleções
+
+A lista devolvida por listarPorDepartamento:
+- Não permite inclusão, remoção ou substituição de elementos pelo chamador.
+- Representa os elementos encontrados no momento da consulta.
+- Não exige uma ordem específica.
+- Contém referências às requisições cadastradas.
+
+A proteção da lista não torna as entidades imutáveis.
+
+Alterações permitidas pelos métodos de domínio ficam visíveis nas consultas seguintes, pois os repositórios mantêm referências compartilhadas.
+
+Por esse motivo, A1 não oferece uma operação separada de confirmação nem isolamento entre uma entidade consultada e a entidade armazenada.
+
+A verificação dos vínculos no cadastro não garante que alterações posteriores preservem esses vínculos.
+
+Em A1, quem adicionar itens a uma requisição já cadastrada deverá utilizar recursos do mesmo contexto. O repositório não intercepta chamadas diretas aos métodos da entidade.
+
+A integração A2 deverá revalidar os vínculos antes da validação financeira e definir como impedir alterações que contornem essa verificação.
+
+### Coordenação em memória
+
+As operações dos repositórios devem proteger suas estruturas internas contra acesso concorrente.
+
+Dois cadastros concorrentes com o mesmo UUID devem produzir exatamente um cadastro bem-sucedido. O outro deve ser rejeitado sem substituição.
+
+A validação dos vínculos e do estado no cadastro da requisição deverá respeitar a coordenação pelo objeto Departamento utilizada no domínio.
+
+A implementação deverá adotar uma ordem consistente de aquisição de bloqueios, evitando que operações de consulta mantenham um bloqueio de repositório enquanto aguardam o bloqueio de Departamento.
+
+Proteger o mapa de registros não substitui a coordenação financeira da SPEC-003.
+
+### Limites de falhas
+
+Em A1, uma rejeição de cadastro deve preservar os registros existentes.
+
+Isso não representa rollback de alterações realizadas anteriormente por quem possui uma referência à entidade.
+
+A1 não atende, isoladamente, aos critérios C6 e C7 de falha nas operações completas de liberação e criação.
+
+A integração A2 deverá definir como preservar ou recuperar estado e saldo quando uma operação falhar após modificar objetos compartilhados.
+
+Essa decisão permanece em OPEN-005-03 e bloqueia a declaração de consistência da integração completa.
+
+### Preparação dos dados
+
+Os testes cadastrarão explicitamente departamentos e recursos antes das requisições.
+
+Cada cenário utilizará um novo contexto de repositórios para evitar interferência entre testes.
+
+Não haverá carga automática de dados, conexão com MySQL ou reinicialização automática do saldo.
+
+O recorte não implementa renovação de períodos orçamentários.
+
+### Critérios específicos de A1
+
+- MEM-01: cadastrar e recuperar cada tipo de entidade preserva sua referência e seu identificador.
+- MEM-02: consultas por UUID inexistente retornam ausência.
+- MEM-03: entradas e identificadores nulos são rejeitados.
+- MEM-04: identificadores duplicados são rejeitados e o objeto anterior é preservado.
+- MEM-05: listar por departamento retorna apenas as requisições vinculadas ao identificador consultado.
+- MEM-06: a lista retornada não permite modificar a coleção interna do repositório.
+- MEM-07: requisições com departamento ou recurso não cadastrado são rejeitadas.
+- MEM-08: objetos diferentes com o mesmo UUID dos registros existentes são rejeitados como vínculos.
+- MEM-09: requisições vazias ou fora de INICIAL são rejeitadas no cadastro.
+- MEM-10: cadastrar e consultar não altera saldo nem executa roteamento.
+- MEM-11: dois cadastros concorrentes do mesmo UUID resultam em uma inclusão e uma rejeição.
+- MEM-12: contextos independentes não compartilham registros.
+- MEM-13: as 75 verificações existentes continuam aprovadas.
+- MEM-14: alterações permitidas pelo domínio em uma entidade cadastrada ficam visíveis em consultas posteriores, evidenciando a política de referências compartilhadas.
+
+Os critérios MEM não substituem os critérios C1 a C14 da SPEC-005.
+
+### Relação com as questões em aberto
+
+- OPEN-005-01: contratos e identidade de A1 detalhados nesta proposta; integração A2 ainda pendente.
+- OPEN-005-02: integração MySQL permanece pendente.
+- OPEN-005-03: rejeição de cadastro delimitada; tratamento de falhas da integração financeira permanece pendente.
+- OPEN-005-04: A1 reutiliza as entidades atuais; reconstrução, representação no banco e valores históricos permanecem pendentes.
+- OPEN-005-05: cadastro de usuários e autorização não são implementados neste recorte.
+- OPEN-005-06: preparação explícita dos dados de teste definida; inicialização persistente e período orçamentário permanecem pendentes.
+- OPEN-005-07: critérios de memória definidos; protocolo MySQL permanece pendente.
+
+A aprovação deste detalhamento autoriza somente o recorte explicitamente aprovado. Não implica aprovação das decisões ainda abertas.
