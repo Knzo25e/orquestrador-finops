@@ -181,4 +181,33 @@ O recorte proposto não oferece rollback de falhas arbitrárias após iniciar a 
 A idempotência da criação, a persistência MySQL, o login e o portal não fazem parte desta entrega.
 
 ### Situação
-Proposta de A2 elaborada; revisão e aprovação pendentes.
+Detalhamento integrado pelo PR #52 e recorte A2 aprovado conforme confirmação do responsável pelo projeto. Implementação acompanhada na Issue #53.
+
+## Implementação da integração A2 — Issue #53
+
+### Base
+SPEC-005, recorte A2 detalhado na Issue #51, integrado pelo PR #52 e aprovado pelo responsável antes da implementação.
+
+### Implementação
+- Entrada imutável ItemSolicitado, contendo identificador do recurso e quantidade.
+- CriarRequisicaoArmazenadaUseCase com consulta dos registros e cadastro da requisição completa.
+- ValidarRequisicaoArmazenadaUseCase com conferência dos vínculos e coordenação pelo departamento.
+- Reutilização das regras existentes de criação e validação.
+- Preservação dos casos de uso anteriores.
+
+### Verificação
+Compilação de 25 arquivos Java com release 25 concluída.
+
+Foram aprovadas 39 verificações funcionais de integração, nove verificações concorrentes de integração e as 128 anteriores, totalizando 176.
+
+Evidência: docs/evidencias/issue-53/integracao-repositorios.md.
+
+### Limites
+Integração em memória, em uma única instância, com entidades compartilhadas.
+
+Não oferece rollback após iniciar a mutação, persistência após reinício ou idempotência da criação.
+
+O critério C6 e a estratégia transacional completa permanecem pendentes em OPEN-005-03.
+
+### Situação
+Implementação e verificações locais realizadas; revisão do PR pendente.
