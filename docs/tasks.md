@@ -73,8 +73,25 @@ A conclusão de A1 não conclui A2 nem a persistência MySQL.
 - [x] Definir os critérios INT-01 a INT-14.
 - [x] Alinhar mapa, plano e tarefas.
 - [x] Conferir a consistência do conjunto documental.
-- [ ] Revisar e aprovar o recorte antes da implementação.
+- [x] Revisar e aprovar o recorte antes da implementação.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+O recorte A2 foi aprovado; sua implementação é acompanhada na Issue #53. A aprovação não comprova rollback ou persistência MySQL.
+
+## Issue #53 — Implementação da integração A2
+
+- [x] Criar a branch feat/53-integracao-repositorios-a2.
+- [x] Implementar ItemSolicitado.
+- [x] Implementar criação integrada por identificadores.
+- [x] Implementar validação integrada com conferência dos vínculos.
+- [x] Executar 39 verificações funcionais da integração.
+- [x] Executar nove verificações concorrentes da integração.
+- [x] Preservar as 128 verificações anteriores.
+- [x] Registrar aprovação, evidências e limites.
+- [x] Atualizar README, mapa, plano e tarefas.
+- [x] Conferir implementação e documentação finais.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-A implementação de A2 permanece pendente. Esta proposta não conclui a SPEC-005 nem comprova rollback ou persistência MySQL.
+A integração em memória não conclui a persistência MySQL nem a estratégia transacional completa da SPEC-005.

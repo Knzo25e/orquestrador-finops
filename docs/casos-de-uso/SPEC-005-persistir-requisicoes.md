@@ -570,7 +570,7 @@ Essas evidências se referem ao cadastro e à consulta em memória. A integraç�
 
 ## Detalhamento da etapa A2 — Issue #51
 
-**Status:** proposta para revisão; implementação pendente.
+**Status:** recorte aprovado conforme confirmação do responsável pelo projeto; implementação e verificações locais realizadas na Issue #53, ainda sujeitas à revisão do PR.
 
 ### Objetivo e alcance
 
@@ -736,3 +736,17 @@ Os critérios INT complementam os critérios MEM. Não substituem os critérios 
 - OPEN-005-02 e OPEN-005-04 a OPEN-005-07: permanecem abertas nos aspectos ainda não resolvidos pelas etapas A1 e A2.
 
 A aprovação deste recorte não representa conclusão integral da SPEC-005.
+
+## Evidências de implementação de A2 — Issue #53
+
+Foram implementados ItemSolicitado, CriarRequisicaoArmazenadaUseCase e ValidarRequisicaoArmazenadaUseCase.
+
+A criação e a validação integradas reutilizam as regras existentes e consultam os repositórios do mesmo contexto em memória.
+
+Foram aprovadas 39 verificações funcionais de integração, nove verificações concorrentes de integração e as 128 verificações anteriores, totalizando 176.
+
+A compilação de 25 arquivos Java com release 25 foi concluída pelo Maven Wrapper.
+
+Os resultados e seus limites estão registrados em [Evidência da Issue #53](../evidencias/issue-53/integracao-repositorios.md).
+
+A persistência MySQL, a idempotência da criação e a estratégia transacional completa permanecem pendentes.
