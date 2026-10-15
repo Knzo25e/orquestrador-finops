@@ -750,3 +750,580 @@ A compilação de 25 arquivos Java com release 25 foi concluída pelo Maven Wrap
 Os resultados e seus limites estão registrados em [Evidência da Issue #53](../evidencias/issue-53/integracao-repositorios.md).
 
 A persistência MySQL, a idempotência da criação e a estratégia transacional completa permanecem pendentes.
+
+## Detalhamento da etapa B — Issue #55
+
+**Status:** proposta para revisão; implementação pendente.
+
+### Objetivo
+
+Persistir o fluxo de requisições no MySQL, preservando os dados após
+reiniciar a aplicação e garantindo consistência entre a liberação
+da requisição e o comprometimento do saldo.
+
+### Base tecnológica proposta
+
+- Java 25 e Maven Wrapper, conforme ADR-003.
+- Ambiente local identificado: MySQL Server 8.0.44, porta 3306.
+- Tabelas do projeto utilizando InnoDB.
+- Acesso por JDBC com MySQL Connector/J 9.7.0.
+- Dependência Maven: com.mysql:mysql-connector-j:9.7.0.
+- Utilização das operações JDBC 4.2 suportadas pelo driver.
+- A compatibilidade efetiva com o JDK e o servidor do projeto deverá
+  ser verificada durante a implementação.
+
+Spring Boot permanece previsto para integração futura.
+Este recorte utilizará JDBC diretamente, mantendo o acesso ao banco
+na infraestrutura e as regras financeiras no domínio.
+
+A definição da dependência nesta proposta não significa que ela já
+foi adicionada ao projeto.
+
+### Separação entre memória e MySQL
+
+A implementação MySQL não dependerá de referências compartilhadas
+entre entidades nem de synchronized para coordenar processos diferentes.
+
+Os casos de uso de A2 permanecem específicos do contexto em memória.
+Sua substituição por repositórios JDBC não será considerada suficiente
+para garantir transações ou consistência financeira.
+
+A etapa B deverá definir uma fronteira transacional explícita,
+abrangendo a leitura dos dados vigentes, a aplicação das regras
+e a gravação do resultado na mesma conexão.
+
+### Garantia financeira proposta
+
+A liberação e o comprometimento do saldo deverão ser confirmados
+na mesma transação.
+
+A coordenação utilizará bloqueios de registros no MySQL, com ordem
+de aquisição definida e consistente entre as operações.
+
+Uma falha antes do commit deverá provocar rollback.
+Os objetos alterados durante uma transação abortada serão descartados.
+
+Uma falha de comunicação durante o commit poderá deixar o resultado
+desconhecido para a aplicação. Esse caso exigirá consulta de reconciliação;
+não será tratado automaticamente como confirmação de rollback.
+
+A aplicação somente informará sucesso após confirmar a operação.
+
+### Aspectos contemplados nesta proposta
+
+- Estrutura das tabelas, identificadores e vínculos.
+- Precisão, limites monetários e preços históricos.
+- Reconstrução das entidades sem executar efeitos financeiros.
+- Fronteira transacional e ordem dos bloqueios.
+- Repetição de operações e resultado desconhecido do commit.
+- Preparação do esquema e dos dados iniciais.
+- Configuração de conexão e credenciais.
+- Verificações de reinício, falhas e concorrência.
+
+### Referências técnicas
+
+- Compatibilidade do Connector/J:
+  https://docs.oracle.com/cd/E17952_01/connector-j-en/connector-j-versions.html
+- Release do Connector/J 9.7.0:
+  https://dev.mysql.com/doc/relnotes/connector-j/en/news-9-7-0.html
+- Leituras com bloqueio no InnoDB:
+  https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html
+
+### Modelo de dados proposto
+
+O primeiro recorte utilizará quatro tabelas:
+
+| Tabela | Dados principais |
+|---|---|
+| departamento | id, nome, teto_mensal e saldo_disponivel |
+| recurso_catalogo | id, nome e custo_mensal |
+| requisicao | id, departamento_id, estado, custo_total e motivo_revisao |
+| item_requisicao | requisicao_id, ordem, recurso_id, preco_unitario e quantidade, além do subtotal |
+
+Os nomes descrevem a proposta lógica. O script de criação será
+elaborado na implementação após a revisão deste detalhamento.
+
+#### Identificadores e vínculos
+
+- Identificadores UUID serão representados como CHAR(36),
+  utilizando sua representação textual canônica.
+- departamento, recurso_catalogo e requisicao terão id como chave primária.
+- item_requisicao terá chave primária composta por requisicao_id e ordem.
+- A ordem dos itens começará em 1 e será preservada na recuperação.
+- requisicao.departamento_id referenciará departamento.id.
+- item_requisicao.requisicao_id referenciará requisicao.id.
+- item_requisicao.recurso_id referenciará recurso_catalogo.id.
+- Os vínculos serão obrigatórios e protegidos por chaves estrangeiras.
+- Não haverá exclusão em cascata neste recorte.
+- Haverá índice em requisicao.departamento_id para consulta por departamento.
+
+O vínculo de uma requisição com seu departamento não poderá ser
+alterado depois do cadastro.
+
+Recursos repetidos serão permitidos em itens distintos da mesma
+requisição, preservando o comportamento existente.
+
+#### Valores monetários
+
+Custos, preços unitários, subtotais, totais, teto e saldo serão
+representados como DECIMAL(19,2) no banco e BigDecimal no Java.
+
+O intervalo permitido será de 0,00 até 99.999.999.999.999.999,99.
+
+A aplicação deverá rejeitar valores fora desse intervalo antes
+da gravação, inclusive resultados de multiplicações e somas.
+
+Frações de centavo não serão arredondadas silenciosamente.
+Será preservada a validação monetária existente.
+
+O arredondamento HALF_UP permanece específico do cálculo da
+reserva, conforme a SPEC-003.
+
+A quantidade será um inteiro positivo, limitado ao intervalo
+positivo de Integer no Java.
+
+As restrições do banco deverão impedir valores monetários negativos,
+quantidades não positivas e saldo superior ao teto.
+
+#### Preços históricos
+
+Cada item armazenará o preço unitário aplicado na criação da
+requisição, além da quantidade e do subtotal.
+
+O preço aplicado será obtido do catálogo pela aplicação.
+Não será aceito um preço fornecido pelo chamador.
+
+Uma alteração posterior do catálogo não modificará os valores
+dos itens já cadastrados.
+
+A recuperação verificará:
+
+- subtotal = preco_unitario multiplicado pela quantidade;
+- custo_total = soma dos subtotais;
+- valores dentro dos limites monetários;
+- quantidade positiva e vínculos válidos.
+
+Uma inconsistência será informada explicitamente.
+A recuperação não substituirá o preço histórico pelo preço atual
+nem corrigirá silenciosamente os valores armazenados.
+
+#### Estados e motivos
+
+Os estados serão armazenados por códigos estáveis:
+
+- INICIAL
+- EM_ANALISE
+- REVISAO_PENDENTE
+- PROVISIONAMENTO_LIBERADO
+
+A infraestrutura realizará a conversão entre esses códigos
+e os estados atualmente utilizados pelo domínio.
+
+EM_ANALISE é transitório no fluxo automático e não deverá ser
+confirmado isoladamente por uma operação de validação.
+
+Os motivos de revisão serão:
+
+- SALDO_INSUFICIENTE
+- RESERVA
+
+REVISAO_PENDENTE exigirá um motivo válido.
+Os demais estados deverão possuir motivo nulo.
+
+Estados ou motivos desconhecidos serão tratados como inconsistência.
+
+#### Saldo e comprometimento
+
+Neste recorte, o comprometimento acumulado será representado pela
+diferença entre teto_mensal e saldo_disponivel.
+
+Não será criada uma tabela de lançamentos financeiros nesta etapa.
+
+Essa diferença não será apresentada como histórico de auditoria.
+A auditoria das intervenções manuais permanece na SPEC-007.
+
+A recuperação de uma requisição liberada não executará novo desconto.
+
+O saldo será recuperado do departamento armazenado, sem ser
+reinicializado ao iniciar a aplicação.
+
+#### Limites deste modelo
+
+O cadastro de solicitantes e a autorização dependem da SPEC-006.
+Este recorte não criará usuários fictícios para preencher vínculos.
+
+O modelo representa um único período orçamentário ativo.
+Não haverá renovação automática, histórico de períodos ou
+reinicialização mensal do saldo nesta entrega.
+
+A definição de períodos futuros deverá preservar os compromissos
+existentes e receber detalhamento próprio.
+
+### Reconstrução das entidades
+
+A recuperação utilizará mecanismos explícitos de reconstituição
+das entidades, preservando identificadores, vínculos, valores
+e estados armazenados.
+
+Esses mecanismos deverão:
+
+- Validar os dados recuperados.
+- Preservar o UUID original.
+- Restaurar o saldo armazenado do departamento.
+- Preservar a ordem e os preços históricos dos itens.
+- Restaurar o estado e o motivo da requisição.
+- Rejeitar dados inconsistentes antes de disponibilizar a entidade.
+
+A recuperação não utilizará a criação de uma nova requisição
+como substituto da reconstituição.
+
+Também não executará descontos para reconstruir o saldo,
+nem roteamento para reconstruir o estado.
+
+O domínio continuará independente de JDBC e de classes SQL.
+A infraestrutura converterá os registros em dados aceitos
+pelos mecanismos de reconstituição do domínio.
+
+Os itens deverão admitir reconstituição com preço histórico
+explícito, sem depender do custo atual do recurso do catálogo.
+A criação normal continuará obtendo o preço do recurso cadastrado.
+
+Os mecanismos necessários serão introduzidos e verificados
+na implementação, preservando os comportamentos existentes.
+
+### Fronteira transacional
+
+Cada operação de criação ou validação utilizará uma conexão
+exclusiva durante sua transação.
+
+Todas as consultas e gravações participantes utilizarão essa
+mesma conexão, com autocommit desabilitado.
+
+Os repositórios participantes não abrirão conexões independentes
+nem executarão commit por conta própria.
+
+A coordenação transacional ficará na infraestrutura, acessível
+pela aplicação por um contrato que não exponha tipos JDBC.
+
+As regras de aprovação e revisão permanecerão no domínio.
+
+A implementação deverá distinguir:
+
+- Operação confirmada.
+- Operação abortada.
+- Resultado de confirmação desconhecido.
+
+Uma exceção durante o commit não comprova que houve rollback.
+
+### Criação transacional
+
+A criação deverá:
+
+1. Validar o UUID da requisição, o departamento e os itens, copiando as entradas.
+2. Iniciar a transação.
+3. Consultar se o UUID da requisição já está cadastrado.
+4. Se existir, conferir o conteúdo conforme a política de repetição e retornar o registro existente após encerrar a transação de leitura.
+5. Se não existir, obter o departamento e os recursos referenciados.
+6. Construir a requisição completa em INICIAL, preservando o UUID recebido e aplicando as validações de domínio.
+7. Verificar os limites de representação dos valores.
+8. Inserir a requisição e todos os seus itens.
+9. Confirmar a transação.
+10. Retornar o resultado após a confirmação.
+
+A criação com UUID explícito deverá utilizar um mecanismo de domínio
+que preserve as validações da criação normal, sem permitir ao chamador
+definir estado, saldo ou valores financeiros.
+
+A consulta prévia não elimina uma disputa concorrente pela inclusão.
+O conflito de chave será tratado conforme a seção de identidade
+da criação e confirmação desconhecida.
+
+Os preços utilizados serão preservados nos itens.
+
+Uma falha antes do commit deverá desfazer todas as inserções
+dessa criação, sem deixar uma requisição incompleta.
+
+A criação não alterará o saldo nem executará roteamento.
+
+Não haverá chamada externa nem espera por entrada do usuário
+durante a transação.
+
+### Validação financeira transacional
+
+Será utilizado o nível de isolamento READ COMMITTED,
+com bloqueios explícitos nos registros envolvidos.
+
+A validação deverá:
+
+1. Iniciar a transação.
+2. Consultar o departamento associado ao identificador da requisição.
+3. Bloquear o registro do departamento com SELECT FOR UPDATE.
+4. Bloquear o registro da requisição com SELECT FOR UPDATE.
+5. Conferir novamente o vínculo entre requisição e departamento.
+6. Recuperar os itens e reconstruir as entidades com os dados vigentes.
+7. Aplicar as regras da SPEC-003.
+8. Gravar o resultado da operação.
+9. Confirmar a transação.
+10. Retornar o resultado após a confirmação.
+
+A consulta inicial serve apenas para localizar o departamento.
+O estado e os valores utilizados na decisão serão obtidos
+após adquirir os bloqueios.
+
+A ordem de bloqueio será sempre departamento antes de requisição
+nas operações financeiras deste recorte.
+
+Operações futuras que alterem esses dados deverão respeitar
+a mesma coordenação ou definir uma revisão explícita do protocolo.
+
+Em caso de liberação, a atualização do saldo e a atualização
+do estado serão realizadas na mesma transação.
+
+Em caso de revisão, serão gravados estado e motivo,
+sem desconto referente ao pedido.
+
+As atualizações deverão conferir a quantidade de registros afetados.
+Um resultado inesperado deverá impedir a confirmação.
+
+### Repetição e concorrência
+
+Após adquirir os bloqueios, uma requisição já liberada retornará
+JA_LIBERADA, sem novo comprometimento.
+
+Requisições em estados fora do fluxo automático preservarão
+estado e saldo, conforme a SPEC-003.
+
+Duas validações do mesmo departamento deverão ser coordenadas
+pelo registro desse departamento no banco.
+
+Essa coordenação deverá funcionar com conexões independentes,
+sem depender de objetos Java compartilhados.
+
+Os bloqueios permanecerão até o término da transação.
+
+Neste primeiro recorte, deadlocks e limites de espera excedidos
+não provocarão repetição automática pela aplicação.
+
+A operação será abortada, a falha será informada e a conexão
+será encerrada. Uma nova tentativa de validação utilizará
+o mesmo identificador de requisição.
+
+### Falhas e objetos em memória
+
+Após uma falha, a aplicação tentará realizar rollback quando
+a conexão ainda permitir essa operação.
+
+Os objetos reconstruídos e alterados durante a transação serão
+descartados quando a operação for abortada ou tiver resultado
+desconhecido.
+
+Esses objetos não serão mantidos em cache nem reutilizados
+como representação dos dados confirmados.
+
+Uma consulta posterior utilizará uma nova transação.
+
+Uma falha durante a confirmação deverá ser informada como
+resultado desconhecido quando não for possível determinar
+se o commit foi efetivado.
+
+Na validação, a reconciliação consultará a mesma requisição.
+Uma nova tentativa seguirá o protocolo de bloqueios e reconhecerá
+uma liberação já confirmada, evitando novo desconto.
+
+### Imutabilidade dos itens persistidos neste recorte
+
+A etapa B não oferecerá atualização dos itens de uma requisição
+já cadastrada.
+
+Os objetos recuperados poderão ser modificados localmente pelos
+métodos permitidos pelo domínio, mas isso não produzirá atualização
+automática no banco.
+
+A validação por identificador sempre recuperará os dados persistidos.
+Não receberá uma entidade modificada pelo chamador para gravação.
+
+Essa diferença em relação às referências compartilhadas de A1
+deverá estar explícita nos contratos e nas verificações.
+
+### Identidade da criação e confirmação desconhecida
+
+A criação persistente receberá um UUID de requisição definido
+antes da primeira tentativa de armazenamento.
+
+Esse identificador deverá ser preservado pelo chamador enquanto
+o resultado da criação estiver pendente.
+
+Essa entrada é específica do contrato de criação persistente.
+Os casos de uso em memória existentes permanecerão disponíveis.
+
+Uma nova solicitação receberá um novo identificador.
+Uma repetição da mesma solicitação utilizará o identificador original.
+
+A chave primária da requisição impedirá duas inclusões com o mesmo UUID.
+
+Quando o identificador já existir, a aplicação verificará:
+
+- Mesmo departamento.
+- Mesma sequência de itens.
+- Mesmos identificadores de recursos.
+- Mesmas quantidades.
+
+Se os dados corresponderem, será retornada a requisição existente,
+preservando seus preços históricos e seu estado atual.
+
+Se os dados divergirem, será informado conflito de identificador,
+sem substituir os registros existentes.
+
+A comparação não utilizará os preços atuais do catálogo,
+pois eles podem ter mudado desde a primeira criação.
+
+Uma repetição não reiniciará o estado de uma requisição já validada.
+
+Em caso de disputa concorrente pela inclusão do mesmo UUID,
+a tentativa que receber conflito de chave deverá encerrar sua
+transação e consultar o registro em uma nova transação.
+
+A conferência do conteúdo determinará se é uma repetição válida
+ou um conflito de identificador.
+
+Após resultado desconhecido do commit, a reconciliação utilizará
+o mesmo UUID. Não será gerado automaticamente outro pedido.
+
+### Consultas consistentes
+
+A consulta de uma requisição deverá recuperar cabeçalho e itens
+de uma mesma visão consistente do banco.
+
+Consultas compostas poderão utilizar uma única instrução SQL
+ou uma transação de leitura com snapshot consistente.
+
+Se forem utilizadas várias instruções, deverá ser utilizado
+REPEATABLE READ com leitura consistente na mesma transação,
+sem misturar leituras de snapshots diferentes.
+
+Essa política de consulta é distinta da validação financeira,
+que utiliza READ COMMITTED e bloqueios explícitos.
+
+A recuperação após reinício não dependerá de cache, arquivos
+temporários ou entidades da execução anterior.
+
+### Esquema e preparação dos ambientes
+
+Serão utilizados bancos separados:
+
+- finops_dev: desenvolvimento.
+- finops_test: verificações automatizadas de integração.
+
+Os scripts de criação e evolução do esquema serão versionados.
+
+A aplicação não criará, apagará ou recriará tabelas automaticamente
+ao iniciar.
+
+A preparação inicial deverá conferir se o banco de destino
+já existe e possui dados antes de executar alterações.
+
+Os scripts não incluirão exclusão de outros bancos existentes.
+
+Dados iniciais serão cadastrados por uma operação explícita.
+A inicialização não sobrescreverá departamentos, recursos,
+requisições ou saldos já existentes.
+
+O esquema deverá utilizar InnoDB, chaves estrangeiras e restrições
+coerentes com este detalhamento.
+
+### Configuração de conexão
+
+A configuração será recebida externamente ao código:
+
+- FINOPS_DB_URL
+- FINOPS_DB_USER
+- FINOPS_DB_PASSWORD
+
+Senhas não serão incluídas no repositório, nos exemplos preenchidos
+ou nas evidências de execução.
+
+A aplicação utilizará um usuário próprio, com permissões necessárias
+às operações do fluxo no banco correspondente.
+
+O usuário da aplicação não será root e não terá permissões
+para criar ou excluir bancos e tabelas.
+
+A preparação do esquema utilizará credenciais administrativas
+separadas da execução normal.
+
+As instruções de conexão deverão registrar a configuração de TLS
+adotada, sem desabilitar verificações silenciosamente.
+
+As instruções SQL utilizarão parâmetros para valores recebidos,
+sem concatenar entradas do chamador.
+
+Conexões, comandos e resultados serão fechados ao terminar
+a operação, inclusive nos caminhos de falha.
+
+### Critérios específicos da etapa B
+
+- DB-01: preparar o esquema em um banco isolado, preservando outros bancos e dados existentes.
+- DB-02: cadastrar e recuperar departamentos e recursos com identidade e valores preservados.
+- DB-03: criar uma requisição completa e recuperar seus itens na ordem original.
+- DB-04: encerrar o processo Java e recuperar os dados em outro processo.
+- DB-05: alterar o preço do catálogo em uma preparação controlada e comprovar que pedidos existentes preservam seus preços históricos.
+- DB-06: rejeitar valores monetários fora dos limites e dados inconsistentes, sem correção silenciosa.
+- DB-07: liberar uma requisição e confirmar saldo e estado na mesma transação.
+- DB-08: persistir revisão por saldo e por reserva, preservando saldo e motivo.
+- DB-09: repetir uma validação após reinício sem novo comprometimento.
+- DB-10: provocar falha após atualizar o saldo e antes de atualizar a requisição, comprovando rollback das alterações.
+- DB-11: provocar falha durante a inserção dos itens, comprovando ausência de requisição parcial.
+- DB-12: validar simultaneamente a mesma requisição por conexões independentes, obtendo somente um comprometimento.
+- DB-13: validar pedidos distintos do mesmo departamento por conexões independentes, exercitando insuficiência de saldo e reserva.
+- DB-14: executar uma disputa financeira entre processos Java distintos e conferir o resultado persistido.
+- DB-15: repetir a criação com o mesmo UUID e conteúdo, obtendo somente uma requisição.
+- DB-16: rejeitar o mesmo UUID de criação com conteúdo diferente, preservando o registro original.
+- DB-17: disputar a criação do mesmo UUID por conexões independentes, verificando inclusão única e tratamento da repetição.
+- DB-18: simular perda de confirmação após commit efetivado e reconciliar pelo mesmo UUID, sem duplicar criação ou comprometimento.
+- DB-19: simular falha anterior ao commit e verificar que a repetição com o mesmo UUID pode concluir a operação.
+- DB-20: preservar as 176 verificações existentes.
+- DB-21: confirmar que a inicialização da aplicação não reinicia saldos nem sobrescreve dados.
+- DB-22: recuperar uma requisição completa de uma visão consistente, sem combinar partes de consultas incompatíveis.
+
+### Protocolo de verificação
+
+As verificações de integração utilizarão exclusivamente finops_test,
+com identificação explícita do banco antes de qualquer limpeza.
+
+A preparação e a limpeza serão limitadas aos dados de teste
+e respeitarão as chaves estrangeiras.
+
+Os cenários utilizarão identificadores próprios para evitar
+interferência entre execuções.
+
+Os testes concorrentes utilizarão coordenação explícita e limites
+de espera, sem depender apenas de pausas arbitrárias.
+
+Os dados finais serão consultados por uma nova conexão após
+o encerramento das transações concorrentes.
+
+Os pontos de falha serão controlados e identificados nas evidências.
+
+A simulação de perda de confirmação após commit não será apresentada
+como reprodução de todas as formas de falha de rede.
+
+As evidências registrarão versões, comandos, resultados,
+banco utilizado e limitações, sem expor credenciais.
+
+A medição de desempenho com MySQL será definida e executada
+separadamente antes de declarar atendimento ao RNF-01.
+Os resultados anteriores em memória não comprovam esse atendimento.
+
+### Situação das questões em aberto
+
+- OPEN-005-01: contratos persistentes deverão incorporar identidade estável da criação e fronteira transacional; assinaturas serão conferidas na revisão anterior à implementação.
+- OPEN-005-02: JDBC, Connector/J 9.7.0 e MySQL local 8.0.44 propostos; integração com Spring Boot permanece futura.
+- OPEN-005-03: transações, bloqueios, rollback e reconciliação propostos; atendimento depende da implementação e das verificações.
+- OPEN-005-04: representação monetária, UUIDs, itens históricos e reconstrução detalhados nesta proposta.
+- OPEN-005-05: solicitantes e autorização permanecem dependentes da SPEC-006.
+- OPEN-005-06: preparação explícita e período ativo único propostos; renovação e histórico de períodos permanecem fora deste recorte.
+- OPEN-005-07: protocolo funcional proposto; avaliação de desempenho com MySQL permanece pendente.
+
+Este detalhamento permanece sujeito à revisão.
+A existência da proposta não comprova implementação da etapa B
+nem atendimento integral à SPEC-005.
