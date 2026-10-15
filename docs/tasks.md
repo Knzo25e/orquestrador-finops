@@ -91,7 +91,26 @@ O recorte A2 foi aprovado; sua implementação é acompanhada na Issue #53. A ap
 - [x] Registrar aprovação, evidências e limites.
 - [x] Atualizar README, mapa, plano e tarefas.
 - [x] Conferir implementação e documentação finais.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+A integração em memória não conclui a persistência MySQL nem a estratégia transacional completa da SPEC-005.
+
+## Issue #55 — Detalhamento da persistência MySQL
+
+- [x] Criar a branch docs/55-persistencia-mysql-transacoes.
+- [x] Confirmar acesso ao servidor e identificar versão, porta e mecanismo.
+- [x] Registrar proposta de acesso JDBC.
+- [x] Detalhar dados, vínculos e preços históricos.
+- [x] Definir proposta de reconstrução das entidades.
+- [x] Delimitar transações, bloqueios e tratamento de falhas.
+- [x] Especificar repetição da criação e reconciliação.
+- [x] Definir configuração, ambientes e critérios DB-01 a DB-22.
+- [ ] Conferir consistência entre Spec, arquitetura, mapa e plano.
+- [ ] Revisar e aprovar os contratos necessários à implementação.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-A integração em memória não conclui a persistência MySQL nem a estratégia transacional completa da SPEC-005.
+A etapa B permanece sem implementação.
+As decisões propostas não comprovam persistência, rollback
+ou atendimento ao RNF-01 com MySQL.

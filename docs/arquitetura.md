@@ -36,7 +36,8 @@ O sistema adota uma arquitetura em camadas (Layers) baseada nos princípios de C
   * A integração com MySQL exigirá implementação e verificação próprias.
   * O uso de MySQL, por si só, não garante consistência do saldo em concorrência nem imutabilidade da auditoria; esses comportamentos precisarão ser implementados e verificados.
 * **Alternativas:** O mapa anterior mencionava PostgreSQL e NoSQL. Não há justificativa comparativa registrada para a escolha do MySQL; este ADR não presume que essa avaliação tenha sido realizada.
-* **Situação de implementação:** A decisão tecnológica não comprova que os repositórios em memória ou a integração com MySQL já estejam implementados.
+* **Situação de implementação:** Repositórios em memória implementados na Issue #49 e integrados pelo PR #50; criação e validação integradas em memória na Issue #53, pelo PR #54. A persistência MySQL permanece pendente.
+* **Detalhamento em revisão:** A Issue #55 propõe JDBC com Connector/J 9.7.0, transações InnoDB, coordenação por registros do departamento e da requisição, preservação de preços históricos e reconciliação por identificador estável. A proposta está registrada na etapa B da SPEC-005 e ainda depende de revisão.
 
 ### ADR-003: Java, Spring Boot e padronização do build
 

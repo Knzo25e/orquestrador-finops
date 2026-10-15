@@ -210,4 +210,54 @@ Não oferece rollback após iniciar a mutação, persistência após reinício o
 O critério C6 e a estratégia transacional completa permanecem pendentes em OPEN-005-03.
 
 ### Situação
-Implementação e verificações locais realizadas; revisão do PR pendente.
+Implementação e verificações locais concluídas; integrada à main pelo PR #54. Persistência MySQL e estratégia transacional completa permanecem pendentes.
+
+## Persistência MySQL e transações — Issue #55
+
+### Objetivo
+
+Detalhar a etapa B da SPEC-005, permitindo implementar persistência
+entre execuções com consistência financeira.
+
+### Base
+
+- ADR-002: MySQL como banco relacional do projeto.
+- ADR-003: Java 25 e integração futura com Spring Boot.
+- PR #54: integração A2 em memória implementada.
+- Ambiente local confirmado: MySQL 8.0.44, porta 3306 e InnoDB.
+
+### Proposta
+
+- Acesso JDBC com Connector/J 9.7.0.
+- Esquema para departamentos, recursos, requisições e itens.
+- Valores monetários limitados a DECIMAL(19,2).
+- Preservação dos preços históricos dos itens.
+- Reconstituição das entidades sem novos efeitos financeiros.
+- Criação completa em uma transação.
+- Validação com bloqueios no departamento e na requisição.
+- Confirmação conjunta do saldo e do estado.
+- Identificador estável para repetição da criação.
+- Tratamento explícito de confirmação desconhecida.
+- Bancos separados de desenvolvimento e testes.
+- Credenciais externas ao código e usuário próprio da aplicação.
+
+### Verificação prevista
+
+Exercitar DB-01 a DB-22, incluindo reinício, rollback,
+concorrência entre conexões e processos, repetição e reconciliação.
+
+Preservar as 176 verificações existentes.
+
+O atendimento ao RNF-01 com MySQL exige medição própria.
+
+### Limites
+
+Esta issue é documental. A implementação Java, a adição da
+dependência e a criação do esquema ocorrerão em etapa posterior.
+
+Autorização, auditoria manual, renovação de períodos e integração
+web permanecem nos respectivos recortes.
+
+### Situação
+
+Proposta elaborada; revisão e aprovação pendentes.
