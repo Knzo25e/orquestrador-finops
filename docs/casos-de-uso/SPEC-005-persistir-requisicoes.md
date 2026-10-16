@@ -1327,3 +1327,165 @@ Os resultados anteriores em memória não comprovam esse atendimento.
 Este detalhamento permanece sujeito à revisão.
 A existência da proposta não comprova implementação da etapa B
 nem atendimento integral à SPEC-005.
+
+## Reconstituição das entidades — Issue #57
+
+### Alcance
+
+Preparar as entidades para reconstrução a partir de dados armazenados,
+sem executar roteamento, descontos ou geração de novos identificadores.
+
+Este recorte não inclui JDBC, conexão com MySQL ou transações.
+
+### Departamento
+
+Contrato:
+
+Departamento.reconstituir(
+    UUID id,
+    String nome,
+    BigDecimal orcamentoMensal,
+    BigDecimal saldoDisponivel
+)
+
+A fábrica deverá:
+
+- Exigir identificador não nulo.
+- Validar teto e saldo como valores monetários não negativos.
+- Rejeitar frações de centavo sem arredondamento silencioso.
+- Normalizar valores válidos para duas casas decimais.
+- Rejeitar saldo superior ao teto.
+- Preservar o saldo informado sem executar descontarSaldo.
+
+O construtor existente manterá seu comportamento.
+
+### ItemRequisicao
+
+Adicionar o preço unitário aplicado como informação explícita,
+disponível por getPrecoUnitario().
+
+O construtor existente obterá esse preço do recurso do catálogo.
+
+Contrato de reconstituição:
+
+ItemRequisicao.reconstituir(
+    RecursoCatalogo recurso,
+    Integer quantidade,
+    BigDecimal precoUnitario,
+    BigDecimal subtotalArmazenado
+)
+
+A fábrica exigirá recurso com identificador, quantidade positiva
+e valores monetários válidos.
+
+O subtotal armazenado deverá ser numericamente igual ao produto
+do preço unitário pela quantidade.
+
+O preço histórico poderá diferir do preço atual do catálogo.
+A comparação monetária utilizará compareTo, após validação.
+
+### Requisicao
+
+Contrato de criação com identidade explícita:
+
+Requisicao.criarComId(UUID id, Departamento departamento)
+
+Exigir UUID da requisição e departamento com UUID não nulos.
+Criar em INICIAL, com total zero e lista inicialmente vazia.
+O chamador adicionará os itens antes do armazenamento.
+
+Contrato de reconstituição:
+
+Requisicao.reconstituir(
+    UUID id,
+    Departamento departamento,
+    List<ItemRequisicao> itens,
+    String status,
+    BigDecimal totalArmazenado,
+    ResultadoValidacao motivoRevisao
+)
+
+Exigir:
+
+- UUID da requisição e departamento com UUID não nulos.
+- Lista não nula, não vazia e sem itens nulos.
+- Recursos dos itens com identificadores não nulos.
+- Total monetário válido e igual à soma dos subtotais.
+- Estado e motivo compatíveis.
+
+A lista recebida será copiada, preservando sua ordem.
+Os itens e o departamento continuarão sendo referências às entidades.
+
+A reconstituição não utilizará adicionarItem nem processarRoteamento
+para reconstruir um pedido já processado.
+
+### Estados aceitos na reconstituição
+
+| Estado do domínio | Motivo permitido |
+|---|---|
+| INICIAL | null |
+| Provisionamento Liberado | null |
+| Revisão Pendente | REVISAO_POR_SALDO_INSUFICIENTE ou REVISAO_POR_RESERVA |
+
+Estados nulos, desconhecidos ou transitórios serão rejeitados.
+
+Em Analise não poderá ser reconstituído neste recorte.
+O código EM_ANALISE mencionado no modelo da etapa B representa
+um estado transitório conhecido, não um estado autorizado para
+confirmação ou recuperação de uma requisição persistida.
+
+A infraestrutura deverá informar inconsistência caso encontre
+esse estado armazenado.
+
+### Validação e compatibilidade
+
+Entradas inválidas nas novas fábricas produzirão
+IllegalArgumentException com mensagem explicativa.
+
+Todas as validações deverão ocorrer antes de disponibilizar
+a entidade reconstruída, sem alterar os objetos recebidos.
+
+A recuperação de um pedido liberado não comparará seu custo com
+o saldo atual para decidir se ele poderia ser liberado novamente.
+Esse saldo já pode refletir o comprometimento de outros pedidos.
+
+A recuperação de pedidos em revisão preservará o motivo histórico,
+sem recalculá-lo pelas condições financeiras atuais.
+
+O domínio permanecerá independente de JDBC e de tipos SQL.
+
+Os construtores existentes manterão seus contratos.
+As exigências adicionais de identidade serão aplicadas às novas
+fábricas, preservando as verificações anteriores.
+
+Os limites de DECIMAL(19,2) serão tratados na persistência.
+Este recorte preserva as regras monetárias atuais do domínio.
+
+### Critérios de verificação
+
+- REC-01: reconstituir departamento preserva UUID, teto e saldo.
+- REC-02: rejeitar saldo inválido ou superior ao teto.
+- REC-03: reconstituir item preserva preço histórico diferente do catálogo atual.
+- REC-04: rejeitar subtotal incompatível com preço e quantidade.
+- REC-05: criar com UUID explícito preserva identidade e estado INICIAL.
+- REC-06: reconstituir requisição preserva identidade, itens, ordem e total.
+- REC-07: reconstituir pedido liberado não altera saldo; nova validação retorna JA_LIBERADA.
+- REC-08: reconstituir revisão preserva motivo e saldo, sem reiniciar o fluxo automático.
+- REC-09: rejeitar identificadores, listas e valores inválidos.
+- REC-10: rejeitar estado transitório, desconhecido ou incompatível com o motivo.
+- REC-11: rejeitar total diferente da soma dos subtotais.
+- REC-12: alterações posteriores na lista recebida não alteram a coleção interna.
+- REC-13: preservar as 176 verificações existentes.
+
+### Situação da implementação
+
+Fábricas de reconstituição e criação com UUID explícito implementadas.
+O item passou a preservar explicitamente o preço unitário aplicado.
+
+Foram aprovadas 64 verificações de reconstituição e as 176 anteriores,
+totalizando 240 verificações locais.
+
+Evidências: [Issue #57](../evidencias/issue-57/reconstituicao-entidades.md).
+
+Revisão final e integração pelo PR pendentes.
+Este resultado não comprova persistência MySQL ou transações.

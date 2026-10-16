@@ -25,6 +25,54 @@ public class Departamento {
         this.saldoDisponivel = orcamentoValidado;
     }
 
+    private Departamento(
+            UUID id,
+            String nome,
+            BigDecimal orcamentoMensal,
+            BigDecimal saldoDisponivel
+    ) {
+        this.id = id;
+        this.nome = nome;
+        this.orcamentoMensal = orcamentoMensal;
+        this.saldoDisponivel = saldoDisponivel;
+    }
+
+    public static Departamento reconstituir(
+            UUID id,
+            String nome,
+            BigDecimal orcamentoMensal,
+            BigDecimal saldoDisponivel
+    ) {
+        if (id == null) {
+            throw new IllegalArgumentException(
+                    "O identificador do departamento é obrigatório."
+            );
+        }
+
+        BigDecimal orcamentoValidado = validarValorMonetario(
+                orcamentoMensal,
+                "O orçamento mensal"
+        );
+
+        BigDecimal saldoValidado = validarValorMonetario(
+                saldoDisponivel,
+                "O saldo disponível"
+        );
+
+        if (saldoValidado.compareTo(orcamentoValidado) > 0) {
+            throw new IllegalArgumentException(
+                    "O saldo disponível não pode ser superior ao orçamento mensal."
+            );
+        }
+
+        return new Departamento(
+                id,
+                nome,
+                orcamentoValidado,
+                saldoValidado
+        );
+    }
+
     public synchronized boolean verificarDisponibilidade(BigDecimal valor) {
         BigDecimal valorValidado = validarValorMonetario(
                 valor,

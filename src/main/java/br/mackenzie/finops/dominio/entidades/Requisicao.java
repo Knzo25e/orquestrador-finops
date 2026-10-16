@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.math.RoundingMode;
 
 public class Requisicao {
     private final UUID id;
@@ -28,6 +29,174 @@ public class Requisicao {
         this.status = "INICIAL";
         this.custoTotalProjetado = new BigDecimal("0.00");
         this.itens = new ArrayList<>();
+    }
+
+    private Requisicao(
+            UUID id,
+            Departamento departamento,
+            List<ItemRequisicao> itens,
+            String status,
+            BigDecimal custoTotalProjetado,
+            ResultadoValidacao motivoRevisao
+    ) {
+        this.id = id;
+        this.departamento = departamento;
+        this.itens = new ArrayList<>(itens);
+        this.status = status;
+        this.custoTotalProjetado = custoTotalProjetado;
+        this.motivoRevisao = motivoRevisao;
+    }
+
+    public static Requisicao criarComId(
+            UUID id,
+            Departamento departamento
+    ) {
+        validarIdentidade(id, departamento);
+
+        return new Requisicao(
+                id,
+                departamento,
+                List.of(),
+                "INICIAL",
+                new BigDecimal("0.00"),
+                null
+        );
+    }
+
+    public static Requisicao reconstituir(
+            UUID id,
+            Departamento departamento,
+            List<ItemRequisicao> itens,
+            String status,
+            BigDecimal totalArmazenado,
+            ResultadoValidacao motivoRevisao
+    ) {
+        validarIdentidade(id, departamento);
+        validarEstadoEMotivo(status, motivoRevisao);
+
+        if (itens == null) {
+            throw new IllegalArgumentException(
+                    "A lista de itens é obrigatória."
+            );
+        }
+
+        List<ItemRequisicao> copia = new ArrayList<>(itens);
+
+        if (copia.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "A requisição reconstituída deve conter pelo menos um item."
+            );
+        }
+
+        BigDecimal soma = new BigDecimal("0.00");
+
+        for (ItemRequisicao item : copia) {
+            if (item == null) {
+                throw new IllegalArgumentException(
+                        "A lista não pode conter um item nulo."
+                );
+            }
+
+            if (item.getRecurso() == null
+                    || item.getRecurso().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Cada item deve possuir um recurso com identificador."
+                );
+            }
+
+            soma = soma.add(item.getCustoSubtotal());
+        }
+
+        BigDecimal totalValidado = validarTotalArmazenado(
+                totalArmazenado
+        );
+
+        if (totalValidado.compareTo(soma) != 0) {
+            throw new IllegalArgumentException(
+                    "O total armazenado deve ser igual à soma dos subtotais."
+            );
+        }
+
+        return new Requisicao(
+                id,
+                departamento,
+                copia,
+                status,
+                totalValidado,
+                motivoRevisao
+        );
+    }
+
+    private static void validarIdentidade(
+            UUID id,
+            Departamento departamento
+    ) {
+        if (id == null) {
+            throw new IllegalArgumentException(
+                    "O identificador da requisição é obrigatório."
+            );
+        }
+
+        if (departamento == null || departamento.getId() == null) {
+            throw new IllegalArgumentException(
+                    "A requisição deve possuir um departamento com identificador."
+            );
+        }
+    }
+
+    private static void validarEstadoEMotivo(
+            String status,
+            ResultadoValidacao motivoRevisao
+    ) {
+        boolean inicial = "INICIAL".equals(status);
+        boolean liberada = "Provisionamento Liberado".equals(status);
+        boolean revisao = "Revisão Pendente".equals(status);
+
+        if (!inicial && !liberada && !revisao) {
+            throw new IllegalArgumentException(
+                    "O estado informado não é permitido na reconstituição."
+            );
+        }
+
+        if (revisao) {
+            if (motivoRevisao
+                    != ResultadoValidacao.REVISAO_POR_SALDO_INSUFICIENTE
+                    && motivoRevisao
+                    != ResultadoValidacao.REVISAO_POR_RESERVA) {
+                throw new IllegalArgumentException(
+                        "Uma requisição em revisão deve possuir um motivo válido."
+                );
+            }
+        } else if (motivoRevisao != null) {
+            throw new IllegalArgumentException(
+                    "Somente uma requisição em revisão pode possuir motivo de revisão."
+            );
+        }
+    }
+
+    private static BigDecimal validarTotalArmazenado(
+            BigDecimal total
+    ) {
+        if (total == null) {
+            throw new IllegalArgumentException(
+                    "O total armazenado é obrigatório."
+            );
+        }
+
+        if (total.signum() < 0) {
+            throw new IllegalArgumentException(
+                    "O total armazenado não pode ser negativo."
+            );
+        }
+
+        try {
+            return total.setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException excecao) {
+            throw new IllegalArgumentException(
+                    "O total armazenado não pode conter frações de centavo.",
+                    excecao
+            );
+        }
     }
 
     public void adicionarItem(ItemRequisicao item) {
