@@ -59,7 +59,7 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
         "VerificarRepositoriosMemoria",
         "VerificarConcorrenciaRepositorios",
         "VerificarIntegracaoRepositorios",
-        "VerificarConcorrenciaIntegracao"
+        "VerificarConcorrenciaIntegracao", "VerificarReconstituicaoEntidades"
     )
 
     foreach ($classe in $classes) {
@@ -73,7 +73,7 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
 }
 ```
 
-São 176 verificações:
+São 240 verificações:
 - Main: 10.
 - VerificarValoresMonetarios: 34.
 - VerificarValidacaoOrcamentaria: 25.
@@ -82,10 +82,13 @@ São 176 verificações:
 - VerificarConcorrenciaRepositorios: nove verificações em três cenários.
 - VerificarIntegracaoRepositorios: 39.
 - VerificarConcorrenciaIntegracao: nove verificações em três cenários.
+- VerificarReconstituicaoEntidades: 64.
 
 Evidências da integração e limites: [Issue #53](docs/evidencias/issue-53/integracao-repositorios.md).
 
 Evidências dos repositórios e limites: [Issue #49](docs/evidencias/issue-49/repositorios-memoria.md).
+
+Evidências da reconstituição e limites: [Issue #57](docs/evidencias/issue-57/reconstituicao-entidades.md).
 
 Essas classes possuem método main e não são executadas automaticamente por mvn test.
 

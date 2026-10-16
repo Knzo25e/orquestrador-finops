@@ -114,3 +114,22 @@ A integração em memória não conclui a persistência MySQL nem a estratégia 
 A etapa B permanece sem implementação.
 As decisões propostas não comprovam persistência, rollback
 ou atendimento ao RNF-01 com MySQL.
+
+## Issue #57 — Reconstituição das entidades
+
+- [x] Criar a branch feat/57-reconstituicao-entidades.
+- [x] Registrar contratos e critérios REC-01 a REC-13.
+- [x] Implementar reconstituição de Departamento.
+- [x] Preservar preço unitário histórico em ItemRequisicao.
+- [x] Implementar criação com UUID explícito.
+- [x] Implementar reconstituição de Requisicao.
+- [x] Executar 64 verificações de reconstituição.
+- [x] Preservar as 176 verificações anteriores.
+- [x] Registrar evidências e limites.
+- [x] Atualizar README, mapa, plano e tarefas.
+- [x] Conferir o diff final de código e documentação.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão.
+
+A reconstituição prepara o domínio para a persistência.
+A integração JDBC e as transações permanecem pendentes.

@@ -260,4 +260,39 @@ web permanecem nos respectivos recortes.
 
 ### Situação
 
-Proposta elaborada; revisão e aprovação pendentes.
+Detalhamento integrado à main pelo PR #56.
+Os contratos necessários à implementação são detalhados nos recortes seguintes.
+
+## Reconstituição das entidades — Issue #57
+
+### Objetivo
+
+Preparar as entidades para recuperar identidade, saldo, preços
+históricos e estados sem executar efeitos financeiros.
+
+### Implementação
+
+- Departamento.reconstituir preserva o saldo informado.
+- ItemRequisicao mantém preço unitário explícito e admite preço histórico.
+- Requisicao.criarComId permite criação com identidade definida.
+- Requisicao.reconstituir valida itens, total, estado e motivo.
+- Estado transitório Em Analise é rejeitado na reconstituição.
+- Construtores e comportamentos anteriores preservados.
+
+### Verificação
+
+Compilação de 26 arquivos Java com release 25 concluída.
+Foram aprovadas 64 verificações novas e as 176 anteriores,
+totalizando 240.
+
+Evidência: docs/evidencias/issue-57/reconstituicao-entidades.md.
+
+### Limites
+
+Sem JDBC, tabelas ou conexão MySQL.
+Não comprova persistência, idempotência do armazenamento ou rollback.
+
+### Situação
+
+Implementação e verificações locais concluídas;
+revisão final e integração pelo PR pendentes.
