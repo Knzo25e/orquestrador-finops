@@ -1487,5 +1487,126 @@ totalizando 240 verificações locais.
 
 Evidências: [Issue #57](../evidencias/issue-57/reconstituicao-entidades.md).
 
-Revisão final e integração pelo PR pendentes.
+Implementação integrada à main pelo PR #58.
 Este resultado não comprova persistência MySQL ou transações.
+
+## Conexão JDBC e esquema inicial — Issue #59
+
+### Escopo
+
+Preparar a conexão JDBC e o esquema inicial da etapa B.
+Este recorte não implementa os repositórios nem as operações
+financeiras transacionais.
+
+### Esquema inicial
+
+Script: src/main/resources/db/mysql/V001__criar_tabelas.sql.
+
+O script será executado explicitamente, uma vez por banco,
+primeiro em finops_test e depois em finops_dev.
+
+Não haverá execução automática pela aplicação.
+O prefixo V001 identifica a versão do script; não indica
+a presença de uma ferramenta automática de migrações.
+
+Antes da execução, conferir o banco selecionado e a ausência
+das quatro tabelas previstas.
+
+Se houver estruturas existentes ou execução parcialmente concluída,
+interromper e verificar a situação antes de repetir o script.
+
+### Representação
+
+- Quatro tabelas com mecanismo InnoDB.
+- Nomes de departamentos e recursos: VARCHAR(255), obrigatórios.
+- UUIDs: CHAR(36), conjunto ascii e comparação ascii_bin.
+- Estados e motivos: VARCHAR(32), conjunto ascii e comparação ascii_bin.
+- Textos gerais: utf8mb4.
+- Valores monetários: DECIMAL(19,2).
+- Quantidade e ordem: INT positivo.
+- Chave do item: requisicao_id e ordem.
+- Chaves estrangeiras sem exclusão ou atualização em cascata.
+- Índices para consulta por departamento e referência ao recurso.
+
+Os limites de tamanho deverão ser validados pela futura camada
+de persistência, sem truncamento silencioso.
+
+A representação textual canônica e a validade dos UUIDs serão
+conferidas pela aplicação. CHAR(36), isoladamente, não valida UUIDs.
+
+### Restrições
+
+O banco rejeitará:
+
+- Valores monetários negativos.
+- Saldo superior ao teto.
+- Quantidade ou ordem não positiva.
+- Subtotal diferente do produto do preço pela quantidade.
+- Estados fora de INICIAL, REVISAO_PENDENTE e PROVISIONAMENTO_LIBERADO.
+- Revisão sem motivo ou com motivo desconhecido.
+- Motivo preenchido em estado diferente de revisão.
+- Referências a departamentos, recursos ou requisições inexistentes.
+
+EM_ANALISE não será aceito no armazenamento, conforme a Issue #57.
+
+A presença de itens, a sequência de suas posições e a igualdade
+entre o total da requisição e a soma dos subtotais serão verificadas
+pela aplicação nas operações de gravação e recuperação.
+
+A validação de frações de centavo deverá ocorrer antes da conversão
+para DECIMAL(19,2), preservando as regras monetárias existentes.
+
+### Situação
+
+Script inicial executado em finops_test e finops_dev.
+Configuração e fábrica de conexões implementadas.
+
+Conexão JDBC verificada localmente com MySQL 8.0.44,
+Connector/J 9.7.0, conta de testes e TLS.
+
+Foram aprovadas 14 verificações de configuração e preservadas
+as 240 anteriores, totalizando 254 verificações sem conexão com MySQL.
+
+Em finops_test, foram conferidas 17 restrições e exercitados
+três cenários de rejeição: saldo superior ao teto, departamento
+inexistente e revisão sem motivo. Os cenários foram encerrados
+com ROLLBACK.
+
+Evidências: [Issue #59](../evidencias/issue-59/jdbc-esquema-mysql.md).
+
+Revisão final e integração pelo PR pendentes.
+Repositórios JDBC e transações financeiras permanecem pendentes.
+
+### Contratos de configuração e conexão
+
+ConfiguracaoBanco recebe URL, usuário e senha, rejeitando valores
+nulos ou em branco. A URL deve começar com jdbc:mysql://.
+
+carregarDoAmbiente utiliza FINOPS_DB_URL, FINOPS_DB_USER
+e FINOPS_DB_PASSWORD.
+
+As mensagens de validação identificam a variável ausente,
+sem imprimir seu conteúdo. toString não apresenta credenciais.
+
+FabricaConexoes recebe uma configuração obrigatória.
+abrir retorna uma nova Connection JDBC e propaga SQLException.
+
+O chamador deverá fechar a conexão, preferencialmente com
+try-with-resources. A fábrica não executa SQL, não cria estruturas
+e não coordena transações financeiras.
+
+Tipos JDBC permanecem na infraestrutura.
+
+### TLS no ambiente local
+
+As URLs locais utilizarão sslMode=REQUIRED explicitamente.
+Esse modo exige criptografia, mas não valida o certificado
+nem a identidade do servidor.
+
+Esse uso fica delimitado ao MySQL local deste desenvolvimento.
+Conexões remotas deverão utilizar VERIFY_IDENTITY e configuração
+adequada de confiança no certificado.
+
+Credenciais serão fornecidas separadamente da URL.
+As evidências não deverão imprimir senhas nem mensagens completas
+do driver que possam conter dados sensíveis.

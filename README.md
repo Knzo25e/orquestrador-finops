@@ -13,6 +13,8 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Fluxo manual, configuração editável da reserva, persistência e integração com Spring Boot ainda pendentes.
 - Não há provisionamento real na AWS.
 - Repositórios em memória com cadastro e consulta (A1) e casos de uso integrados de criação e validação por identificadores (A2), verificados localmente. Persistência MySQL permanece pendente.
+- Reconstituição das entidades integrada pelo PR #58.
+- Conexão JDBC e esquema inicial MySQL preparados e verificados localmente na Issue #59. Repositórios JDBC e transações financeiras ainda pendentes.
 
 ## Requisitos para desenvolvimento
 
@@ -49,31 +51,45 @@ Essas variáveis valem para a sessão atual do terminal. A pasta target contém 
 
 Após compilar, execute na raiz do projeto e no mesmo terminal:
 
-```powershell
-& {
+```& {
+    $ErrorActionPreference = "Stop"
+
+    if ([string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
+        throw "Configure JAVA_HOME com o caminho do JDK 25 neste terminal."
+    }
+
+    $javaExe = Join-Path $env:JAVA_HOME "bin\java.exe"
+
+    if (-not (Test-Path -LiteralPath $javaExe)) {
+        throw "Java nao encontrado em: $javaExe"
+    }
+
     $classes = @(
-        "Main",
-        "VerificarValoresMonetarios",
-        "VerificarValidacaoOrcamentaria",
-        "VerificarConcorrenciaOrcamentaria",
-        "VerificarRepositoriosMemoria",
-        "VerificarConcorrenciaRepositorios",
-        "VerificarIntegracaoRepositorios",
-        "VerificarConcorrenciaIntegracao", "VerificarReconstituicaoEntidades"
+        "aplicacao.Main",
+        "aplicacao.VerificarValoresMonetarios",
+        "aplicacao.VerificarValidacaoOrcamentaria",
+        "aplicacao.VerificarConcorrenciaOrcamentaria",
+        "aplicacao.VerificarRepositoriosMemoria",
+        "aplicacao.VerificarConcorrenciaRepositorios",
+        "aplicacao.VerificarIntegracaoRepositorios",
+        "aplicacao.VerificarConcorrenciaIntegracao",
+        "aplicacao.VerificarReconstituicaoEntidades",
+        "infraestrutura.persistencia.VerificarConfiguracaoBanco"
     )
 
     foreach ($classe in $classes) {
         Write-Host "`n=== $classe ==="
-        & "$env:JAVA_HOME\bin\java.exe" -cp "target/classes" "br.mackenzie.finops.aplicacao.$classe"
+
+        & $javaExe -cp "target/classes" "br.mackenzie.finops.$classe"
 
         if ($LASTEXITCODE -ne 0) {
-            throw "A verificação $classe falhou."
+            throw "A verificacao $classe falhou."
         }
     }
 }
 ```
 
-São 240 verificações:
+São 254 verificações que não dependem de conexão com MySQL:
 - Main: 10.
 - VerificarValoresMonetarios: 34.
 - VerificarValidacaoOrcamentaria: 25.
@@ -83,12 +99,17 @@ São 240 verificações:
 - VerificarIntegracaoRepositorios: 39.
 - VerificarConcorrenciaIntegracao: nove verificações em três cenários.
 - VerificarReconstituicaoEntidades: 64.
+- VerificarConfiguracaoBanco: 14.
 
 Evidências da integração e limites: [Issue #53](docs/evidencias/issue-53/integracao-repositorios.md).
 
 Evidências dos repositórios e limites: [Issue #49](docs/evidencias/issue-49/repositorios-memoria.md).
 
 Evidências da reconstituição e limites: [Issue #57](docs/evidencias/issue-57/reconstituicao-entidades.md).
+
+Evidências da conexão JDBC, esquema e limites: [Issue #59](docs/evidencias/issue-59/jdbc-esquema-mysql.md).
+
+A verificação de conexão com MySQL e os testes manuais de SQL são separados dessas 254 verificações.
 
 Essas classes possuem método main e não são executadas automaticamente por mvn test.
 

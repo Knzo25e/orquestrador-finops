@@ -294,5 +294,44 @@ Não comprova persistência, idempotência do armazenamento ou rollback.
 
 ### Situação
 
-Implementação e verificações locais concluídas;
+Implementação e verificações integradas à main pelo PR #58.
+
+## Conexão JDBC e esquema MySQL — Issue #59
+
+### Objetivo
+
+Preparar a conexão e o esquema inicial para a persistência
+da etapa B da SPEC-005.
+
+### Implementação
+
+- Dependência MySQL Connector/J 9.7.0.
+- ConfiguracaoBanco com configuração por variáveis de ambiente.
+- FabricaConexoes com fechamento sob responsabilidade do chamador.
+- Script V001__criar_tabelas.sql com quatro tabelas InnoDB.
+- Bancos separados finops_dev e finops_test.
+- Contas próprias com permissões distintas para desenvolvimento e testes.
+
+### Verificação
+
+- Conexão com MySQL 8.0.44 utilizando conta de testes e TLS.
+- Esquema criado nos dois bancos.
+- Conferência de 17 restrições em finops_test.
+- Três testes manuais de rejeição por CHECK e chave estrangeira.
+- ROLLBACK dos cenários manuais, com ausência do departamento
+  temporário confirmada após o terceiro cenário.
+- 14 verificações de configuração e 240 anteriores aprovadas,
+  totalizando 254 verificações sem conexão com MySQL.
+
+Evidência: docs/evidencias/issue-59/jdbc-esquema-mysql.md.
+
+### Limites
+
+Não implementa repositórios JDBC nem transações financeiras.
+Não comprova recuperação das entidades entre processos,
+idempotência, reconciliação ou desempenho com MySQL.
+
+### Situação
+
+Implementação e verificações locais realizadas;
 revisão final e integração pelo PR pendentes.
