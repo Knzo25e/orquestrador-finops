@@ -108,10 +108,10 @@ A integração em memória não conclui a persistência MySQL nem a estratégia 
 - [x] Definir configuração, ambientes e critérios DB-01 a DB-22.
 - [ ] Conferir consistência entre Spec, arquitetura, mapa e plano.
 - [ ] Revisar e aprovar os contratos necessários à implementação.
-- [ ] Criar commit e publicar a branch.
-- [ ] Abrir PR para revisão.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
 
-A etapa B permanece sem implementação.
+A implementação da etapa B é acompanhada nos recortes seguintes.
 As decisões propostas não comprovam persistência, rollback
 ou atendimento ao RNF-01 com MySQL.
 
@@ -128,8 +128,31 @@ ou atendimento ao RNF-01 com MySQL.
 - [x] Registrar evidências e limites.
 - [x] Atualizar README, mapa, plano e tarefas.
 - [x] Conferir o diff final de código e documentação.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+A reconstituição prepara o domínio para a persistência.
+A preparação da conexão JDBC é acompanhada na Issue #59.
+Repositórios JDBC e transações financeiras permanecem pendentes.
+
+## Issue #59 — Conexão JDBC e esquema MySQL
+
+- [x] Criar a branch feat/59-jdbc-esquema-mysql.
+- [x] Adicionar a dependência Connector/J 9.7.0.
+- [x] Implementar ConfiguracaoBanco e FabricaConexoes.
+- [x] Criar o script inicial das quatro tabelas.
+- [x] Preparar finops_dev e finops_test.
+- [x] Configurar contas próprias e conferir os grants.
+- [x] Verificar conexão JDBC, banco, conta e TLS.
+- [x] Conferir as 17 restrições em finops_test.
+- [x] Exercitar três cenários de rejeição e executar ROLLBACK.
+- [x] Executar 14 verificações de configuração.
+- [x] Preservar as 240 verificações anteriores.
+- [x] Registrar evidências e limites.
+- [ ] Conferir documentação e instruções de execução finais.
+- [ ] Conferir o diff final, incluindo os arquivos novos.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-A reconstituição prepara o domínio para a persistência.
-A integração JDBC e as transações permanecem pendentes.
+Esta entrega prepara conexão e esquema.
+Repositórios JDBC e transações financeiras permanecem pendentes.
