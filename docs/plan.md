@@ -335,3 +335,39 @@ idempotência, reconciliação ou desempenho com MySQL.
 
 Implementação e verificações locais realizadas;
 revisão final e integração pelo PR pendentes.
+
+## Cadastro e consulta JDBC — Issue #61
+
+### Objetivo
+
+Persistir e recuperar departamentos e recursos do catálogo,
+preservando identidade, nomes e valores armazenados.
+
+### Implementação
+
+- DepartamentoRepositoryJdbc e RecursoCatalogoRepositoryJdbc.
+- Conexão e transação sob responsabilidade do chamador.
+- Comandos SQL parametrizados.
+- Validação dos limites do esquema por ValidacaoCadastroJdbc.
+- FalhaPersistenciaException distingue falha de acesso de ausência.
+- Recuperação do departamento sem reinicializar seu saldo.
+
+### Verificação
+
+- Compilação de 37 arquivos Java com release 25.
+- 282 verificações sem banco aprovadas, incluindo as 254 anteriores.
+- 14 verificações JDBC aprovadas em finops_test.
+- Gravação, recuperação e limpeza executadas em processos Java distintos.
+
+Evidência: docs/evidencias/issue-61/cadastros-jdbc.md.
+
+### Limites
+
+Não inclui persistência de requisições e itens,
+validação financeira transacional ou avaliação de desempenho.
+Os limites de cobertura estão registrados nas evidências.
+
+### Situação
+
+Implementação e verificações locais realizadas;
+revisão final e integração pelo PR pendentes.

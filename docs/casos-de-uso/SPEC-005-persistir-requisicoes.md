@@ -1610,3 +1610,119 @@ adequada de confiança no certificado.
 Credenciais serão fornecidas separadamente da URL.
 As evidências não deverão imprimir senhas nem mensagens completas
 do driver que possam conter dados sensíveis.
+
+## Cadastro e consulta JDBC — Issue #61
+
+### Escopo
+
+Implementar cadastro e consulta por UUID de departamentos e
+recursos do catálogo no MySQL.
+
+Os contratos DepartamentoRepository e RecursoCatalogoRepository
+serão preservados. As implementações em memória permanecem disponíveis.
+
+Os casos de uso A2 continuam específicos do contexto em memória:
+não devem receber repositórios JDBC como substituição direta.
+
+### Conexão e responsabilidades
+
+DepartamentoRepositoryJdbc e RecursoCatalogoRepositoryJdbc
+ficarão na infraestrutura e receberão uma Connection obrigatória
+pelo construtor.
+
+Os repositórios não abrirão conexões, não alterarão autocommit
+e não executarão commit, rollback ou fechamento da conexão.
+
+O chamador será responsável pela conexão e pela transação.
+Para agrupar operações, deverá desabilitar autocommit antes
+de executá-las e confirmar ou desfazer a transação explicitamente.
+
+Comandos e resultados serão fechados pelos repositórios.
+Uma conexão e seus repositórios não serão compartilhados
+entre threads simultaneamente.
+
+### Cadastro
+
+- Receber entidade e UUID obrigatórios.
+- Exigir nome não nulo, não vazio e não composto apenas de espaços.
+- Limitar nomes a 255 pontos de código Unicode, sem truncamento.
+- Preservar o nome recebido quando válido.
+- Validar valores monetários não negativos e sem frações de centavo.
+- Limitar cada valor a 99.999.999.999.999.999,99.
+- Exigir saldo disponível menor ou igual ao teto do departamento.
+- Utilizar INSERT com parâmetros.
+- Conferir que exatamente um registro foi inserido.
+- Rejeitar UUID duplicado sem substituir o registro existente.
+
+O cadastro do departamento preservará seu saldo atual.
+Não reinicializará o saldo com o valor do teto.
+
+### Consulta
+
+- Rejeitar UUID nulo.
+- Utilizar consulta parametrizada pela chave primária.
+- Retornar Optional.empty() somente quando não houver registro.
+- Recuperar UUID, nome e valores armazenados.
+- Reconstituir Departamento sem desconto ou reinicialização de saldo.
+- Construir RecursoCatalogo com identidade e custo armazenados.
+- Validar os dados recuperados e rejeitar inconsistências.
+
+Cada consulta poderá produzir uma nova instância Java.
+Não haverá garantia de identidade por referência entre consultas.
+
+### Falhas
+
+Entradas inválidas e UUID duplicado serão rejeitados com
+IllegalArgumentException e mensagem explicativa.
+
+Falhas SQL serão representadas por uma exceção específica
+de persistência, sem serem convertidas em registro inexistente.
+
+Dados armazenados inconsistentes também serão informados
+explicitamente como falha de persistência.
+
+Mensagens públicas não incluirão senha, URL com credenciais
+ou mensagem SQL completa do driver.
+
+A tradução de uma falha não confirma rollback.
+O chamador continuará responsável por encerrar a transação.
+
+### Verificações previstas
+
+- Cadastro e consulta das duas entidades.
+- Preservação do saldo já parcialmente utilizado.
+- Consulta de UUID inexistente.
+- Rejeição de entradas inválidas e duplicatas.
+- Limites monetários e de tamanho dos nomes.
+- Recuperação dos dados confirmados em outro processo Java.
+- Rollback de cadastros pelo chamador.
+- Conexão ainda aberta após operações dos repositórios.
+- Falha de conexão distinguida de ausência de registro.
+- Preservação das 254 verificações anteriores.
+
+Os testes com banco utilizarão exclusivamente finops_test,
+com identificadores próprios e limpeza limitada aos seus registros.
+
+### Limites
+
+Não inclui persistência de requisições e itens nem validação
+financeira transacional.
+
+A recuperação de cadastros entre processos não comprova
+persistência completa do fluxo da SPEC-005.
+
+### Situação
+
+Implementação e verificações locais realizadas; revisão final
+e integração pelo PR pendentes.
+
+Foram aprovadas 282 verificações sem banco, incluindo as 254 anteriores,
+e 14 verificações JDBC em finops_test.
+
+Um cenário separado confirmou gravação por commit, recuperação
+em outro processo Java e limpeza dos cadastros de teste.
+
+Evidências: [Issue #61](../evidencias/issue-61/cadastros-jdbc.md).
+
+Persistência de requisições e itens e validação financeira
+transacional permanecem pendentes.
