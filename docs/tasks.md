@@ -156,3 +156,24 @@ Repositórios JDBC e transações financeiras permanecem pendentes.
 
 Esta entrega prepara conexão e esquema.
 Repositórios JDBC e transações financeiras permanecem pendentes.
+
+## Issue #61 — Cadastro e consulta JDBC
+
+- [x] Criar a branch feat/61-repositorios-jdbc-cadastros.
+- [x] Registrar contratos de conexão, cadastro, consulta e falhas.
+- [x] Implementar validação dos limites do armazenamento.
+- [x] Implementar repositório JDBC de departamentos.
+- [x] Implementar repositório JDBC de recursos.
+- [x] Executar 28 verificações de limites.
+- [x] Executar 14 verificações JDBC.
+- [x] Verificar recuperação de cadastros em outro processo Java.
+- [x] Confirmar limpeza dos registros do cenário entre processos.
+- [x] Preservar as 254 verificações anteriores.
+- [x] Registrar evidências e limitações.
+- [ ] Conferir documentação e instruções de execução finais.
+- [ ] Revisar o diff final de código e documentação.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão.
+
+Persistência de requisições e itens e validação financeira
+transacional permanecem pendentes.

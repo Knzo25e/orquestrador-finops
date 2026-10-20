@@ -15,6 +15,7 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Repositórios em memória com cadastro e consulta (A1) e casos de uso integrados de criação e validação por identificadores (A2), verificados localmente. Persistência MySQL permanece pendente.
 - Reconstituição das entidades integrada pelo PR #58.
 - Conexão JDBC e esquema inicial MySQL preparados e verificados localmente na Issue #59. Repositórios JDBC e transações financeiras ainda pendentes.
+- Cadastro e consulta JDBC de departamentos e recursos implementados e verificados localmente na Issue #61, incluindo recuperação em outro processo Java. Persistência de requisições e itens e validação financeira transacional permanecem pendentes.
 
 ## Requisitos para desenvolvimento
 
@@ -74,7 +75,7 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
         "aplicacao.VerificarIntegracaoRepositorios",
         "aplicacao.VerificarConcorrenciaIntegracao",
         "aplicacao.VerificarReconstituicaoEntidades",
-        "infraestrutura.persistencia.VerificarConfiguracaoBanco"
+        "infraestrutura.persistencia.VerificarConfiguracaoBanco", "infraestrutura.persistencia.VerificarValidacaoCadastroJdbc"
     )
 
     foreach ($classe in $classes) {
@@ -89,7 +90,7 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
 }
 ```
 
-São 254 verificações que não dependem de conexão com MySQL:
+São 282 verificações que não dependem de conexão com MySQL:
 - Main: 10.
 - VerificarValoresMonetarios: 34.
 - VerificarValidacaoOrcamentaria: 25.
@@ -100,6 +101,7 @@ São 254 verificações que não dependem de conexão com MySQL:
 - VerificarConcorrenciaIntegracao: nove verificações em três cenários.
 - VerificarReconstituicaoEntidades: 64.
 - VerificarConfiguracaoBanco: 14.
+- VerificarValidacaoCadastroJdbc: 28.
 
 Evidências da integração e limites: [Issue #53](docs/evidencias/issue-53/integracao-repositorios.md).
 
@@ -108,6 +110,12 @@ Evidências dos repositórios e limites: [Issue #49](docs/evidencias/issue-49/re
 Evidências da reconstituição e limites: [Issue #57](docs/evidencias/issue-57/reconstituicao-entidades.md).
 
 Evidências da conexão JDBC, esquema e limites: [Issue #59](docs/evidencias/issue-59/jdbc-esquema-mysql.md).
+
+Evidências dos cadastros JDBC: [Issue #61](docs/evidencias/issue-61/cadastros-jdbc.md).
+
+Separadamente, foram aprovadas 14 verificações em VerificarCadastrosJdbc
+e um cenário de gravação, consulta e limpeza em processos Java distintos,
+utilizando VerificarPersistenciaCadastros e o banco finops_test.
 
 A verificação de conexão com MySQL e os testes manuais de SQL são separados dessas 254 verificações.
 
