@@ -333,8 +333,7 @@ idempotência, reconciliação ou desempenho com MySQL.
 
 ### Situação
 
-Implementação e verificações locais realizadas;
-revisão final e integração pelo PR pendentes.
+Implementação integrada à main pelo PR #60.
 
 ## Cadastro e consulta JDBC — Issue #61
 
@@ -366,6 +365,48 @@ Evidência: docs/evidencias/issue-61/cadastros-jdbc.md.
 Não inclui persistência de requisições e itens,
 validação financeira transacional ou avaliação de desempenho.
 Os limites de cobertura estão registrados nas evidências.
+
+### Situação
+
+Implementação integrada à main pelo PR #62.
+
+## Armazenamento JDBC de requisições e itens — Issue #63
+
+### Objetivo
+
+Persistir e recuperar requisições completas, preservando identidade,
+ordem dos itens, preços históricos, estado e saldo.
+
+### Implementação
+
+- RequisicaoRepositoryJdbc implementa cadastro, busca e listagem.
+- DadosCadastroRequisicaoJdbc prepara uma cópia validada dos dados.
+- GravadorRequisicaoJdbc insere cabeçalho e itens na transação do chamador.
+- LeitorRequisicaoJdbc utiliza uma única instrução SELECT por consulta.
+- EstadoRequisicaoJdbc converte os códigos armazenados para o domínio.
+- Cadastro exige autocommit desabilitado.
+- Consultas exigem READ COMMITTED ou REPEATABLE READ.
+- Conexão, commit e rollback permanecem sob responsabilidade do chamador.
+- Recuperação não executa roteamento nem desconto.
+
+### Verificação
+
+- Compilação de 44 arquivos Java com release 25.
+- 282 verificações sem banco aprovadas.
+- 14 verificações de cadastros JDBC aprovadas.
+- 35 verificações de requisições JDBC aprovadas.
+- Cenário adicional de gravação, consulta e limpeza em processos distintos.
+- Preços históricos preservados após alteração do catálogo.
+- Rollback de gravação parcial exercitado com falha JDBC simulada.
+- Total inconsistente, lacuna na ordem e cabeçalho sem itens rejeitados.
+
+Evidência: docs/evidencias/issue-63/requisicoes-itens-jdbc.md.
+
+### Limites
+
+Não inclui validação financeira transacional, criação idempotente
+ou reconciliação de commit. Os casos de uso A2 permanecem em memória.
+Os demais limites de cobertura estão registrados nas evidências.
 
 ### Situação
 

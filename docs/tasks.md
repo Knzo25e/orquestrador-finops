@@ -149,13 +149,15 @@ Repositórios JDBC e transações financeiras permanecem pendentes.
 - [x] Executar 14 verificações de configuração.
 - [x] Preservar as 240 verificações anteriores.
 - [x] Registrar evidências e limites.
-- [ ] Conferir documentação e instruções de execução finais.
-- [ ] Conferir o diff final, incluindo os arquivos novos.
-- [ ] Criar commit e publicar a branch.
-- [ ] Abrir PR para revisão.
+- [x] Conferir documentação e instruções de execução finais.
+- [x] Conferir o diff final, incluindo os arquivos novos.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
 
-Esta entrega prepara conexão e esquema.
-Repositórios JDBC e transações financeiras permanecem pendentes.
+Conexão e esquema integrados pelo PR #60.
+Os cadastros JDBC foram integrados pelo PR #62.
+Requisições e itens são acompanhados na Issue #63.
+Transações financeiras permanecem pendentes.
 
 ## Issue #61 — Cadastro e consulta JDBC
 
@@ -170,10 +172,38 @@ Repositórios JDBC e transações financeiras permanecem pendentes.
 - [x] Confirmar limpeza dos registros do cenário entre processos.
 - [x] Preservar as 254 verificações anteriores.
 - [x] Registrar evidências e limitações.
+- [x] Conferir documentação e instruções de execução finais.
+- [x] Revisar o diff final de código e documentação.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+Cadastros JDBC integrados pelo PR #62.
+Armazenamento de requisições e itens acompanhado na Issue #63.
+Validação financeira transacional permanece pendente.
+
+## Issue #63 — Armazenamento JDBC de requisições e itens
+
+- [x] Criar a branch feat/63-requisicoes-itens-jdbc.
+- [x] Registrar contratos de cadastro, consulta e transação.
+- [x] Implementar cópia validada dos dados de cadastro.
+- [x] Implementar conversão dos estados e motivos armazenados.
+- [x] Implementar gravação de cabeçalho e itens.
+- [x] Implementar busca e listagem com uma instrução SELECT por operação.
+- [x] Preservar ordem, recursos repetidos e preços históricos.
+- [x] Verificar rejeição de duplicatas.
+- [x] Verificar bloqueio de cadastro com autocommit habilitado.
+- [x] Verificar rollback após falha simulada no segundo item.
+- [x] Verificar rejeição de dados armazenados inconsistentes.
+- [x] Executar 35 verificações JDBC de requisições.
+- [x] Preservar 282 verificações sem banco e 14 de cadastros JDBC.
+- [x] Verificar persistência em outro processo Java.
+- [x] Confirmar limpeza dos registros do teste.
+- [x] Registrar evidências e limites.
 - [ ] Conferir documentação e instruções de execução finais.
-- [ ] Revisar o diff final de código e documentação.
+- [ ] Revisar o diff final, incluindo arquivos novos.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-Persistência de requisições e itens e validação financeira
-transacional permanecem pendentes.
+Esta entrega implementa armazenamento de requisições e itens.
+Validação financeira transacional, criação idempotente e
+reconciliação de commit permanecem pendentes.
