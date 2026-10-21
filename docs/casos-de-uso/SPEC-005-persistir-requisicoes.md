@@ -1726,3 +1726,175 @@ Evidências: [Issue #61](../evidencias/issue-61/cadastros-jdbc.md).
 
 Persistência de requisições e itens e validação financeira
 transacional permanecem pendentes.
+
+## Armazenamento JDBC de requisições e itens — Issue #63
+
+### Escopo
+
+Implementar RequisicaoRepositoryJdbc utilizando o contrato existente:
+adicionar, buscarPorId e listarPorDepartamento.
+
+Os casos de uso A2 permanecem específicos do armazenamento em memória.
+Não haverá substituição direta de seus repositórios por JDBC.
+
+### Conexão e transação
+
+O repositório receberá uma Connection obrigatória pelo construtor.
+
+Não abrirá nem fechará a conexão, não alterará seu isolamento
+ou autocommit e não executará commit ou rollback.
+
+O cadastro exigirá autocommit desabilitado, conferido antes
+de qualquer inserção.
+
+O chamador deverá confirmar a transação somente após o sucesso
+da operação completa. Qualquer falha no cadastro exige rollback
+antes de prosseguir.
+
+Comandos e resultados serão fechados pelo repositório.
+A conexão não será compartilhada simultaneamente entre threads.
+
+### Cadastro
+
+Serão aceitas somente requisições:
+
+- Com UUID e departamento identificável.
+- Em INICIAL, sem motivo de revisão.
+- Com pelo menos um item.
+- Com recursos identificáveis e quantidades positivas.
+- Com valores dentro dos limites de DECIMAL(19,2).
+- Com subtotal igual ao preço unitário multiplicado pela quantidade.
+- Com total igual à soma dos subtotais.
+- Com departamento e recursos cadastrados no banco.
+
+Antes de acessar o banco, será obtida uma cópia dos dados da
+requisição sob a coordenação do seu objeto Departamento.
+O bloqueio Java será liberado antes das operações JDBC.
+
+Cabeçalho e itens serão inseridos na mesma conexão e transação.
+Cada inserção deverá afetar exatamente um registro.
+
+A ordem dos itens começará em 1 e seguirá a lista recebida.
+Recursos repetidos serão preservados em posições diferentes.
+
+O preço unitário será obtido do item da entidade recebida.
+Não será recalculado a partir do preço atual do catálogo.
+
+A obtenção confiável dos preços na criação de novos pedidos
+será responsabilidade do futuro caso de uso persistente.
+O repositório não será exposto diretamente como entrada pública.
+
+O cadastro não alterará saldo nem executará roteamento.
+
+### Vínculos e duplicatas
+
+Os vínculos serão conferidos por UUID no banco.
+Não será exigida identidade por referência entre objetos Java.
+
+As chaves estrangeiras continuarão protegendo as inserções,
+inclusive se houver alterações concorrentes após as consultas.
+
+UUID de requisição duplicado será rejeitado sem sobrescrever
+o cabeçalho ou os itens existentes.
+
+A rejeição de duplicata não implementa criação idempotente.
+
+### Consultas consistentes
+
+Cada operação de consulta utilizará uma única instrução SELECT
+com junções entre requisição, departamento, itens e recursos.
+
+Assim, os dados da operação serão recuperados de uma mesma
+visão consistente das tabelas InnoDB, sem consultas auxiliares
+por item.
+
+As consultas exigirão READ COMMITTED ou REPEATABLE READ.
+O repositório verificará essa condição sem alterar a conexão.
+
+Serão utilizadas junções externas onde necessário para detectar
+requisições sem itens ou vínculos inconsistentes, em vez de
+ocultar esses registros como se não existissem.
+
+buscarPorId retornará Optional.empty() somente quando não houver
+cabeçalho para o identificador solicitado.
+
+listarPorDepartamento retornará lista não modificável e vazia
+quando não houver requisições para o departamento.
+
+Não haverá garantia de identidade por referência entre consultas.
+
+### Reconstituição
+
+A recuperação deverá preservar:
+
+- UUID e departamento da requisição.
+- Teto e saldo armazenados do departamento.
+- Estado e motivo de revisão.
+- Ordem dos itens, exigindo posições consecutivas a partir de 1.
+- Recursos, quantidades, preços históricos e subtotais.
+- Total armazenado, conferido contra a soma dos itens.
+
+Serão utilizados os mecanismos existentes de reconstituição.
+Não haverá desconto, roteamento ou atualização durante a consulta.
+
+O recurso associado ao item poderá refletir o custo atual do catálogo.
+O preço aplicado ao pedido permanecerá em precoUnitario do item.
+
+Os códigos do banco serão convertidos para os estados do domínio:
+
+- INICIAL: INICIAL.
+- REVISAO_PENDENTE: Revisão Pendente.
+- PROVISIONAMENTO_LIBERADO: Provisionamento Liberado.
+
+Os motivos SALDO_INSUFICIENTE e RESERVA serão convertidos para
+os respectivos valores de ResultadoValidacao.
+
+Estados desconhecidos, motivos incompatíveis e valores
+inconsistentes impedirão a recuperação.
+
+### Falhas
+
+Entradas inválidas, vínculos inexistentes e UUID duplicado
+serão rejeitados com IllegalArgumentException.
+
+Autocommit habilitado no cadastro ou isolamento incompatível
+nas consultas serão informados com IllegalStateException.
+
+Falhas SQL e dados armazenados inconsistentes serão representados
+por FalhaPersistenciaException, com mensagem sem credenciais.
+
+Nenhuma exceção do repositório comprova rollback.
+O encerramento da transação pertence ao chamador.
+
+### Verificação prevista
+
+- Cadastro e recuperação de pedido com vários itens.
+- Recursos repetidos e ordem preservada.
+- Preservação de preços históricos após alteração controlada do catálogo.
+- Recuperação em outro processo Java após commit.
+- Rejeição de autocommit habilitado antes de inserir dados.
+- Falha durante inserção dos itens seguida de rollback integral pelo chamador.
+- Rejeição de duplicatas sem sobrescrita.
+- Consultas por UUID e por departamento.
+- Recuperação sem efeitos financeiros.
+- Detecção de dados inconsistentes.
+- Preservação das 282 verificações sem banco e das 14 verificações JDBC.
+
+Os testes com banco utilizarão exclusivamente finops_test.
+
+### Limites e situação
+
+Implementação e verificações locais realizadas; revisão final
+e integração pelo PR pendentes.
+
+Foram aprovadas 282 verificações sem banco e 49 verificações JDBC:
+14 de cadastros e 35 de requisições e itens.
+
+Um cenário adicional confirmou gravação por commit, recuperação
+em outro processo Java e limpeza dos registros do teste,
+preservando preços históricos e saldo.
+
+Evidências e limites: [Issue #63](../evidencias/issue-63/requisicoes-itens-jdbc.md).
+
+Não inclui validação financeira transacional, criação idempotente,
+reconciliação de commit, API, login ou portal.

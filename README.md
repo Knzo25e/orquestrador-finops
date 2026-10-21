@@ -9,13 +9,16 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Domínio e casos de uso implementados em Java.
 - Valores monetários representados por BigDecimal.
 - Reserva fixa de 10% do orçamento mensal, com arredondamento HALF_UP para duas casas decimais.
-- Coordenação concorrente em uma única instância, desde que as requisições compartilhem o mesmo objeto Departamento.
-- Fluxo manual, configuração editável da reserva, persistência e integração com Spring Boot ainda pendentes.
-- Não há provisionamento real na AWS.
-- Repositórios em memória com cadastro e consulta (A1) e casos de uso integrados de criação e validação por identificadores (A2), verificados localmente. Persistência MySQL permanece pendente.
+- Coordenação concorrente em memória, desde que as requisições compartilhem o mesmo objeto Departamento.
+- Repositórios em memória (A1) e casos de uso integrados de criação e validação por identificadores (A2), verificados localmente.
 - Reconstituição das entidades integrada pelo PR #58.
-- Conexão JDBC e esquema inicial MySQL preparados e verificados localmente na Issue #59. Repositórios JDBC e transações financeiras ainda pendentes.
-- Cadastro e consulta JDBC de departamentos e recursos implementados e verificados localmente na Issue #61, incluindo recuperação em outro processo Java. Persistência de requisições e itens e validação financeira transacional permanecem pendentes.
+- Conexão JDBC e esquema MySQL integrados pelo PR #60.
+- Cadastro e consulta JDBC de departamentos e recursos integrados pelo PR #62.
+- Armazenamento JDBC de requisições e itens implementado e verificado localmente na Issue #63, incluindo recuperação em outro processo Java e preservação dos preços históricos; revisão e integração pendentes.
+- Os casos de uso A2 continuam utilizando armazenamento em memória.
+- Validação financeira transacional com MySQL, criação idempotente e reconciliação de commit permanecem pendentes.
+- Fluxo manual, configuração editável da reserva e integração com Spring Boot permanecem pendentes.
+- Não há provisionamento real na AWS.
 
 ## Requisitos para desenvolvimento
 
@@ -52,7 +55,8 @@ Essas variáveis valem para a sessão atual do terminal. A pasta target contém 
 
 Após compilar, execute na raiz do projeto e no mesmo terminal:
 
-```& {
+```powershell
+& {
     $ErrorActionPreference = "Stop"
 
     if ([string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
@@ -75,7 +79,8 @@ Após compilar, execute na raiz do projeto e no mesmo terminal:
         "aplicacao.VerificarIntegracaoRepositorios",
         "aplicacao.VerificarConcorrenciaIntegracao",
         "aplicacao.VerificarReconstituicaoEntidades",
-        "infraestrutura.persistencia.VerificarConfiguracaoBanco", "infraestrutura.persistencia.VerificarValidacaoCadastroJdbc"
+        "infraestrutura.persistencia.VerificarConfiguracaoBanco",
+        "infraestrutura.persistencia.VerificarValidacaoCadastroJdbc"
     )
 
     foreach ($classe in $classes) {
@@ -113,11 +118,28 @@ Evidências da conexão JDBC, esquema e limites: [Issue #59](docs/evidencias/iss
 
 Evidências dos cadastros JDBC: [Issue #61](docs/evidencias/issue-61/cadastros-jdbc.md).
 
-Separadamente, foram aprovadas 14 verificações em VerificarCadastrosJdbc
-e um cenário de gravação, consulta e limpeza em processos Java distintos,
-utilizando VerificarPersistenciaCadastros e o banco finops_test.
+Na Issue #63, foram aprovadas 282 verificações sem banco e 49 com MySQL,
+totalizando 331:
 
-A verificação de conexão com MySQL e os testes manuais de SQL são separados dessas 254 verificações.
+- VerificarCadastrosJdbc: 14 verificações com banco.
+- VerificarRequisicoesJdbc: 35 verificações com banco.
+
+Um cenário adicional com VerificarPersistenciaRequisicoes confirmou
+gravação por commit, recuperação em outro processo Java e limpeza
+dos registros, preservando preços históricos e saldo.
+
+O cenário de cadastros entre processos da Issue #61 permanece
+documentado em suas próprias evidências.
+
+Os testes JDBC utilizam exclusivamente finops_test e exigem as
+dependências de execução no classpath, além das variáveis
+FINOPS_DB_URL, FINOPS_DB_USER e FINOPS_DB_PASSWORD.
+
+Evidências das requisições e itens:
+[Issue #63](docs/evidencias/issue-63/requisicoes-itens-jdbc.md).
+
+A verificação de conexão e os testes manuais de SQL não estão
+incluídos nas 331 verificações.
 
 Essas classes possuem método main e não são executadas automaticamente por mvn test.
 
