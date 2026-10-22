@@ -199,11 +199,41 @@ Validação financeira transacional permanece pendente.
 - [x] Verificar persistência em outro processo Java.
 - [x] Confirmar limpeza dos registros do teste.
 - [x] Registrar evidências e limites.
+- [x] Conferir documentação e instruções de execução finais.
+- [x] Revisar o diff final, incluindo arquivos novos.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+
+Armazenamento de requisições e itens integrado pelo PR #64.
+Criação transacional e reconciliação acompanhadas na Issue #65.
+Validação financeira transacional permanece pendente.
+
+## Issue #65 — Criação transacional JDBC
+
+- [x] Criar a branch feat/65-criacao-transacional-jdbc.
+- [x] Registrar contratos de criação, repetição e confirmação desconhecida.
+- [x] Implementar entrada validada e porta sem tipos JDBC.
+- [x] Implementar caso de uso de criação persistente.
+- [x] Controlar conexão e transação na infraestrutura.
+- [x] Obter preços do catálogo para novos pedidos.
+- [x] Confirmar cabeçalho e itens antes de retornar CRIADA.
+- [x] Reconhecer repetição equivalente pelo UUID e conteúdo.
+- [x] Rejeitar conteúdo divergente com o mesmo UUID.
+- [x] Conferir duplicata concorrente em nova conexão.
+- [x] Representar confirmação desconhecida com o UUID original.
+- [x] Verificar reconciliação após falhas simuladas de commit.
+- [x] Sinalizar falha de fechamento após criação confirmada.
+- [x] Verificar rollback de gravação parcial.
+- [x] Verificar preservação de pedidos já processados.
+- [x] Executar 47 verificações da criação transacional JDBC.
+- [x] Preservar as 331 verificações anteriores.
+- [x] Verificar criação e repetição em processos Java distintos.
+- [x] Confirmar limpeza do cenário entre processos.
+- [x] Registrar evidências e limites.
 - [ ] Conferir documentação e instruções de execução finais.
 - [ ] Revisar o diff final, incluindo arquivos novos.
 - [ ] Criar commit e publicar a branch.
 - [ ] Abrir PR para revisão.
 
-Esta entrega implementa armazenamento de requisições e itens.
-Validação financeira transacional, criação idempotente e
-reconciliação de commit permanecem pendentes.
+Validação financeira transacional, aprovação manual, API,
+autenticação, portal e provisionamento real permanecem pendentes.

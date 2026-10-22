@@ -109,10 +109,7 @@ final class GravadorRequisicaoJdbc {
         } catch (SQLException excecao) {
             if (excecao.getErrorCode() == 1062
                     && "23000".equals(excecao.getSQLState())) {
-                throw new IllegalArgumentException(
-                        "Já existe uma requisição com esse identificador. "
-                                + "Execute rollback da transação."
-                );
+                throw new RequisicaoDuplicadaException();
             }
 
             throw excecao;

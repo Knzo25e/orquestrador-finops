@@ -410,5 +410,52 @@ Os demais limites de cobertura estão registrados nas evidências.
 
 ### Situação
 
+Implementação integrada à main pelo PR #64.
+
+## Criação transacional JDBC — Issue #65
+
+### Objetivo
+
+Criar requisições com controle transacional e reconhecer repetições
+pelo UUID, preservando o conteúdo e os valores históricos do pedido.
+
+### Implementação
+
+- Caso de uso de criação persistente com porta sem tipos JDBC.
+- Validação e cópia da entrada antes do acesso ao armazenamento.
+- Conexão exclusiva e transação em REPEATABLE READ.
+- Preços de novos pedidos obtidos do catálogo.
+- Confirmação de cabeçalho e itens antes de retornar CRIADA.
+- Repetição equivalente retorna JA_EXISTENTE.
+- Comparação de departamento e sequência de recursos e quantidades.
+- Duplicata concorrente conferida em nova conexão.
+- Confirmação desconhecida representada por exceção com UUID.
+- Reconciliação por nova chamada com o UUID e conteúdo originais.
+- Falha de fechamento após sucesso sinalizada no resultado.
+- Criação sem desconto de saldo ou roteamento.
+
+### Verificação
+
+- Compilação de 57 arquivos Java com release 25.
+- Preservação das 331 verificações anteriores.
+- 47 verificações da criação transacional JDBC aprovadas.
+- Total de 378 verificações.
+- Cenário adicional de criação, repetição e limpeza entre processos Java.
+- Disputa controlada pelo mesmo UUID com conexões independentes.
+- Falhas simuladas de inserção, commit e fechamento.
+- Preservação de pedidos já processados em repetições equivalentes.
+
+Evidência: docs/evidencias/issue-65/criacao-transacional-jdbc.md.
+
+### Limites
+
+Não inclui validação financeira transacional, aprovação manual,
+API, autenticação, portal ou provisionamento real.
+
+As falhas controladas não equivalem a testes de queda real de rede
+ou reinício do MySQL. Os limites de cobertura estão nas evidências.
+
+### Situação
+
 Implementação e verificações locais realizadas;
 revisão final e integração pelo PR pendentes.

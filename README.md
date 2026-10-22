@@ -14,9 +14,10 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Reconstituição das entidades integrada pelo PR #58.
 - Conexão JDBC e esquema MySQL integrados pelo PR #60.
 - Cadastro e consulta JDBC de departamentos e recursos integrados pelo PR #62.
-- Armazenamento JDBC de requisições e itens implementado e verificado localmente na Issue #63, incluindo recuperação em outro processo Java e preservação dos preços históricos; revisão e integração pendentes.
-- Os casos de uso A2 continuam utilizando armazenamento em memória.
-- Validação financeira transacional com MySQL, criação idempotente e reconciliação de commit permanecem pendentes.
+- Armazenamento JDBC de requisições e itens integrado pelo PR #64, incluindo recuperação em outro processo Java e preservação dos preços históricos.
+- Criação transacional JDBC com repetição por UUID e reconciliação de confirmação desconhecida implementada e verificada localmente na Issue #65; revisão final e integração pendentes.
+- Os casos de uso A2 em memória permanecem disponíveis; a criação persistente possui um caso de uso próprio.
+- Validação financeira transacional com MySQL permanece pendente.
 - Fluxo manual, configuração editável da reserva e integração com Spring Boot permanecem pendentes.
 - Não há provisionamento real na AWS.
 
@@ -118,18 +119,22 @@ Evidências da conexão JDBC, esquema e limites: [Issue #59](docs/evidencias/iss
 
 Evidências dos cadastros JDBC: [Issue #61](docs/evidencias/issue-61/cadastros-jdbc.md).
 
-Na Issue #63, foram aprovadas 282 verificações sem banco e 49 com MySQL,
-totalizando 331:
+Na Issue #65, foram preservadas as 331 verificações anteriores
+e aprovadas 47 verificações da criação transacional JDBC,
+totalizando 378:
 
+- Verificações sem banco: 282.
 - VerificarCadastrosJdbc: 14 verificações com banco.
 - VerificarRequisicoesJdbc: 35 verificações com banco.
+- VerificarCriacaoTransacionalJdbc: 47 verificações com banco.
 
-Um cenário adicional com VerificarPersistenciaRequisicoes confirmou
-gravação por commit, recuperação em outro processo Java e limpeza
-dos registros, preservando preços históricos e saldo.
+Um cenário adicional com VerificarPersistenciaCriacao confirmou
+criação e repetição equivalente em processos Java distintos.
+O segundo processo retornou JA_EXISTENTE, preservando preços
+históricos, estado e saldo. A limpeza dos registros foi confirmada.
 
-O cenário de cadastros entre processos da Issue #61 permanece
-documentado em suas próprias evidências.
+Os cenários entre processos das Issues #61 e #63 permanecem
+documentados em suas próprias evidências.
 
 Os testes JDBC utilizam exclusivamente finops_test e exigem as
 dependências de execução no classpath, além das variáveis
@@ -138,8 +143,11 @@ FINOPS_DB_URL, FINOPS_DB_USER e FINOPS_DB_PASSWORD.
 Evidências das requisições e itens:
 [Issue #63](docs/evidencias/issue-63/requisicoes-itens-jdbc.md).
 
-A verificação de conexão e os testes manuais de SQL não estão
-incluídos nas 331 verificações.
+Evidências da criação transacional e limites das simulações:
+[Issue #65](docs/evidencias/issue-65/criacao-transacional-jdbc.md).
+
+Os cenários entre processos, a verificação de conexão e os testes
+manuais de SQL não estão incluídos nas 378 verificações.
 
 Essas classes possuem método main e não são executadas automaticamente por mvn test.
 

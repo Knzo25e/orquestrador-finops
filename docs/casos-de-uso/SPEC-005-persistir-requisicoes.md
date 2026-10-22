@@ -1574,7 +1574,7 @@ com ROLLBACK.
 
 Evidências: [Issue #59](../evidencias/issue-59/jdbc-esquema-mysql.md).
 
-Revisão final e integração pelo PR pendentes.
+Conexão e esquema integrados à main pelo PR #60.
 Repositórios JDBC e transações financeiras permanecem pendentes.
 
 ### Contratos de configuração e conexão
@@ -1713,8 +1713,8 @@ persistência completa do fluxo da SPEC-005.
 
 ### Situação
 
-Implementação e verificações locais realizadas; revisão final
-e integração pelo PR pendentes.
+Implementação integrada à main pelo PR #62.
+Implementação integrada à main pelo PR #64
 
 Foram aprovadas 282 verificações sem banco, incluindo as 254 anteriores,
 e 14 verificações JDBC em finops_test.
@@ -1898,3 +1898,230 @@ Evidências e limites: [Issue #63](../evidencias/issue-63/requisicoes-itens-jdbc
 
 Não inclui validação financeira transacional, criação idempotente,
 reconciliação de commit, API, login ou portal.
+
+## Criação transacional de requisições — Issue #65
+
+### Objetivo
+
+Integrar os repositórios JDBC à criação de requisições, controlando
+a transação e reconhecendo repetições pelo UUID da solicitação.
+
+Base: armazenamento de requisições e itens integrado pelo PR #64.
+
+### Contrato de aplicação
+
+CriarRequisicaoPersistenteUseCase receberá:
+
+- UUID da requisição, definido antes da primeira tentativa.
+- UUID do departamento.
+- Lista ordenada de ItemSolicitado.
+
+A entrada não permitirá informar preços, totais, saldo, estado
+ou motivo de revisão.
+
+Serão rejeitados identificadores nulos, lista nula ou vazia e
+elementos nulos. ItemSolicitado preservará suas validações atuais.
+
+A lista será copiada antes do acesso ao armazenamento.
+Ordem e recursos repetidos serão preservados.
+
+Uma solicitação diferente deverá utilizar outro UUID.
+Uma repetição deverá conservar o UUID e o conteúdo originais.
+
+### Separação de responsabilidades
+
+O caso de uso dependerá de uma porta CriacaoRequisicaoPersistente,
+declarada na aplicação, sem tipos JDBC.
+
+A infraestrutura implementará a porta por meio de
+CriacaoRequisicaoJdbc e controlará conexão e transação.
+
+As regras das entidades continuarão no domínio.
+Os casos de uso em memória permanecerão disponíveis.
+
+O resultado conterá a requisição e uma indicação:
+
+- CRIADA: inserção confirmada nesta execução.
+- JA_EXISTENTE: pedido equivalente encontrado no armazenamento.
+
+Uma requisição retornada não será mantida em cache.
+Alterações locais no objeto não atualizarão automaticamente o banco.
+
+### Transação de criação
+
+Cada execução utilizará uma conexão exclusiva, configurada com
+REPEATABLE READ e autocommit desabilitado antes das consultas.
+
+A criação utilizará leituras comuns de uma mesma visão consistente
+para obter o departamento e os preços do catálogo.
+
+Essa decisão aplica-se à criação. A validação financeira futura
+mantém o protocolo READ COMMITTED com bloqueios explícitos.
+
+Fluxo:
+
+1. Validar e copiar a entrada.
+2. Abrir e configurar a conexão.
+3. Consultar a requisição pelo UUID.
+4. Se existir, conferir a equivalência da solicitação.
+5. Se não existir, recuperar departamento e recursos cadastrados.
+6. Construir a requisição com UUID explícito e estado INICIAL.
+7. Criar os itens utilizando os preços recuperados do catálogo.
+8. Validar limites e gravar cabeçalho e itens na mesma transação.
+9. Executar commit.
+10. Retornar CRIADA somente após confirmação do commit.
+
+Recursos repetidos terão o mesmo preço do catálogo observado
+na visão consistente da transação.
+
+A criação não descontará saldo nem executará roteamento.
+
+Os repositórios continuarão sem executar commit, rollback
+ou fechamento da conexão.
+
+### Repetição equivalente
+
+Um pedido existente será comparado com a entrada considerando:
+
+- Departamento.
+- Número e sequência dos itens.
+- UUID de cada recurso.
+- Quantidade de cada item.
+
+Preços atuais, nomes e saldo não participarão dessa comparação.
+
+Conteúdo equivalente retornará JA_EXISTENTE, preservando preços
+históricos, total, estado e motivo atualmente armazenados.
+
+A transação de leitura será encerrada antes do retorno.
+
+Conteúdo divergente produzirá ConflitoIdentificadorException,
+sem alteração do pedido existente.
+
+### Disputa concorrente pela inclusão
+
+A consulta inicial não elimina a possibilidade de outro processo
+inserir o mesmo UUID antes da gravação.
+
+O conflito específico de chave primária do cabeçalho deverá ser
+identificável por tipo, sem comparação de mensagens de exceção.
+
+A exceção específica poderá estender IllegalArgumentException,
+preservando o contrato existente do repositório.
+
+Ao identificar essa duplicata:
+
+1. Encerrar a transação da tentativa de inserção.
+2. Fechar sua conexão.
+3. Abrir uma nova conexão e transação de leitura.
+4. Recuperar e comparar o pedido confirmado.
+5. Retornar JA_EXISTENTE ou informar conflito de identificador.
+
+A nova transação evita consultar uma visão anterior à inserção
+concorrente.
+
+Se o pedido não for encontrado nessa conferência, informar falha
+de persistência. Não gerar outro UUID nem repetir inserções em ciclo.
+
+Deadlocks e limites de espera não serão classificados como duplicata.
+Não haverá repetição automática desses erros neste recorte.
+
+### Falhas antes do commit
+
+Entradas e vínculos inválidos serão informados como
+IllegalArgumentException.
+
+Falhas de infraestrutura serão traduzidas para um contrato de erro
+da aplicação, sem expor SQLException ou mensagens completas do driver.
+
+Em falhas anteriores à chamada de commit, tentar rollback e fechar
+a conexão. Nenhum objeto da tentativa será retornado como confirmado.
+
+A falha de rollback ou fechamento não deverá ocultar a falha original.
+Não afirmar que rollback foi confirmado quando ele próprio falhar.
+
+### Confirmação desconhecida
+
+Se commit lançar exceção, informar
+ConfirmacaoCriacaoDesconhecidaException contendo o UUID da requisição.
+
+Uma tentativa posterior de rollback não prova que o commit falhou.
+
+A aplicação não retornará CRIADA, não gerará outro UUID e não fará
+uma nova criação automática após esse resultado.
+
+A reconciliação ocorrerá por nova chamada com o mesmo UUID
+e o mesmo conteúdo:
+
+- Pedido existente e equivalente: retornar JA_EXISTENTE.
+- Pedido existente e divergente: informar conflito.
+- Pedido ausente: seguir a criação com o UUID original, mantendo
+  a proteção da chave primária para disputas ainda em andamento.
+
+Falha na consulta de reconciliação não será convertida em ausência.
+
+### Fechamento após confirmação
+
+Após commit retornar normalmente, a criação estará confirmada.
+
+Uma falha posterior ao fechar a conexão não deverá converter
+esse resultado em operação abortada ou confirmação desconhecida.
+
+O resultado permitirá sinalizar falha de fechamento separadamente,
+sem incluir credenciais ou mensagens completas do driver.
+
+Esse sinal não orientará a criação de outro pedido.
+
+Para repetição equivalente, o retorno dependerá do encerramento
+da transação de leitura; eventual falha posterior de fechamento
+também será sinalizada separadamente.
+
+### Recursos e segurança
+
+Comandos, resultados e conexões terão encerramento explícito.
+
+Não haverá chamadas externas ou espera por entrada do usuário
+durante a transação.
+
+Tipos JDBC permanecerão na infraestrutura.
+As exceções públicas não apresentarão senha ou URL com credenciais.
+
+### Verificações previstas
+
+- Criação completa com preços obtidos do catálogo.
+- Ordem e recursos repetidos preservados.
+- Saldo inalterado e estado INICIAL.
+- Entradas e vínculos inválidos sem gravação parcial.
+- Rollback após falha durante inserção dos itens.
+- Repetição equivalente sem duplicação.
+- Repetição após alteração do catálogo com preço histórico preservado.
+- Conflito por departamento, ordem, recurso ou quantidade diferentes.
+- Repetição de pedido já processado sem reiniciar seu estado.
+- Disputa pelo mesmo UUID com conexões independentes.
+- Falha simulada antes da efetivação do commit.
+- Commit efetivado seguido de falha simulada na confirmação ao cliente.
+- Reconciliação dos dois cenários com o UUID original.
+- Falha de fechamento após commit confirmado.
+- Recuperação em outro processo Java.
+- Preservação das 331 verificações existentes.
+
+Os testes utilizarão exclusivamente finops_test.
+As evidências distinguirão falhas simuladas de falhas reais de rede.
+
+### Limites e situação
+
+Implementação e verificações locais realizadas; revisão final
+e integração pelo PR pendentes.
+
+Foram preservadas as 331 verificações anteriores e aprovadas
+47 verificações da criação transacional JDBC.
+
+Um cenário adicional confirmou criação e repetição equivalente
+em processos Java distintos, preservando preços históricos e saldo,
+com limpeza dos registros do teste confirmada.
+
+Evidências e limites:
+[Issue #65](../evidencias/issue-65/criacao-transacional-jdbc.md).
+
+Não inclui validação financeira transacional, aprovação manual,
+API, autenticação, portal ou provisionamento real.
