@@ -2419,3 +2419,6 @@ Limites das evidências:
 
 Não inclui aprovação manual, alteração de orçamento, renovação
 de período, API, autenticação, portal ou provisionamento real.
+
+Evidências de ambiente, comandos, resultados e limites:
+[Validação financeira transacional JDBC — Issue #67](../evidencias/issue-67/validacao-financeira-jdbc.md).
