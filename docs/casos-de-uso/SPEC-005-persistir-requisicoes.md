@@ -2125,3 +2125,297 @@ Evidências e limites:
 
 Não inclui validação financeira transacional, aprovação manual,
 API, autenticação, portal ou provisionamento real.
+
+## Validação financeira transacional — Issue #67
+
+### Objetivo
+
+Validar uma requisição persistida e confirmar seu resultado financeiro
+de forma atômica, preservando as regras da SPEC-003.
+
+Base: criação transacional integrada pelo PR #66.
+
+### Contrato de aplicação
+
+ValidarRequisicaoPersistenteUseCase receberá somente o UUID
+da requisição.
+
+UUID nulo será rejeitado antes de abrir conexão.
+Requisição inexistente será informada como IllegalArgumentException.
+
+O caso de uso dependerá da porta ValidacaoRequisicaoPersistente,
+sem tipos JDBC no contrato de aplicação.
+
+ResultadoValidacaoPersistente conterá:
+
+- A requisição recuperada e seu departamento.
+- O ResultadoValidacao produzido pelo domínio.
+- Uma indicação de falha de fechamento posterior ao sucesso.
+
+Os resultados de domínio permanecerão:
+
+- LIBERADA.
+- REVISAO_POR_SALDO_INSUFICIENTE.
+- REVISAO_POR_RESERVA.
+- JA_LIBERADA.
+- ESTADO_NAO_PERMITIDO.
+
+O resultado representa os dados observados e confirmados naquela
+execução. Não constitui acompanhamento automático de futuras
+alterações no banco.
+
+### Regras de domínio
+
+A decisão utilizará ValidarOrcamentoUseCase e
+Requisicao.processarRoteamento().
+
+Não haverá uma segunda implementação das regras financeiras em SQL.
+
+Serão preservados:
+
+- BigDecimal para valores monetários.
+- Reserva de 10% do teto mensal, arredondada com HALF_UP.
+- Revisão por insuficiência quando o custo exceder o saldo.
+- Revisão por reserva quando o saldo projetado for menor ou igual
+  à reserva.
+- Liberação somente quando o saldo projetado for estritamente
+  superior à reserva.
+- Ausência de desconto para pedidos encaminhados à revisão.
+
+O custo será obtido dos itens e preços históricos armazenados.
+Alterações no preço atual do catálogo não recalcularão o pedido.
+
+### Conexão e transação
+
+ValidacaoRequisicaoJdbc implementará a porta e controlará
+uma conexão exclusiva por execução.
+
+Antes das consultas, configurará:
+
+- READ COMMITTED.
+- Autocommit desabilitado.
+
+Os repositórios existentes continuarão sem executar commit,
+rollback ou fechamento da conexão.
+
+A transação não incluirá chamadas externas nem espera por
+entrada do usuário.
+
+### Ordem dos bloqueios
+
+O fluxo será:
+
+1. Consultar o departamento vinculado ao UUID da requisição.
+2. Bloquear o departamento por chave primária com SELECT FOR UPDATE.
+3. Bloquear a requisição por chave primária com SELECT FOR UPDATE.
+4. Conferir novamente o vínculo com o departamento bloqueado.
+5. Recuperar a requisição completa após adquirir os bloqueios.
+6. Conferir identidade, vínculo e consistência dos dados recuperados.
+7. Executar a validação de domínio.
+8. Persistir as alterações necessárias.
+9. Confirmar a transação antes de retornar um resultado alterado.
+
+A consulta inicial apenas localiza o departamento.
+Ela não fornece o saldo ou o estado utilizados na decisão.
+
+A ordem será sempre departamento antes de requisição.
+Os bloqueios permanecerão até o encerramento da transação.
+
+Se o vínculo mudar entre a consulta inicial e a aquisição dos
+bloqueios, a operação falhará sem atualizar dados.
+Não haverá troca de departamento bloqueado dentro da tentativa.
+
+Ausência do departamento vinculado ou desaparecimento da requisição
+após sua localização serão tratados como falha de persistência,
+sem criação ou reparação automática.
+
+### Recuperação e coordenação
+
+A recuperação utilizará entidades novas, exclusivas da tentativa.
+
+O departamento associado à requisição será o mesmo objeto utilizado
+pelo domínio para calcular reserva e descontar saldo.
+
+Os itens serão recuperados na ordem armazenada, com preços
+históricos, subtotais e total conferidos.
+
+Neste recorte, itens e vínculo departamental não possuem operação
+de alteração após a criação. Operações futuras que modifiquem
+esses dados deverão respeitar o protocolo de bloqueios ou revisá-lo
+explicitamente.
+
+Atualizações diretas externas que desrespeitem esse protocolo
+não estarão abrangidas pela garantia de coordenação da aplicação.
+
+### Gravação financeira
+
+Para LIBERADA:
+
+- Gravar o saldo resultante do departamento.
+- Gravar PROVISIONAMENTO_LIBERADO na requisição, sem motivo de revisão.
+- Confirmar ambas as alterações na mesma transação.
+
+Para revisão:
+
+- Gravar REVISAO_PENDENTE e o motivo correspondente.
+- Não atualizar o saldo do departamento.
+
+Os códigos de motivo serão:
+
+- SALDO_INSUFICIENTE.
+- RESERVA.
+
+Não serão alterados itens, preços históricos, total, teto
+ou nome do departamento.
+
+A atualização da requisição exigirá o UUID, o departamento esperado
+e o estado anterior INICIAL.
+
+Cada atualização necessária deverá afetar exatamente um registro.
+Contagem inesperada impedirá a confirmação.
+
+Para pedido de custo zero liberado, o saldo permanecerá igual.
+Nesse caso, a atualização do departamento será dispensada,
+evitando depender da contagem de uma atualização sem mudança.
+
+O estado transitório Em Analise não será persistido.
+
+### Repetição
+
+A avaliação do estado ocorrerá após adquirir os bloqueios.
+
+Pedido já liberado:
+
+- Retornar JA_LIBERADA.
+- Não atualizar saldo nem requisição.
+
+Pedido em revisão:
+
+- Retornar ESTADO_NAO_PERMITIDO.
+- Preservar estado, motivo e saldo.
+- Não reiniciar o fluxo automático.
+
+Essas execuções encerrarão a transação de leitura e liberarão
+os bloqueios antes do retorno.
+
+Estado ou motivo armazenado inválido será tratado como inconsistência,
+não como uma repetição válida.
+
+### Falhas antes do commit
+
+Falhas de acesso e inconsistências serão traduzidas para
+FalhaValidacaoPersistenteException, sem expor mensagens do driver.
+
+A operação tentará rollback e fechamento da conexão.
+
+Objetos modificados em memória durante uma tentativa malsucedida
+serão descartados e não retornarão como resultado confirmado.
+
+Falhas de rollback ou fechamento não ocultarão a falha original.
+Uma exceção, isoladamente, não comprova rollback concluído.
+
+Não haverá repetição automática de deadlocks ou limites de espera
+neste recorte.
+
+### Confirmação desconhecida
+
+Se commit lançar exceção, a operação informará
+ConfirmacaoValidacaoDesconhecidaException contendo o UUID da requisição.
+
+Uma tentativa posterior de rollback não eliminará essa incerteza.
+
+O chamador poderá executar novamente a validação com o mesmo UUID:
+
+- Se a liberação estiver confirmada, retornar JA_LIBERADA sem desconto.
+- Se a revisão estiver confirmada, retornar ESTADO_NAO_PERMITIDO
+  com estado e motivo preservados.
+- Se o pedido continuar INICIAL, executar a validação com o saldo
+  vigente após adquirir os bloqueios.
+
+Uma tentativa posterior pode encontrar saldo diferente devido
+a outras operações confirmadas do departamento.
+
+Falha de consulta não será convertida em ausência ou sucesso.
+Não haverá compensação automática de saldo.
+
+### Fechamento após sucesso
+
+Depois de commit confirmado, uma falha ao fechar a conexão
+será sinalizada em ResultadoValidacaoPersistente.
+
+Essa falha não transformará a operação em abortada nem em
+confirmação desconhecida.
+
+Para resultados sem alteração, o retorno dependerá do encerramento
+bem-sucedido da transação de leitura. Uma falha posterior de
+fechamento também será sinalizada separadamente.
+
+### Verificações previstas
+
+- UUID nulo rejeitado antes de abrir conexão.
+- Requisição inexistente sem alteração financeira.
+- Liberação com saldo e estado persistidos juntos.
+- Revisão por insuficiência sem desconto.
+- Revisão por reserva, incluindo igualdade no limite.
+- Pedido gratuito conforme as regras existentes do domínio.
+- Preservação dos preços históricos após mudança do catálogo.
+- Repetição de pedido liberado sem novo desconto.
+- Preservação de pedido em revisão.
+- Dados inconsistentes impedindo a validação.
+- Falha entre atualização do saldo e atualização do estado.
+- Rollback integral da tentativa com gravação parcial.
+- Duas validações concorrentes do mesmo pedido.
+- Pedidos diferentes disputando saldo do mesmo departamento.
+- Pedidos diferentes disputando o limite da reserva.
+- Ausência de alterações financeiras em outro departamento.
+- Falha simulada antes de efetivar commit.
+- Commit efetivado com resposta simuladamente perdida.
+- Reconciliação com o mesmo UUID nos dois cenários.
+- Falha de fechamento após commit confirmado.
+- Recuperação e repetição em outro processo Java.
+- Preservação das 378 verificações anteriores.
+
+Os testes JDBC utilizarão exclusivamente finops_test,
+com identificadores próprios e limpeza limitada aos seus registros.
+
+As evidências distinguirão falhas simuladas de quedas reais de rede.
+Concorrência funcional não comprovará desempenho ou atendimento
+ao RNF-01 com MySQL.
+
+### Limites e situação
+
+Implementação da validação financeira transacional concluída neste
+recorte, com verificações executadas em 23/10/2026.
+
+Resultados confirmados:
+
+- 378 verificações anteriores aprovadas na regressão:
+  282 de domínio, aplicação, memória e validações locais;
+  14 de cadastros JDBC; 35 de requisições JDBC;
+  47 de criação transacional JDBC.
+- 84 verificações de validação transacional JDBC aprovadas.
+- Total de 462 verificações aprovadas nesses conjuntos.
+- Teste adicional em processos Java separados aprovado:
+  criação, liberação e repetição com o mesmo UUID.
+- A primeira validação retornou LIBERADA e a repetição retornou
+  JA_LIBERADA, mantendo o saldo em R$ 737,50 após um único
+  desconto de R$ 62,50.
+- Pedido único, dois itens e preços históricos preservados.
+- Limpeza dos registros do teste entre processos confirmada.
+
+Limites das evidências:
+
+- A concorrência JDBC entre pedidos distintos do mesmo departamento
+  confirmou uma liberação e uma revisão por reserva.
+  Um cenário JDBC separado de disputa por saldo insuficiente
+  não foi demonstrado nas execuções registradas.
+- O isolamento entre departamentos foi verificado mantendo
+  o departamento A bloqueado enquanto B concluía a validação.
+- As falhas de commit e fechamento foram simuladas;
+  não representam ensaios de quedas reais de rede.
+- O limite de espera do teste de isolamento não constitui medição
+  do RNF-01. O desempenho com MySQL permanece sem comprovação
+  por essas verificações.
+
+Não inclui aprovação manual, alteração de orçamento, renovação
+de período, API, autenticação, portal ou provisionamento real.
