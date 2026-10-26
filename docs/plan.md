@@ -519,3 +519,46 @@ e provisionamento real permanecem fora deste recorte.
 Implementação integrada pelo PR #68.
 Evidências integradas pelo PR #69.
 Issue #67 encerrada como concluída no recorte documentado.
+
+## Perfis, identidade e controle de acesso — SPEC-006
+
+### Objetivo
+
+Restringir operações conforme identidade, perfil, autoria e vínculo
+departamental, preservando o isolamento entre departamentos.
+
+### Especificação inicial
+
+- Dois perfis no MVP: Desenvolvedor e Arquiteto Cloud.
+- Um departamento ativo por desenvolvedor para criação de requisições.
+- Criação vinculada à identidade confiável e ao departamento do solicitante.
+- Consulta do desenvolvedor limitada à própria autoria e departamento atual.
+- Consulta do arquiteto abrangendo todos os departamentos.
+- Criação de requisições negada ao arquiteto.
+- Aprovação técnica e autorização financeira permanecem distintas.
+- Repetição de criação sujeita à autorização e à conferência de autoria.
+- Dados sem autoria confiável não são atribuídos a usuários por suposição.
+
+Referência:
+[SPEC-006](casos-de-uso/SPEC-006-perfis-acesso.md).
+
+### Próximo recorte
+
+Revisar os critérios de aceite e inspecionar o modelo Java, os casos de uso
+e o esquema MySQL antes de definir a implementação e a migração.
+
+Detalhar a origem confiável da identidade e a integração da autorização
+com criação, consulta, listagem e repetição.
+
+### Limites
+
+A documentação não comprova autenticação ou autorização implementadas.
+Os testes anteriores de domínio e JDBC não verificam acesso por usuário.
+
+Login, provedor de identidade, gestão de usuários, fluxo manual,
+auditoria e API possuem entregas próprias.
+
+### Situação
+
+Especificação inicial documentada.
+Revisão, implementação e execução dos critérios de aceite pendentes.
