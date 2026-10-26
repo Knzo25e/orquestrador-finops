@@ -1,5 +1,18 @@
 # Plano Técnico — Orquestrador FinOps
 
+## Leitura do histórico
+
+As seções abaixo registram os recortes e os limites de cada etapa.
+Pendências descritas em etapas antigas devem ser interpretadas
+naquele contexto; sua evolução é registrada nas etapas posteriores.
+
+Criação transacional JDBC integrada pelo PR #66.
+Validação financeira transacional integrada pelo PR #68,
+com evidências integradas pelo PR #69.
+
+A conclusão desses recortes não representa conclusão integral
+da SPEC-005 nem comprovação de desempenho com MySQL.
+
 ## Preparação do build — Issue #43
 
 ### Objetivo
@@ -457,5 +470,52 @@ ou reinício do MySQL. Os limites de cobertura estão nas evidências.
 
 ### Situação
 
-Implementação e verificações locais realizadas;
-revisão final e integração pelo PR pendentes.
+Implementação e verificações integradas à main pelo PR #66.
+
+## Validação financeira transacional JDBC — Issue #67
+
+### Objetivo
+
+Validar requisições persistidas, confirmando saldo e estado
+na mesma transação e impedindo desconto duplicado.
+
+### Implementação
+
+- Caso de uso por UUID e porta de aplicação sem tipos JDBC.
+- Conexão exclusiva por execução, com READ COMMITTED.
+- Bloqueios na ordem departamento, depois requisição.
+- Recuperação dos valores vigentes e preservação dos preços históricos.
+- Reutilização das regras financeiras do domínio.
+- Confirmação conjunta do saldo e do estado.
+- Repetição de pedido liberado sem novo desconto.
+- Preservação de pedidos em revisão.
+- Tratamento explícito de confirmação desconhecida.
+- Aviso de falha de fechamento após sucesso confirmado.
+
+### Verificação
+
+- 378 verificações anteriores preservadas.
+- 84 verificações transacionais JDBC aprovadas.
+- Total de 462 verificações aprovadas.
+- Teste adicional em processos Java separados aprovado.
+- Isolamento verificado com um departamento bloqueado enquanto
+  outro concluía a validação.
+
+Evidências:
+[Issue #67](evidencias/issue-67/validacao-financeira-jdbc.md).
+
+### Limites
+
+Falhas de commit e fechamento simuladas.
+Concorrência entre pedidos distintos demonstrada pela disputa
+pela reserva, sem cenário JDBC separado de saldo insuficiente.
+RNF-01 com MySQL não comprovado por esses testes.
+
+Perfis de acesso, fluxo manual, API, autenticação, portal
+e provisionamento real permanecem fora deste recorte.
+
+### Situação
+
+Implementação integrada pelo PR #68.
+Evidências integradas pelo PR #69.
+Issue #67 encerrada como concluída no recorte documentado.

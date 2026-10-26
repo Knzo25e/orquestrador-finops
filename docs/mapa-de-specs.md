@@ -10,14 +10,14 @@ Este mapa organiza o trabalho previsto. A existência de uma linha não comprova
 
 Os IDs existentes foram preservados. A ordem de execução é indicada pela posição na tabela e pelas dependências, não pela numeração dos IDs.
 
-## Mapa de Specs — atualização da Issue #35
+## Mapa de Specs — posição após os PRs #66, #68 e #69
 
 | ID | Spec / comportamento esperado | Base principal | Dependências | Situação conhecida |
 |---|---|---|---|---|
 | 001 | Fundação do domínio: representar departamentos, recursos, itens e requisições | Modelo de domínio; ADR-001; DA-02 | Nenhuma | Entidades existentes; aderência completa ao modelo e invariantes ainda pendente |
 | 002 | Criar requisição com itens, total calculado e status INICIAL | RF-01; modelo de domínio; ADR-001; SPEC-002 | 001 | Implementação parcial; cálculo e status verificados na Issue #26/PR #27; proteção contra departamento nulo e dez verificações registradas na Issue #33/PR #34 |
 | 003 | Validar saldo e reserva, liberando automaticamente somente pedidos cujo saldo resultante fique acima da reserva | RF-02; RB-02; RB-05; RNF-01; RNF-02; UC-02; DA-01 | 001, 002 | Implementação inicial integrada pelo PR #40; verificações funcionais e concorrentes locais aprovadas; desempenho verificado na Issue #41 para o protocolo documentado; cobertura integral pendente |
-| 005 | Salvar e recuperar dados do fluxo de requisições entre sessões | Exigência de persistência do projeto final, seção 6.2; ADR-002; DA-01; SPEC-005 | 001, 002, 003 | A1 e A2 em memória integrados pelos PRs #50 e #54; detalhamento MySQL pelo PR #56; reconstituição pelo PR #58; conexão e esquema pelo PR #60; cadastros JDBC pelo PR #62; requisições e itens pelo PR #64; criação transacional, repetição por UUID e reconciliação de confirmação desconhecida verificadas localmente na Issue #65, aguardando revisão; validação financeira transacional pendente |
+| 005 | Salvar e recuperar dados do fluxo de requisições entre sessões | Exigência de persistência do projeto final, seção 6.2; ADR-002; DA-01; SPEC-005 | 001, 002, 003 | A1 e A2 em memória integrados pelos PRs #50 e #54; detalhamento MySQL pelo PR #56; reconstituição pelo PR #58; conexão e esquema pelo PR #60; cadastros JDBC pelo PR #62; requisições e itens pelo PR #64; criação transacional pelo PR #66; validação financeira transacional pelo PR #68; evidências pelo PR #69. Total de 462 verificações locais e teste adicional entre processos aprovados. Cobertura integral da Spec e desempenho com MySQL ainda sujeitos às pendências e limites documentados |
 | 006 | Restringir ações por perfil e vincular solicitações ao departamento do desenvolvedor | Personas; RF-01; RF-03; RF-04; RNF-02 | 001 | Spec individual e implementação pendentes |
 | 004 | Expor consulta do catálogo e envio de requisições pela interface de aplicação | RF-01; RF-02; RNF-02; ADR-001; ADR-003 | 002, 003, 005, 006 | Recorte inicial proposto; contrato REST e critérios de aceite ainda precisam ser especificados |
 | 007 | Registrar e preservar histórico das intervenções manuais, incluindo autorização de uso da reserva | RF-05; DA-04; ADR-002 | 005, 006 | Spec individual e implementação pendentes; contemplar os dados de auditoria definidos na Issue #35 |
@@ -55,10 +55,10 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
 - **OPEN-MAPA-02:** Confirmar e detalhar o contrato REST previsto no mapa anterior. ADR-001 trata da arquitetura em camadas e não constitui uma decisão sobre REST.
 - **OPEN-MAPA-03:** Localizar ou elaborar o caso de uso UC-01 referenciado pela SPEC-002; o documento não foi encontrado no material analisado.
 - Java 25 e Maven Wrapper padronizados na Issue #43, integrada pelo PR #44. A versão do Spring Boot e os detalhes de sua integração permanecem pendentes.
-- **OPEN-005-01 a OPEN-005-07:** definir contratos, integração MySQL, transações e concorrência, representação dos dados, vínculo do solicitante, inicialização e protocolo de verificação, conforme a [SPEC-005](casos-de-uso/SPEC-005-persistir-requisicoes.md).
+- **OPEN-005-01 a OPEN-005-07:** conferir a situação de cada questão na [SPEC-005](casos-de-uso/SPEC-005-persistir-requisicoes.md), considerando os recortes JDBC já integrados. Não tratar todo o grupo como pendente nem como concluído. Vínculo do solicitante e cobertura integral exigem acompanhamento específico.
 - Conferir a cobertura integral dos requisitos e a ordem de execução na revisão do grupo.
 - **OPEN-003-01:** entradas e precisão implementadas na Issue #37; cálculo da reserva com HALF_UP implementado e verificado na Issue #39.
-- **OPEN-003-02:** coordenação inicial por objeto Departamento implementada e verificada na Issue #39; garantia entre múltiplas instâncias deverá ser tratada na persistência.
+- **OPEN-003-02:** coordenação em memória implementada na Issue #39; coordenação da validação persistente por bloqueios no MySQL implementada na Issue #67, com concorrência entre conexões e repetição em processos separados verificadas. Limites nas evidências da Issue #67.
 - **OPEN-003-03:** protocolo executado na Issue #41, com atendimento ao limite de dois segundos no ambiente e nas cargas documentados.
 - **OPEN-003-04 e OPEN-003-05:** permanecem pendentes a configuração editável do percentual e o detalhamento do fluxo manual.
 
@@ -74,3 +74,11 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
 - A Issue #33 e o PR #34 registram a proteção do construtor contra departamento nulo e dez verificações executadas em Main.java; não comprovam atendimento integral à SPEC-002.
 - A atualização da regra de reserva foi vinculada à Issue #35. A aprovação da regra de reserva pela equipe não substitui a revisão integral da SPEC-003 e dos documentos relacionados no PR.
 - A proposta da SPEC-005 está vinculada à Issue #45. A etapa em memória não atende à persistência entre sessões; a conclusão da Spec depende da implementação e verificação da etapa MySQL.
+- A criação transacional JDBC foi integrada pelo PR #66.
+- A validação financeira transacional foi integrada pelo PR #68,
+  com evidências pelo PR #69 e encerramento da Issue #67.
+- [Evidências da Issue #67](evidencias/issue-67/validacao-financeira-jdbc.md):
+  462 verificações locais aprovadas e teste adicional entre processos.
+- Próximo recorte funcional proposto: especificar perfis de acesso
+  e vínculo departamental na SPEC-006, antes da implementação
+  correspondente e da exposição pela API.
