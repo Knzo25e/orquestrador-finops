@@ -560,5 +560,51 @@ auditoria e API possuem entregas próprias.
 
 ### Situação
 
-Especificação inicial documentada.
-Revisão, implementação e execução dos critérios de aceite pendentes.
+Especificação inicial integrada pelo PR #71.
+Base de identidade e política isolada implementadas e verificadas
+localmente na Issue #72.
+
+Integração aos casos de uso, autenticação real, persistência da autoria
+e execução dos critérios de aceite dos fluxos integrados permanecem
+pendentes.
+
+## Base de identidade e autorização — Issue #72
+
+### Objetivo
+
+Implementar e verificar decisões de autorização na camada de aplicação,
+conforme a SPEC-006.
+
+### Implementação local
+
+- Perfis Desenvolvedor e Arquiteto Cloud.
+- Contexto imutável com identidade, perfil, situação ativa e departamento.
+- Contrato ProvedorIdentidade para uma futura integração confiável.
+- Política de acesso ao catálogo, criação e consulta de requisições.
+- Verificador independente, executável sem banco.
+
+### Verificação
+
+- Compilação de 72 arquivos Java com release 25 aprovada.
+- 34 verificações da política aprovadas.
+- 282 verificações anteriores sem banco aprovadas.
+- Total executado nesta etapa: 316 verificações.
+
+Evidências:
+[Issue #72](evidencias/issue-72/base-identidade-autorizacao.md).
+
+### Limites
+
+A política ainda não é chamada pelos casos de uso existentes.
+O contrato de identidade não constitui autenticação implementada.
+
+Persistência da autoria, listagens protegidas, autorização de repetição
+e coerência transacional diante de mudanças de vínculo ficam para
+entregas posteriores.
+
+As verificações JDBC anteriores não foram reexecutadas nesta etapa.
+
+### Situação
+
+Implementação e verificações locais concluídas no recorte descrito.
+Revisão final e integração à main pendentes.
