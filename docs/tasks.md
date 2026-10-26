@@ -1,5 +1,9 @@
 # Tarefas — Orquestrador FinOps
 
+As seções registram o histórico de cada etapa. Pendências de recortes
+antigos devem ser lidas junto das conclusões das etapas posteriores.
+Itens sem comprovação explícita permanecem desmarcados.
+
 ## Issue #43 — Java 25 e Maven Wrapper
 
 - [x] Confirmar adoção de Java 25 e Maven Wrapper.
@@ -230,10 +234,38 @@ Validação financeira transacional permanece pendente.
 - [x] Verificar criação e repetição em processos Java distintos.
 - [x] Confirmar limpeza do cenário entre processos.
 - [x] Registrar evidências e limites.
-- [ ] Conferir documentação e instruções de execução finais.
-- [ ] Revisar o diff final, incluindo arquivos novos.
-- [ ] Criar commit e publicar a branch.
-- [ ] Abrir PR para revisão.
+- [x] Conferir documentação e instruções de execução finais.
+- [x] Revisar o diff final, incluindo arquivos novos.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
 
-Validação financeira transacional, aprovação manual, API,
-autenticação, portal e provisionamento real permanecem pendentes.
+Criação transacional integrada pelo PR #66.
+Validação financeira transacional integrada pelo PR #68.
+Aprovação manual, API, autenticação, portal e provisionamento
+real permanecem pendentes.
+
+## Issue #67 — Validação financeira transacional JDBC
+
+- [x] Detalhar o contrato na SPEC-005.
+- [x] Implementar caso de uso por UUID e porta sem tipos JDBC.
+- [x] Controlar conexão, transação e ordem dos bloqueios.
+- [x] Reutilizar as regras financeiras do domínio.
+- [x] Confirmar saldo e estado atomicamente.
+- [x] Preservar preços históricos e pedidos em revisão.
+- [x] Reconhecer repetição sem novo desconto.
+- [x] Verificar rollback após falha entre atualizações.
+- [x] Verificar concorrência do mesmo pedido.
+- [x] Verificar disputa pela reserva entre pedidos do mesmo departamento.
+- [x] Verificar isolamento entre departamentos.
+- [x] Verificar confirmação desconhecida e reconciliação pelo UUID.
+- [x] Verificar aviso de falha de fechamento após commit.
+- [x] Executar 84 verificações transacionais JDBC.
+- [x] Preservar as 378 verificações anteriores.
+- [x] Verificar liberação e repetição em processos Java separados.
+- [x] Confirmar limpeza do teste entre processos.
+- [x] Integrar implementação pelo PR #68.
+- [x] Integrar evidências e referência na SPEC-005 pelo PR #69.
+- [x] Atualizar os critérios de aceite e encerrar a Issue #67.
+
+Limites de cobertura e desempenho:
+[evidências da Issue #67](evidencias/issue-67/validacao-financeira-jdbc.md).

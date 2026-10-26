@@ -15,9 +15,10 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Conexão JDBC e esquema MySQL integrados pelo PR #60.
 - Cadastro e consulta JDBC de departamentos e recursos integrados pelo PR #62.
 - Armazenamento JDBC de requisições e itens integrado pelo PR #64, incluindo recuperação em outro processo Java e preservação dos preços históricos.
-- Criação transacional JDBC com repetição por UUID e reconciliação de confirmação desconhecida implementada e verificada localmente na Issue #65; revisão final e integração pendentes.
-- Os casos de uso A2 em memória permanecem disponíveis; a criação persistente possui um caso de uso próprio.
-- Validação financeira transacional com MySQL permanece pendente.
+- Criação transacional JDBC com repetição por UUID e reconciliação de confirmação desconhecida integrada pelo PR #66.
+- Os casos de uso A2 em memória permanecem disponíveis; criação e validação persistentes possuem casos de uso próprios.
+- Validação financeira transacional com MySQL integrada pelo PR #68, com evidências integradas pelo PR #69.
+- 462 verificações locais aprovadas, além do teste adicional de criação, validação e repetição em processos Java separados.
 - Fluxo manual, configuração editável da reserva e integração com Spring Boot permanecem pendentes.
 - Não há provisionamento real na AWS.
 
@@ -150,6 +151,28 @@ Os cenários entre processos, a verificação de conexão e os testes
 manuais de SQL não estão incluídos nas 378 verificações.
 
 Essas classes possuem método main e não são executadas automaticamente por mvn test.
+
+### Validação financeira transacional — Issue #67
+
+A implementação foi integrada pelo PR #68 e suas evidências pelo PR #69.
+
+Foram preservadas as 378 verificações anteriores e aprovadas
+84 verificações de validação transacional JDBC, totalizando 462.
+
+O teste adicional entre processos Java confirmou a sequência
+CRIADA → LIBERADA → JA_LIBERADA, com um único desconto,
+preservação dos preços históricos e limpeza confirmada.
+
+Evidências de ambiente, comandos, resultados e limites:
+[Issue #67](docs/evidencias/issue-67/validacao-financeira-jdbc.md).
+
+As falhas de commit e fechamento foram simuladas.
+A concorrência JDBC entre pedidos distintos demonstrou disputa
+pela reserva; não foi demonstrado um cenário JDBC separado
+de disputa por saldo insuficiente.
+
+Esses resultados não comprovam o RNF-01 de desempenho com MySQL
+nem representam conclusão integral da SPEC-005.
 
 ## Medição de desempenho
 
