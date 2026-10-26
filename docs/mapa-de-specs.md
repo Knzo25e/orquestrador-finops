@@ -18,7 +18,7 @@ Os IDs existentes foram preservados. A ordem de execução é indicada pela posi
 | 002 | Criar requisição com itens, total calculado e status INICIAL | RF-01; modelo de domínio; ADR-001; SPEC-002 | 001 | Implementação parcial; cálculo e status verificados na Issue #26/PR #27; proteção contra departamento nulo e dez verificações registradas na Issue #33/PR #34 |
 | 003 | Validar saldo e reserva, liberando automaticamente somente pedidos cujo saldo resultante fique acima da reserva | RF-02; RB-02; RB-05; RNF-01; RNF-02; UC-02; DA-01 | 001, 002 | Implementação inicial integrada pelo PR #40; verificações funcionais e concorrentes locais aprovadas; desempenho verificado na Issue #41 para o protocolo documentado; cobertura integral pendente |
 | 005 | Salvar e recuperar dados do fluxo de requisições entre sessões | Exigência de persistência do projeto final, seção 6.2; ADR-002; DA-01; SPEC-005 | 001, 002, 003 | A1 e A2 em memória integrados pelos PRs #50 e #54; detalhamento MySQL pelo PR #56; reconstituição pelo PR #58; conexão e esquema pelo PR #60; cadastros JDBC pelo PR #62; requisições e itens pelo PR #64; criação transacional pelo PR #66; validação financeira transacional pelo PR #68; evidências pelo PR #69. Total de 462 verificações locais e teste adicional entre processos aprovados. Cobertura integral da Spec e desempenho com MySQL ainda sujeitos às pendências e limites documentados |
-| 006 | Restringir ações por perfil e vincular solicitações ao departamento do desenvolvedor | Personas; RF-01; RF-03; RF-04; RNF-02 | 001 | Spec individual e implementação pendentes |
+| 006 | [Perfis, identidade e controle de acesso](casos-de-uso/SPEC-006-perfis-acesso.md) | Personas; RF-01; RF-03; RF-04; RF-05; RNF-02 | 001 | Especificação inicial documentada, com matriz de permissões e critérios de aceite; revisão, implementação e testes pendentes |
 | 004 | Expor consulta do catálogo e envio de requisições pela interface de aplicação | RF-01; RF-02; RNF-02; ADR-001; ADR-003 | 002, 003, 005, 006 | Recorte inicial proposto; contrato REST e critérios de aceite ainda precisam ser especificados |
 | 007 | Registrar e preservar histórico das intervenções manuais, incluindo autorização de uso da reserva | RF-05; DA-04; ADR-002 | 005, 006 | Spec individual e implementação pendentes; contemplar os dados de auditoria definidos na Issue #35 |
 | 008 | Configurar e alterar o teto mensal, preservando compromissos e bloqueando reduções abaixo do valor comprometido | RF-04; RF-05; RB-04; DA-01; DA-04 | 005, 006, 007 | Regra de teto definida na Issue #31; considerar o efeito do teto sobre a reserva; configuração do percentual permanece em OPEN-003-04 |
@@ -79,6 +79,9 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
   com evidências pelo PR #69 e encerramento da Issue #67.
 - [Evidências da Issue #67](evidencias/issue-67/validacao-financeira-jdbc.md):
   462 verificações locais aprovadas e teste adicional entre processos.
-- Próximo recorte funcional proposto: especificar perfis de acesso
-  e vínculo departamental na SPEC-006, antes da implementação
-  correspondente e da exposição pela API.
+- A [SPEC-006](casos-de-uso/SPEC-006-perfis-acesso.md) documenta
+  a proposta de perfis, identidade, autoria e vínculo departamental.
+  Implementação e testes permanecem pendentes.
+- Próximo passo: revisar a SPEC-006 e definir o recorte de implementação,
+  incluindo persistência da autoria e integração com os casos de uso.
+  A exposição pela API depende da implementação das proteções aplicáveis.

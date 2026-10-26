@@ -210,7 +210,8 @@ Validação financeira transacional permanece pendente.
 
 Armazenamento de requisições e itens integrado pelo PR #64.
 Criação transacional e reconciliação acompanhadas na Issue #65.
-Validação financeira transacional permanece pendente.
+Validação financeira transacional posteriormente integrada pelo PR #68,
+com evidências pelo PR #69.
 
 ## Issue #65 — Criação transacional JDBC
 
@@ -269,3 +270,31 @@ real permanecem pendentes.
 
 Limites de cobertura e desempenho:
 [evidências da Issue #67](evidencias/issue-67/validacao-financeira-jdbc.md).
+
+## SPEC-006 — Perfis, identidade e controle de acesso
+
+- [x] Criar a branch docs/spec-006-perfis-acesso.
+- [x] Documentar a especificação inicial.
+- [x] Registrar a matriz de permissões dos dois perfis.
+- [x] Definir vínculo departamental e restrições de consulta.
+- [x] Documentar identidade confiável, autoria e acesso negado.
+- [x] Definir critérios de aceite e limites do escopo.
+- [ ] Revisar integralmente a especificação e suas regras adicionais.
+- [ ] Revisar o diff e os links da documentação.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR e integrar a documentação após revisão.
+- [ ] Inspecionar modelo Java, casos de uso e esquema MySQL.
+- [ ] Definir e registrar o recorte de implementação em uma issue.
+- [ ] Detalhar a integração da identidade confiável.
+- [ ] Definir persistência de autoria e tratamento dos registros anteriores.
+- [ ] Implementar autorização na camada de aplicação.
+- [ ] Integrar autorização com criação, consulta, listagem e repetição.
+- [ ] Verificar coerência diante de alterações concorrentes de vínculo.
+- [ ] Executar os critérios de aceite aplicáveis ao recorte.
+- [ ] Executar regressão e registrar evidências e limites.
+
+Referência:
+[SPEC-006](casos-de-uso/SPEC-006-perfis-acesso.md).
+
+A documentação dos critérios não significa que eles foram executados.
+Implementação e testes permanecem pendentes.
