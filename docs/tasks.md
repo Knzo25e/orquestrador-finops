@@ -279,15 +279,16 @@ Limites de cobertura e desempenho:
 - [x] Definir vínculo departamental e restrições de consulta.
 - [x] Documentar identidade confiável, autoria e acesso negado.
 - [x] Definir critérios de aceite e limites do escopo.
-- [ ] Revisar integralmente a especificação e suas regras adicionais.
-- [ ] Revisar o diff e os links da documentação.
-- [ ] Criar commit e publicar a branch.
-- [ ] Abrir PR e integrar a documentação após revisão.
-- [ ] Inspecionar modelo Java, casos de uso e esquema MySQL.
-- [ ] Definir e registrar o recorte de implementação em uma issue.
+- [x] Revisar integralmente a especificação e suas regras adicionais.
+- [x] Revisar o diff e os links da documentação.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR e integrar a documentação após revisão.
+- [x] Inspecionar modelo Java, casos de uso e esquema MySQL.
+- [x] Definir e registrar o recorte de implementação em uma issue.
 - [ ] Detalhar a integração da identidade confiável.
 - [ ] Definir persistência de autoria e tratamento dos registros anteriores.
-- [ ] Implementar autorização na camada de aplicação.
+- [x] Implementar e testar localmente a política isolada de autorização — Issue #72.
+- [ ] Integrar as decisões de autorização aos casos de uso.
 - [ ] Integrar autorização com criação, consulta, listagem e repetição.
 - [ ] Verificar coerência diante de alterações concorrentes de vínculo.
 - [ ] Executar os critérios de aceite aplicáveis ao recorte.
@@ -296,5 +297,32 @@ Limites de cobertura e desempenho:
 Referência:
 [SPEC-006](casos-de-uso/SPEC-006-perfis-acesso.md).
 
-A documentação dos critérios não significa que eles foram executados.
-Implementação e testes permanecem pendentes.
+Especificação inicial integrada pelo PR #71.
+A Issue #72 implementa e verifica localmente a política isolada.
+Os critérios dos fluxos integrados permanecem pendentes.
+
+## Issue #72 — Base de identidade e autorização
+
+- [x] Criar a branch feat/72-base-identidade-autorizacao.
+- [x] Representar os perfis Desenvolvedor e Arquiteto Cloud.
+- [x] Criar contexto imutável de identidade.
+- [x] Definir o contrato ProvedorIdentidade.
+- [x] Implementar decisões para catálogo, criação e consulta.
+- [x] Verificar permissões e rejeições com identidades controladas.
+- [x] Compilar 72 arquivos Java com release 25.
+- [x] Executar 34 verificações da política.
+- [x] Executar 282 verificações anteriores sem banco.
+- [x] Registrar resultados e limites nas evidências.
+- [ ] Concluir a revisão final do código e da documentação.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão.
+- [ ] Integrar a implementação e encerrar a issue.
+
+Evidências:
+[Issue #72](evidencias/issue-72/base-identidade-autorizacao.md).
+
+Total executado nesta etapa: 316 verificações sem banco.
+Os testes JDBC anteriores não foram reexecutados.
+
+A política ainda não protege os casos de uso existentes.
+Autenticação real e integração com persistência permanecem pendentes.

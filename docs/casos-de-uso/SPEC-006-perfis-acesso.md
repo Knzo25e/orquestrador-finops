@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- Status: especificação inicial; implementação e testes pendentes.
+- Status: base de autorização implementada e testada localmente; integração e cobertura completa pendentes.
 - Objetivo: identificar o usuário responsável pelas operações e controlar
   o acesso conforme seu perfil, sua autoria e seu vínculo departamental.
 - Dependência: SPEC-001 — Domínio.
@@ -241,7 +241,23 @@ para uso real apenas pela existência desta especificação.
 
 ## Evidências
 
-Ainda não há implementação ou execução dos critérios desta SPEC.
+Há implementação parcial da política isolada, descrita na seção seguinte.
+Os critérios de aceite dos fluxos integrados ainda não foram executados.
 
 Os testes anteriores de domínio e JDBC não comprovam autenticação,
 autoria ou autorização por usuário.
+
+## Implementação inicial — Issue #72
+
+A base de identidade e autorização foi implementada e verificada
+localmente, com decisões isoladas para catálogo, criação e consulta.
+
+Foram aprovadas 34 verificações da política e 282 verificações anteriores
+sem banco, totalizando 316 nesta etapa.
+
+A política ainda não está integrada aos casos de uso ou ao JDBC.
+Autenticação real, persistência da autoria, listagem protegida e
+autorização da repetição permanecem pendentes.
+
+Evidências e limites:
+[Issue #72](../evidencias/issue-72/base-identidade-autorizacao.md).
