@@ -326,3 +326,38 @@ Os testes JDBC anteriores não foram reexecutados.
 
 A política ainda não protege os casos de uso existentes.
 Autenticação real e integração com persistência permanecem pendentes.
+
+## Issue #74 — Persistência da autoria das requisições
+
+- [x] Criar a branch feat/74-autoria-requisicoes.
+- [x] Tornar o identificador do autor imutável na entidade.
+- [x] Permitir criação explícita com autoria obrigatória.
+- [x] Preservar compatibilidade com autoria desconhecida.
+- [x] Preservar autoria na reconstituição.
+- [x] Transportar autoria pela entrada e pelo caso de uso persistente.
+- [x] Gravar e recuperar autoria pelo JDBC.
+- [x] Incluir autoria na comparação de criação repetida.
+- [x] Criar a migração incremental V002.
+- [x] Verificar preservação de um cenário anterior à migração.
+- [x] Executar 16 verificações de autoria no domínio.
+- [x] Executar 7 verificações de comparação de autoria.
+- [x] Executar 9 verificações de autoria no repositório JDBC.
+- [x] Executar 12 verificações transacionais de autoria.
+- [x] Reexecutar 316 verificações anteriores sem banco.
+- [x] Reexecutar 180 verificações anteriores JDBC.
+- [x] Confirmar limpeza dos registros de teste.
+- [x] Registrar evidências e limites da entrega.
+- [ ] Concluir revisão dos arquivos novos e da documentação.
+- [ ] Conferir o diff preparado para commit.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão.
+- [ ] Integrar a entrega e encerrar a issue.
+
+Total: 540 verificações aprovadas, incluindo 44 novas nesta entrega.
+
+Evidências:
+[Issue #74](evidencias/issue-74/autoria-requisicoes.md).
+
+A persistência de autoria não conclui a SPEC-006.
+Autenticação real, integração da autorização aos casos de uso e
+filtragem de consultas por usuário permanecem pendentes.

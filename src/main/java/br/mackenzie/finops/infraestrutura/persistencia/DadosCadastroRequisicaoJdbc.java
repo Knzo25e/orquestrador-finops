@@ -22,9 +22,9 @@ final class DadosCadastroRequisicaoJdbc {
             BigDecimal subtotal
     ) {
     }
-
     private final UUID id;
     private final UUID departamentoId;
+    private final UUID desenvolvedorId;
     private final BigDecimal total;
     private final List<Item> itens;
 
@@ -32,10 +32,12 @@ final class DadosCadastroRequisicaoJdbc {
             UUID id,
             UUID departamentoId,
             BigDecimal total,
-            List<Item> itens
+            List<Item> itens,
+            UUID desenvolvedorId
     ) {
         this.id = id;
         this.departamentoId = departamentoId;
+        this.desenvolvedorId = desenvolvedorId;
         this.total = total;
         this.itens = List.copyOf(itens);
     }
@@ -109,7 +111,8 @@ final class DadosCadastroRequisicaoJdbc {
                     id,
                     departamentoId,
                     total,
-                    itens
+                    itens,
+                    requisicao.getDesenvolvedorId()
             );
         }
     }
@@ -166,6 +169,11 @@ final class DadosCadastroRequisicaoJdbc {
     UUID departamentoId() {
         return departamentoId;
     }
+
+    UUID desenvolvedorId() {
+        return desenvolvedorId;
+    }
+
 
     BigDecimal total() {
         return total;

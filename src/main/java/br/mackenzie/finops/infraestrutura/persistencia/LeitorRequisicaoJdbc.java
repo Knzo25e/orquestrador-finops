@@ -30,6 +30,7 @@ final class LeitorRequisicaoJdbc {
                 q.estado,
                 q.custo_total,
                 q.motivo_revisao,
+                q.desenvolvedor_id,
                 d.id AS departamento_id,
                 d.nome AS departamento_nome,
                 d.teto_mensal,
@@ -137,7 +138,8 @@ final class LeitorRequisicaoJdbc {
                                 pedido.itens,
                                 pedido.estado.status(),
                                 pedido.total,
-                                pedido.estado.motivoRevisao()
+                                pedido.estado.motivoRevisao(),
+                                pedido.desenvolvedorId
                         ));
                     }
 
@@ -198,11 +200,18 @@ final class LeitorRequisicaoJdbc {
                         resultado.getString("motivo_revisao")
                 );
 
+        String autorArmazenado = resultado.getString("desenvolvedor_id");
+
+        UUID desenvolvedorId = autorArmazenado == null
+                ? null
+                : ValidacaoCadastroJdbc.interpretarId(autorArmazenado);
+
         return new PedidoEmLeitura(
                 id,
                 departamento,
                 estado,
-                moeda(resultado, "custo_total")
+                moeda(resultado, "custo_total"),
+                desenvolvedorId
         );
     }
 
@@ -276,18 +285,21 @@ final class LeitorRequisicaoJdbc {
         private final Departamento departamento;
         private final EstadoRequisicaoJdbc.EstadoRecuperado estado;
         private final BigDecimal total;
+        private final UUID desenvolvedorId;
         private final List<ItemRequisicao> itens = new ArrayList<>();
 
         private PedidoEmLeitura(
                 UUID id,
                 Departamento departamento,
                 EstadoRequisicaoJdbc.EstadoRecuperado estado,
-                BigDecimal total
+                BigDecimal total,
+                UUID desenvolvedorId
         ) {
             this.id = id;
             this.departamento = departamento;
             this.estado = estado;
             this.total = total;
+            this.desenvolvedorId = desenvolvedorId;
         }
     }
 }

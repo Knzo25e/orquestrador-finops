@@ -96,14 +96,21 @@ final class GravadorRequisicaoJdbc {
             throws SQLException {
         String sql = """
                 INSERT INTO requisicao (
-                    id, departamento_id, estado, custo_total, motivo_revisao
-                ) VALUES (?, ?, 'INICIAL', ?, NULL)
+                    id, departamento_id, estado, custo_total,
+                    motivo_revisao, desenvolvedor_id
+                ) VALUES (?, ?, 'INICIAL', ?, NULL, ?)
                 """;
 
         try (PreparedStatement comando = conexao.prepareStatement(sql)) {
             comando.setString(1, dados.id().toString());
             comando.setString(2, dados.departamentoId().toString());
             comando.setBigDecimal(3, dados.total());
+
+            if (dados.desenvolvedorId() == null) {
+                comando.setNull(4, java.sql.Types.CHAR);
+            } else {
+                comando.setString(4, dados.desenvolvedorId().toString());
+            }
 
             conferirInsercao(comando.executeUpdate());
         } catch (SQLException excecao) {
