@@ -12,8 +12,46 @@ import java.util.UUID;
 public record SolicitacaoCriacaoRequisicao(
         UUID requisicaoId,
         UUID departamentoId,
-        List<ItemSolicitado> itens
+        List<ItemSolicitado> itens,
+        UUID desenvolvedorId
 ) {
+
+    /**
+     * Compatibilidade com chamadas anteriores, sem autoria conhecida.
+     */
+    public SolicitacaoCriacaoRequisicao(
+            UUID requisicaoId,
+            UUID departamentoId,
+            List<ItemSolicitado> itens
+    ) {
+        this(requisicaoId, departamentoId, itens, null);
+    }
+
+    /**
+     * Entrada com autoria obrigatoria.
+     * O autor deve vir de uma fonte confiavel da aplicacao.
+     * Informar um UUID nao autentica o solicitante.
+     */
+    public static SolicitacaoCriacaoRequisicao comAutoria(
+            UUID requisicaoId,
+            UUID departamentoId,
+            List<ItemSolicitado> itens,
+            UUID desenvolvedorId
+    ) {
+        if (desenvolvedorId == null) {
+            throw new IllegalArgumentException(
+                    "O identificador do desenvolvedor e obrigatorio."
+            );
+        }
+
+        return new SolicitacaoCriacaoRequisicao(
+                requisicaoId,
+                departamentoId,
+                itens,
+                desenvolvedorId
+        );
+    }
+
     public SolicitacaoCriacaoRequisicao {
         if (requisicaoId == null) {
             throw new IllegalArgumentException(

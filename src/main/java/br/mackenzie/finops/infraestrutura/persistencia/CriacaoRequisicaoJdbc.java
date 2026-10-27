@@ -205,9 +205,21 @@ public final class CriacaoRequisicaoJdbc
                         "O departamento solicitado não está cadastrado."
                 ));
 
-        Requisicao requisicao = Requisicao.criarComId(
-                solicitacao.requisicaoId(), departamento
-        );
+        Requisicao requisicao;
+
+        if (solicitacao.desenvolvedorId() == null) {
+            // Compatibilidade com chamadas anteriores sem autoria.
+            requisicao = Requisicao.criarComId(
+                    solicitacao.requisicaoId(),
+                    departamento
+            );
+        } else {
+            requisicao = Requisicao.criarComId(
+                    solicitacao.requisicaoId(),
+                    departamento,
+                    solicitacao.desenvolvedorId()
+            );
+        }
 
         Map<UUID, RecursoCatalogo> recursosConsultados = new HashMap<>();
 

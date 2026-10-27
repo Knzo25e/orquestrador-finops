@@ -9,7 +9,7 @@ import java.math.RoundingMode;
 public class Requisicao {
     private final UUID id;
     private final Departamento departamento;
-    private UUID desenvolvedorId;
+    private final UUID desenvolvedorId;
     private String status;
     private BigDecimal custoTotalProjetado;
     private String justificativaArquiteto;
@@ -26,11 +26,13 @@ public class Requisicao {
 
         this.id = UUID.randomUUID();
         this.departamento = departamento;
+        this.desenvolvedorId = null;
         this.status = "INICIAL";
         this.custoTotalProjetado = new BigDecimal("0.00");
         this.itens = new ArrayList<>();
     }
 
+    // Compatibilidade com os caminhos anteriores, sem autoria conhecida.
     private Requisicao(
             UUID id,
             Departamento departamento,
@@ -39,8 +41,29 @@ public class Requisicao {
             BigDecimal custoTotalProjetado,
             ResultadoValidacao motivoRevisao
     ) {
+        this(
+                id,
+                departamento,
+                itens,
+                status,
+                custoTotalProjetado,
+                motivoRevisao,
+                null
+        );
+    }
+
+    private Requisicao(
+            UUID id,
+            Departamento departamento,
+            List<ItemRequisicao> itens,
+            String status,
+            BigDecimal custoTotalProjetado,
+            ResultadoValidacao motivoRevisao,
+            UUID desenvolvedorId
+    ) {
         this.id = id;
         this.departamento = departamento;
+        this.desenvolvedorId = desenvolvedorId;
         this.itens = new ArrayList<>(itens);
         this.status = status;
         this.custoTotalProjetado = custoTotalProjetado;
@@ -63,6 +86,36 @@ public class Requisicao {
         );
     }
 
+    /**
+     * Cria uma requisicao com autoria informada pela aplicacao.
+     * O identificador do autor nao constitui autenticacao.
+     */
+    public static Requisicao criarComId(
+            UUID id,
+            Departamento departamento,
+            UUID desenvolvedorId
+    ) {
+        validarIdentidade(id, departamento);
+
+        if (desenvolvedorId == null) {
+            throw new IllegalArgumentException(
+                    "O identificador do desenvolvedor e obrigatorio."
+            );
+        }
+
+        return new Requisicao(
+                id,
+                departamento,
+                List.of(),
+                "INICIAL",
+                new BigDecimal("0.00"),
+                null,
+                desenvolvedorId
+        );
+    }
+
+
+       // Compatibilidade com registros sem autoria conhecida.
     public static Requisicao reconstituir(
             UUID id,
             Departamento departamento,
@@ -70,6 +123,30 @@ public class Requisicao {
             String status,
             BigDecimal totalArmazenado,
             ResultadoValidacao motivoRevisao
+    ) {
+        return reconstituir(
+                id,
+                departamento,
+                itens,
+                status,
+                totalArmazenado,
+                motivoRevisao,
+                null
+        );
+    }
+
+    /**
+     * Recupera a autoria armazenada.
+     * Autor nulo representa registro sem autoria conhecida.
+     */
+    public static Requisicao reconstituir(
+            UUID id,
+            Departamento departamento,
+            List<ItemRequisicao> itens,
+            String status,
+            BigDecimal totalArmazenado,
+            ResultadoValidacao motivoRevisao,
+            UUID desenvolvedorId
     ) {
         validarIdentidade(id, departamento);
         validarEstadoEMotivo(status, motivoRevisao);
@@ -123,9 +200,11 @@ public class Requisicao {
                 copia,
                 status,
                 totalValidado,
-                motivoRevisao
+                motivoRevisao,
+                desenvolvedorId
         );
     }
+
 
     private static void validarIdentidade(
             UUID id,
@@ -283,6 +362,14 @@ public class Requisicao {
 
     public UUID getId() {
         return id;
+    }
+
+    /**
+     * Retorna o autor ou null quando a autoria nao e conhecida.
+     * A ausencia de autoria nao deve ser preenchida por suposicao.
+     */
+    public UUID getDesenvolvedorId() {
+        return desenvolvedorId;
     }
 
     public Departamento getDepartamento() {

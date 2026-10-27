@@ -607,4 +607,55 @@ As verificações JDBC anteriores não foram reexecutadas nesta etapa.
 ### Situação
 
 Implementação e verificações locais concluídas no recorte descrito.
-Revisão final e integração à main pendentes.
+Implementação integrada à main pelo PR #73.
+
+## Persistência da autoria das requisições — Issue #74
+
+### Objetivo
+
+Preservar a autoria na criação, persistência e recuperação das requisições,
+incluindo sua comparação nas tentativas repetidas de criação.
+
+### Implementação local
+
+- Identificador do desenvolvedor imutável na entidade Requisicao.
+- Criação explícita com autoria obrigatória.
+- Compatibilidade dos caminhos anteriores com autoria desconhecida.
+- Reconstituição de pedidos com autor conhecido ou ausente.
+- Transporte da autoria pela entrada e pelo caso de uso persistente.
+- Gravação e recuperação da autoria pelo JDBC.
+- Comparação de autoria na repetição da criação.
+- Migração incremental V002, mantendo V001 inalterada.
+- Registros anteriores preservados com desenvolvedor_id NULL.
+
+### Verificação
+
+- Compilação de 76 arquivos Java com release 25 aprovada.
+- 339 verificações sem banco aprovadas.
+- 201 verificações JDBC aprovadas.
+- Total de 540 verificações, incluindo 44 novas nesta entrega.
+- Cenário anterior à migração preservado após aplicação de V002.
+- Autoria preservada após liberação e repetição financeira.
+- Limpeza dos registros de teste confirmada.
+
+Evidências:
+[Issue #74](evidencias/issue-74/autoria-requisicoes.md).
+
+### Limites
+
+Persistência de autoria não constitui autenticação ou autorização.
+
+A política de acesso ainda não está integrada aos casos de uso.
+Busca e listagem preservam autoria, mas não filtram resultados por usuário.
+A comparação de autoria na repetição não substitui autorização.
+
+Integração da identidade confiável e coerência diante de mudanças
+concorrentes de vínculo permanecem pendentes.
+
+As pendências de persistência da autoria registradas na seção da
+Issue #72 representam a situação daquela entrega, anterior a este recorte.
+
+### Situação
+
+Implementação e verificações locais realizadas.
+Integração à main pendente.

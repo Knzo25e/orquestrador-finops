@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- Status: base de autorização implementada e testada localmente; integração e cobertura completa pendentes.
+- Status: base de autorização e persistência de autoria implementadas e verificadas localmente nos respectivos recortes; integração da autorização aos fluxos e cobertura completa pendentes.
 - Objetivo: identificar o usuário responsável pelas operações e controlar
   o acesso conforme seu perfil, sua autoria e seu vínculo departamental.
 - Dependência: SPEC-001 — Domínio.
@@ -261,3 +261,43 @@ autorização da repetição permanecem pendentes.
 
 Evidências e limites:
 [Issue #72](../evidencias/issue-72/base-identidade-autorizacao.md).
+
+## Persistência da autoria — Issue #74
+
+A autoria passou a ser preservada no domínio, na criação persistente,
+na gravação JDBC e na recuperação por busca e listagem.
+
+O identificador do desenvolvedor é imutável na entidade.
+A criação explícita com autoria exige autor não nulo.
+Os caminhos anteriores permanecem compatíveis com autoria desconhecida.
+
+A migração V002 adiciona desenvolvedor_id, permitindo NULL, e um índice
+por autor e departamento. Registros anteriores não recebem autor presumido.
+A migração deve ser aplicada uma única vez, após V001.
+
+A repetição de criação considera a autoria, além dos critérios anteriores.
+Autores diferentes ou divergência entre autoria conhecida e ausente
+produzem conflito. Duas autorias ausentes preservam a compatibilidade.
+
+As verificações locais totalizaram 540 aprovações:
+339 sem banco e 201 JDBC, incluindo 44 novas nesta entrega.
+Um cenário preparado antes da migração preservou seus dados e permaneceu
+sem autoria após V002. Sua limpeza foi confirmada.
+
+### Limites deste recorte
+
+Persistir autoria não autentica o usuário nem comprova autorização.
+
+A política da Issue #72 ainda não está integrada aos casos de uso.
+Busca e listagem preservam autoria, mas ainda não restringem o acesso
+conforme o usuário. A comparação de autoria na repetição também não
+substitui a autorização do solicitante.
+
+A integração da identidade confiável, a proteção dos fluxos e a
+coerência diante de mudanças concorrentes de vínculo permanecem pendentes.
+
+As pendências descritas na seção da Issue #72 representam a situação
+daquela entrega; a persistência de autoria foi tratada neste recorte.
+
+Evidências e limites:
+[Issue #74](../evidencias/issue-74/autoria-requisicoes.md).

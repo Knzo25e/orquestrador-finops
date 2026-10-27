@@ -7,6 +7,7 @@ import br.mackenzie.finops.dominio.entidades.ItemRequisicao;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Confere se um pedido armazenado corresponde à solicitação repetida.
@@ -49,6 +50,16 @@ final class ComparadorSolicitacaoRequisicao {
                     solicitacao.requisicaoId()
             );
         }
+
+        if (!Objects.equals(
+                solicitacao.desenvolvedorId(),
+                existente.getDesenvolvedorId()
+        )) {
+            throw new ConflitoIdentificadorException(
+                    solicitacao.requisicaoId()
+            );
+        }
+
 
         List<ItemSolicitado> solicitados = solicitacao.itens();
         List<ItemRequisicao> armazenados = existente.getItens();
