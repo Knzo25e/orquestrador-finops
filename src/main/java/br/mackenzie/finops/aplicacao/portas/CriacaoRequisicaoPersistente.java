@@ -21,8 +21,13 @@ public interface CriacaoRequisicaoPersistente {
      * Uma repetição equivalente retorna JA_EXISTENTE e preserva
      * os preços históricos, o estado e o motivo armazenados.
      *
-     * A equivalência considera o departamento e a sequência dos
-     * itens, incluindo os identificadores dos recursos e quantidades.
+     * A equivalência considera a autoria, o departamento e a sequência
+     * dos itens, incluindo identificadores dos recursos e quantidades.
+     * Duas autorias ausentes preservam a compatibilidade anterior.
+     * Autores diferentes, inclusive quando somente um estiver ausente,
+     * produzem conflito.
+     *
+     * Este contrato não autentica nem autoriza o solicitante.
      *
      * O chamador deve preservar o UUID e o conteúdo da solicitação
      * nas novas tentativas, inclusive após confirmação desconhecida.

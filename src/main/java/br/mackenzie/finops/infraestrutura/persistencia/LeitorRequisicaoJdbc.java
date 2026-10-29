@@ -104,12 +104,96 @@ final class LeitorRequisicaoJdbc {
         return encontradas;
     }
 
-    private List<Requisicao> consultar(String sql, UUID parametro) {
+    Optional<Requisicao> buscarPorIdEAutorEDepartamento(
+            UUID id,
+            UUID autorId,
+            UUID departamentoId
+    ) {
+        ValidacaoCadastroJdbc.validarId(
+                id, "O identificador da requisição"
+        );
+        ValidacaoCadastroJdbc.validarId(
+                autorId, "O identificador do autor"
+        );
+        ValidacaoCadastroJdbc.validarId(
+                departamentoId, "O identificador do departamento"
+        );
+
+        List<Requisicao> encontradas = consultar(
+                CONSULTA
+                        + " WHERE q.id = ?"
+                        + " AND q.desenvolvedor_id = ?"
+                        + " AND q.departamento_id = ?"
+                        + " ORDER BY i.ordem",
+                id,
+                autorId,
+                departamentoId
+        );
+
+        if (encontradas.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (encontradas.size() != 1) {
+            throw inconsistencia();
+        }
+
+        Requisicao pedido = encontradas.get(0);
+
+        if (!id.equals(pedido.getId())
+                || !autorId.equals(pedido.getDesenvolvedorId())
+                || !departamentoId.equals(
+                        pedido.getDepartamento().getId()
+                )) {
+            throw inconsistencia();
+        }
+
+        return Optional.of(pedido);
+    }
+
+    List<Requisicao> listarPorAutorEDepartamento(
+            UUID autorId,
+            UUID departamentoId
+    ) {
+        ValidacaoCadastroJdbc.validarId(
+                autorId, "O identificador do autor"
+        );
+        ValidacaoCadastroJdbc.validarId(
+                departamentoId, "O identificador do departamento"
+        );
+
+        List<Requisicao> encontradas = consultar(
+                CONSULTA
+                        + " WHERE q.desenvolvedor_id = ?"
+                        + " AND q.departamento_id = ?"
+                        + " ORDER BY q.id, i.ordem",
+                autorId,
+                departamentoId
+        );
+
+        for (Requisicao pedido : encontradas) {
+            if (!autorId.equals(pedido.getDesenvolvedorId())
+                    || !departamentoId.equals(
+                            pedido.getDepartamento().getId()
+                    )) {
+                throw inconsistencia();
+            }
+        }
+
+        return encontradas;
+    }
+
+    private List<Requisicao> consultar(String sql, UUID... parametros) {
         try {
             conferirIsolamento();
 
             try (PreparedStatement comando = conexao.prepareStatement(sql)) {
-                comando.setString(1, parametro.toString());
+                for (int indice = 0; indice < parametros.length; indice++) {
+                    comando.setString(
+                            indice + 1,
+                            parametros[indice].toString()
+                    );
+                }
 
                 try (ResultSet resultado = comando.executeQuery()) {
                     Map<UUID, PedidoEmLeitura> pedidos = new LinkedHashMap<>();

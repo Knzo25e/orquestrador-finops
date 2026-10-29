@@ -361,3 +361,59 @@ Evidências:
 A persistência de autoria não conclui a SPEC-006.
 Autenticação real, integração da autorização aos casos de uso e
 filtragem de consultas por usuário permanecem pendentes.
+
+## Issue #76 — Autorização dos fluxos persistentes
+
+- [x] Criar a branch feat/76-autorizacao-requisicoes.
+- [x] Inspecionar contratos, casos de uso e repositórios.
+- [x] Integrar obtenção da identidade às entradas autorizadas.
+- [x] Bloquear identidade ausente, inativa ou sem vínculo exigido.
+- [x] Interromper operações quando o provedor falhar.
+- [x] Derivar autor e departamento da identidade na criação.
+- [x] Negar criação pelo Arquiteto Cloud.
+- [x] Filtrar consultas do Desenvolvedor por autoria e departamento.
+- [x] Aplicar filtros JDBC antes da reconstituição.
+- [x] Permitir consultas do Arquiteto em departamentos distintos,
+      inclusive pedidos sem autoria.
+- [x] Autorizar repetição antes da comparação de conteúdo.
+- [x] Repetir autorização na reconciliação após duplicidade.
+- [x] Verificar concorrência com mesmo autor e autores diferentes.
+- [x] Definir contrato de execução com identidade coordenada.
+- [x] Integrar coordenação à entrada de criação.
+- [x] Demonstrar mudança de vínculo aguardando commit com fonte
+      controlada no mesmo processo.
+- [x] Verificar criação posterior com novo vínculo e negativa
+      de repetição do pedido anterior.
+- [x] Restringir entrada intermediária ao pacote da aplicação.
+- [x] Documentar o uso interno dos caminhos legados.
+- [x] Verificar dois adaptadores controlados delegando às mesmas
+      regras da aplicação.
+- [x] Executar 415 verificações sem banco.
+- [x] Executar 233 verificações JDBC.
+- [x] Confirmar preservação dos dados e limpeza dos cenários JDBC.
+- [x] Registrar evidências e limites.
+- [x] Atualizar SPEC-006, mapa de specs e planejamento.
+- [x] Concluir revisão final dos arquivos novos e modificados.
+- [x] Conferir o conteúdo preparado para commit.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão.
+- [ ] Integrar a entrega e atualizar o encerramento da issue.
+
+Total executado: 648 verificações distintas aprovadas,
+sendo 531 anteriores e 117 novas.
+
+As nove verificações de VerificarAutoriaJdbc não foram reexecutadas:
+o cenário anterior à migração já havia sido removido.
+Reexecuções não foram somadas novamente.
+
+Evidências:
+[Issue #76](evidencias/issue-76/autorizacao-requisicoes.md).
+
+A coordenação foi demonstrada com fonte controlada no mesmo processo.
+Autenticação de produção e integração com provedor real que cumpra
+o contrato de coordenação permanecem pendentes.
+
+Os caminhos legados continuam acessíveis ao código interno;
+sua documentação não constitui barreira técnica de autorização.
+API REST, portal e atendimento integral à SPEC-006 não estão
+comprovados por esta entrega.
