@@ -4,6 +4,12 @@ Projeto acadêmico desenvolvido para a disciplina de Modelagem de Sistemas da Un
 
 O sistema avalia requisições de infraestrutura considerando o saldo e a reserva orçamentária do departamento. A aprovação automática exige saldo suficiente e saldo resultante estritamente acima da reserva. Os demais pedidos são encaminhados para revisão, com identificação do motivo.
 
+# Equipe do Projeto - Orquestrador FinOps
+
+* João Pedro Pinheiro Andrade - RA: 10738979
+* Artur Campos - RA: 10723212
+* Lucas Kenzo - RA: 10742489
+
 ## Situação atual
 
 - Domínio e casos de uso implementados em Java.
