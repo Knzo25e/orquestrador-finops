@@ -659,3 +659,62 @@ Issue #72 representam a situação daquela entrega, anterior a este recorte.
 
 Implementação e verificações locais realizadas.
 Integração à main pendente.
+
+## Autorização dos fluxos persistentes — Issue #76
+
+### Objetivo
+
+Integrar a política de autorização à criação, consulta, listagem
+e repetição de requisições persistentes.
+
+### Implementação local
+
+- Autor e departamento da criação derivados da identidade.
+- Bloqueio de identidades ausentes, inativas ou sem vínculo exigido.
+- Falhas do provedor interrompem a operação.
+- Desenvolvedor consulta somente pedidos próprios do departamento atual.
+- Filtros JDBC aplicados antes da reconstituição.
+- Arquiteto consulta departamentos distintos e pedidos sem autoria,
+  mas não cria requisições.
+- Repetição autorizada antes da comparação de conteúdo.
+- Reconciliação concorrente repete a conferência de acesso.
+- Entrada coordenada abrange a criação transacional.
+- Entrada intermediária restrita ao pacote da aplicação.
+- Caminho legado documentado para compatibilidade interna.
+- Dois adaptadores controlados delegam aos mesmos casos de uso.
+
+### Verificação
+
+- Compilação de 98 arquivos Java aprovada.
+- 415 verificações sem banco aprovadas.
+- 233 verificações JDBC aprovadas.
+- Total de 648 verificações distintas, incluindo 117 novas.
+- Concorrência com mesmo autor e autores diferentes verificada.
+- Alteração de vínculo aguardou o commit no ambiente controlado.
+- Criação posterior utilizou o novo vínculo.
+- Preservação de dados e limpeza confirmadas por conexões independentes.
+
+As nove verificações de VerificarAutoriaJdbc não foram reexecutadas,
+pois dependem do cenário anterior à migração já removido.
+Reexecuções não foram duplicadas na contagem.
+
+Evidências:
+[Issue #76](evidencias/issue-76/autorizacao-requisicoes.md).
+
+### Limites
+
+A fonte controlada coordena identidade somente no mesmo processo.
+Um provedor real deve cumprir o contrato com todos os escritores
+da identidade, inclusive entre processos quando necessário.
+
+Consultas usam a identidade obtida no início da chamada.
+Os caminhos legados continuam disponíveis ao código interno e não
+devem ser expostos por adaptadores de usuário.
+
+Autenticação de produção, API REST e portal permanecem fora do recorte.
+Esta entrega não comprova atendimento integral à SPEC-006.
+
+### Situação
+
+Implementação e verificações locais realizadas.
+Revisão final, commit, PR e integração à main pendentes.

@@ -8,12 +8,23 @@ import br.mackenzie.finops.aplicacao.resultados.ResultadoCriacaoRequisicao;
 import java.util.List;
 import java.util.UUID;
 
-    /**
- * Entrada da criação persistente, conforme a SPEC-005 / Issue #65.
+/**
+ * Entrada interna de compatibilidade da criação persistente.
  *
- * Valida e copia a solicitação antes de delegar à porta responsável
- * pela operação transacional.
-    */
+ * Preserva os contratos anteriores da SPEC-005 e os verificadores
+ * de persistência e autoria.
+ *
+ * Não obtém identidade confiável, não verifica autorização e não
+ * coordena mudanças de vínculo. Informar um autor não autentica
+ * nem autoriza o solicitante.
+ *
+ * Adaptadores voltados ao usuário devem utilizar
+ * CriarRequisicaoCoordenadaUseCase, com uma implementação confiável
+ * de ExecucaoComIdentidadeCoordenada.
+ *
+ * Não expor esta entrada diretamente em controllers, endpoints,
+ * comandos ou interfaces destinados ao usuário.
+ */
 public final class CriarRequisicaoPersistenteUseCase {
 
     private final CriacaoRequisicaoPersistente criacao;

@@ -2,10 +2,13 @@ package br.mackenzie.finops.infraestrutura.persistencia;
 
 import br.mackenzie.finops.aplicacao.entradas.ItemSolicitado;
 import br.mackenzie.finops.aplicacao.entradas.SolicitacaoCriacaoRequisicao;
+import br.mackenzie.finops.aplicacao.excecoes.AcessoNegadoException;
 import br.mackenzie.finops.aplicacao.excecoes.ConfirmacaoCriacaoDesconhecidaException;
 import br.mackenzie.finops.aplicacao.excecoes.FalhaCriacaoPersistenteException;
+import br.mackenzie.finops.aplicacao.portas.CriacaoRequisicaoAutorizadaPersistente;
 import br.mackenzie.finops.aplicacao.portas.CriacaoRequisicaoPersistente;
 import br.mackenzie.finops.aplicacao.resultados.ResultadoCriacaoRequisicao;
+import br.mackenzie.finops.aplicacao.seguranca.ContextoIdentidade;
 import br.mackenzie.finops.dominio.entidades.Departamento;
 import br.mackenzie.finops.dominio.entidades.ItemRequisicao;
 import br.mackenzie.finops.dominio.entidades.RecursoCatalogo;
@@ -21,9 +24,13 @@ import java.util.UUID;
 /**
  * Coordena a criação persistente e a repetição por UUID.
  * Cada tentativa utiliza uma conexão exclusiva.
+ *
+ * A entrada autorizada confere o acesso antes de recuperar
+ * o pedido existente e comparar seu conteúdo.
  */
 public final class CriacaoRequisicaoJdbc
-        implements CriacaoRequisicaoPersistente {
+        implements CriacaoRequisicaoPersistente,
+        CriacaoRequisicaoAutorizadaPersistente {
 
     private final FornecedorConexaoJdbc fornecedor;
 
@@ -48,6 +55,10 @@ public final class CriacaoRequisicaoJdbc
         this.fornecedor = fornecedor;
     }
 
+    /**
+     * Caminho de compatibilidade interna, sem autorização.
+     * Não deve ser usado pela entrada pública protegida.
+     */
     @Override
     public ResultadoCriacaoRequisicao executar(
             SolicitacaoCriacaoRequisicao solicitacao
@@ -58,18 +69,43 @@ public final class CriacaoRequisicaoJdbc
             );
         }
 
+        return executarComReconciliacao(solicitacao, null);
+    }
+
+    /**
+     * Caminho protegido, com identidade obtida pela aplicação.
+     * Identidade nula não habilita o caminho de compatibilidade.
+     */
+    @Override
+    public ResultadoCriacaoRequisicao executar(
+            SolicitacaoCriacaoRequisicao solicitacao,
+            ContextoIdentidade identidade
+    ) {
+        AutorizacaoCriacaoJdbc.conferirSolicitacao(
+                solicitacao,
+                identidade
+        );
+
+        return executarComReconciliacao(solicitacao, identidade);
+    }
+
+    private ResultadoCriacaoRequisicao executarComReconciliacao(
+            SolicitacaoCriacaoRequisicao solicitacao,
+            ContextoIdentidade identidade
+    ) {
         try {
-            return executarTentativa(solicitacao, false);
+            return executarTentativa(solicitacao, false, identidade);
         } catch (RequisicaoDuplicadaException duplicata) {
             // A tentativa anterior já encerrou sua transação e conexão.
-            // A conferência usa uma nova visão dos dados confirmados.
-            return executarTentativa(solicitacao, true);
+            // A nova tentativa repete a autorização sobre o vencedor.
+            return executarTentativa(solicitacao, true, identidade);
         }
     }
 
     private ResultadoCriacaoRequisicao executarTentativa(
             SolicitacaoCriacaoRequisicao solicitacao,
-            boolean somenteConferir
+            boolean somenteConferir,
+            ContextoIdentidade identidade
     ) {
         Connection conexao = null;
         ResultadoCriacaoRequisicao resultado = null;
@@ -80,6 +116,13 @@ public final class CriacaoRequisicaoJdbc
         boolean fechamentoFalhou = false;
 
         try {
+            if (identidade != null) {
+                AutorizacaoCriacaoJdbc.conferirSolicitacao(
+                        solicitacao,
+                        identidade
+                );
+            }
+
             conexao = fornecedor.abrir();
 
             if (conexao == null) {
@@ -90,6 +133,16 @@ public final class CriacaoRequisicaoJdbc
                     Connection.TRANSACTION_REPEATABLE_READ
             );
             conexao.setAutoCommit(false);
+
+            if (identidade != null) {
+                // A consulta do cabeçalho e a recuperação abaixo usam
+                // a mesma fotografia da transação REPEATABLE READ.
+                AutorizacaoCriacaoJdbc.conferirPedidoExistente(
+                        conexao,
+                        solicitacao.requisicaoId(),
+                        identidade
+                );
+            }
 
             RequisicaoRepositoryJdbc requisicoes =
                     new RequisicaoRepositoryJdbc(conexao);
@@ -130,7 +183,8 @@ public final class CriacaoRequisicaoJdbc
         } catch (SQLException | FalhaPersistenciaException excecao) {
             falha = new FalhaCriacaoPersistenteException();
         } catch (RuntimeException excecao) {
-            if (excecao instanceof IllegalArgumentException
+            if (excecao instanceof AcessoNegadoException
+                    || excecao instanceof IllegalArgumentException
                     || excecao instanceof ConfirmacaoCriacaoDesconhecidaException
                     || excecao instanceof FalhaCriacaoPersistenteException) {
                 falha = excecao;

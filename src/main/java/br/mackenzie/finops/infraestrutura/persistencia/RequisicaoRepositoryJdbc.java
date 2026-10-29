@@ -64,4 +64,37 @@ public final class RequisicaoRepositoryJdbc
     public List<Requisicao> listarPorDepartamento(UUID departamentoId) {
         return leitor.listarPorDepartamento(departamentoId);
     }
+
+    /**
+     * Busca pelo UUID dentro do escopo de autor e departamento.
+     * Ausência e pedido fora do escopo retornam Optional.empty().
+     *
+     * Os identificadores do escopo devem vir da aplicação.
+     * Este método não autentica nem verifica o perfil do usuário.
+     */
+    public Optional<Requisicao> buscarPorIdEAutorEDepartamento(
+            UUID id,
+            UUID autorId,
+            UUID departamentoId
+    ) {
+        return leitor.buscarPorIdEAutorEDepartamento(
+                id, autorId, departamentoId
+        );
+    }
+
+    /**
+     * Lista somente pedidos do autor e departamento informados.
+     * Retorna lista não modificável.
+     *
+     * Os identificadores do escopo devem vir da aplicação.
+     * Este método não autentica nem verifica o perfil do usuário.
+     */
+    public List<Requisicao> listarPorAutorEDepartamento(
+            UUID autorId,
+            UUID departamentoId
+    ) {
+        return leitor.listarPorAutorEDepartamento(
+                autorId, departamentoId
+        );
+    }
 }

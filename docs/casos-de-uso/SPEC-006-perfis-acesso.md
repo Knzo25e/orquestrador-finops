@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- Status: base de autorização e persistência de autoria implementadas e verificadas localmente nos respectivos recortes; integração da autorização aos fluxos e cobertura completa pendentes.
+- Status: base de identidade e persistência de autoria integradas; autorização dos fluxos persistentes implementada e verificada localmente na Issue #76, com identidade controlada e coordenação de vínculo no mesmo processo; integração desta entrega à main e autenticação de produção pendentes.
 - Objetivo: identificar o usuário responsável pelas operações e controlar
   o acesso conforme seu perfil, sua autoria e seu vínculo departamental.
 - Dependência: SPEC-001 — Domínio.
@@ -301,3 +301,78 @@ daquela entrega; a persistência de autoria foi tratada neste recorte.
 
 Evidências e limites:
 [Issue #74](../evidencias/issue-74/autoria-requisicoes.md).
+
+## Autorização dos fluxos persistentes — Issue #76
+
+A criação coordenada obtém a identidade por contrato confiável e deriva
+dela o autor e o departamento. A entrada não recebe esses identificadores
+como escolhas do solicitante.
+
+Identidade ausente, inativa, sem vínculo exigido ou falha na obtenção
+impede a operação. O Arquiteto Cloud não pode criar requisições.
+
+Consulta e listagem do Desenvolvedor utilizam filtros JDBC por autoria
+e departamento, aplicados antes da reconstituição dos pedidos.
+Na consulta por UUID, pedidos fora do escopo e inexistentes retornam
+ausência.
+
+O Arquiteto Cloud pode consultar pedidos de departamentos distintos,
+inclusive aqueles sem autoria conhecida.
+
+A repetição de criação verifica o acesso ao pedido armazenado antes
+de comparar seu conteúdo. A conferência também ocorre na nova transação
+de reconciliação após disputa pelo UUID.
+
+### Coordenação da identidade
+
+CriarRequisicaoCoordenadaUseCase exige uma execução coordenada que
+abrange autorização, operação transacional e eventual reconciliação.
+
+Uma fonte controlada demonstrou que a alteração do vínculo aguarda
+o commit da criação em andamento. Operações posteriores utilizam
+o novo vínculo, sem transferir a autoria ou o departamento dos pedidos
+anteriores.
+
+A implementação utilizada nos testes coordena somente o mesmo processo.
+Uma integração real depende de um provedor que mantenha essa garantia
+com todos os escritores da identidade, inclusive entre processos
+quando aplicável.
+
+As consultas usam a identidade obtida no início da chamada; não
+receberam a mesma coordenação da criação.
+
+### Entradas e compatibilidade
+
+A entrada intermediária CriarRequisicaoAutorizadaUseCase é interna
+ao pacote da aplicação.
+
+CriarRequisicaoPersistenteUseCase permanece disponível para
+compatibilidade interna e verificadores anteriores. Não deve ser
+exposto por adaptadores de usuário.
+
+Adaptadores de usuário devem utilizar CriarRequisicaoCoordenadaUseCase
+para criação, ConsultarRequisicaoAutorizadaUseCase para busca e
+ListarRequisicoesAutorizadasUseCase para listagem.
+
+Dois adaptadores controlados, tipado e textual, foram verificados
+delegando aos mesmos casos de uso, sem duplicar regras de autorização.
+Não foram implementados API REST ou portal.
+
+### Evidências e limites
+
+Foram aprovadas 648 verificações distintas: 415 sem banco e 233 JDBC,
+incluindo 117 novas. Limpeza dos cenários JDBC confirmada.
+
+As nove verificações de VerificarAutoriaJdbc da Issue #74 não foram
+reexecutadas, pois dependem do cenário anterior à migração já removido.
+
+Autenticação de produção, provedor real e coordenação distribuída
+não foram implementados. Os caminhos internos de compatibilidade
+continuam exigindo delimitação na composição dos futuros adaptadores.
+
+As pendências registradas nas seções anteriores descrevem o estado
+das respectivas entregas. Esta implementação não representa
+atendimento integral à SPEC-006.
+
+Evidências:
+[Issue #76](../evidencias/issue-76/autorizacao-requisicoes.md).
