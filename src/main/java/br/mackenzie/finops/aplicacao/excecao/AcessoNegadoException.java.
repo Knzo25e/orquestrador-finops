@@ -1,0 +1,18 @@
+package br.mackenzie.finops.aplicacao.excecao;
+
+/**
+ * Exceção lançada quando uma operação é negada por falta de autorização,
+ * identidade inativa, inválida ou erro no provedor de identidade.
+ */
+public class AcessoNegadoException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
+
+    public AcessoNegadoException(String mensagem) {
+        super(mensagem);
+    }
+
+    public AcessoNegadoException(String mensagem, Throwable causa) {
+        super(mensagem, causa);
+    }
+}
