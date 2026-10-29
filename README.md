@@ -6,9 +6,13 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 
 # Equipe do Projeto - Orquestrador FinOps
 
+**Desenvolvedores:**
 * João Pedro Pinheiro Andrade - RA: 10738979
 * Artur Campos - RA: 10723212
 * Lucas Kenzo - RA: 10742489
+
+**Mentor:**
+* Prof. Nilton Cesar Furtado Canto
 
 ## Situação atual
 
