@@ -716,5 +716,93 @@ Esta entrega não comprova atendimento integral à SPEC-006.
 
 ### Situação
 
-Implementação e verificações locais realizadas.
-Revisão final, commit, PR e integração à main pendentes.
+Implementação integrada à main pelo PR #77.
+Issue #76 encerrada no recorte documentado.
+
+Foram registradas 648 verificações distintas aprovadas localmente.
+Os limites de identidade controlada e coordenação no mesmo processo
+permanecem descritos nas evidências. Esta entrega não conclui
+integralmente a SPEC-006.
+
+## Interface de aplicação — SPEC-004 / Issue #81
+
+### Objetivo
+
+Especificar a interface de consulta do catálogo e criação persistente
+de requisições, utilizando os contratos da aplicação e as garantias
+de autorização e persistência existentes.
+
+### Proposta documental
+
+- GET /api/v1/catalogo/recursos para consulta autorizada do catálogo.
+- POST /api/v1/requisicoes para criação persistente.
+- Autor e departamento derivados da identidade confiável.
+- UUID e conteúdo preservados nas novas tentativas.
+- Criação separada da validação financeira, sem desconto de saldo.
+- Respostas para criação confirmada, repetição equivalente,
+  conflito, negativa de acesso e confirmação desconhecida.
+- Avisos após sucesso representados sem converter o sucesso em falha.
+- Consulta e listagem de requisições fora do recorte HTTP inicial.
+- Critérios de aceite separados por catálogo, entrada, persistência,
+  identidade, coordenação e representação HTTP.
+
+Documento:
+[SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md).
+
+### Dependências identificadas
+
+O repositório atual de recursos oferece cadastro e busca por UUID.
+A listagem do catálogo exige caso de uso autorizado, porta de leitura
+e implementação persistente próprios.
+
+A integração HTTP exige definição da versão do Spring Boot,
+validação dos DTOs e classificação das falhas sem depender
+dos textos das exceções.
+
+A criação protegida depende de uma implementação confiável
+do contrato de identidade coordenada. A fonte controlada dos
+testes anteriores não substitui autenticação de produção.
+
+### Decisões pendentes
+
+Acompanhar na SPEC-004:
+
+- OPEN-004-01: aprovação do recorte e suas limitações funcionais.
+- OPEN-004-02: autenticação e origem confiável da identidade.
+- OPEN-004-03: coordenação, incluindo resultado remoto indeterminado
+  após falha de comunicação durante o commit.
+- OPEN-004-04: requisito de ocultação da existência de UUIDs
+  na criação e repetição.
+- OPEN-004-05: limites operacionais de entrada e consulta.
+- OPEN-004-06: integração HTTP e classificação das falhas.
+- OPEN-004-07: consulta persistente do catálogo.
+
+Registrar uma pendência não equivale a resolvê-la.
+Os critérios afetados dependem das respectivas decisões.
+
+### Sequência proposta
+
+1. Revisar a especificação e aprovar o recorte.
+2. Registrar decisões e dependências para cada etapa de implementação.
+3. Abrir issues de implementação com critérios verificáveis.
+4. Implementar e verificar a consulta autorizada do catálogo.
+5. Integrar e testar o adaptador HTTP em ambiente controlado.
+6. Validar identidade e coordenação reais antes de disponibilizar
+   operações protegidas para uso real.
+
+### Verificação desta etapa
+
+Revisão documental de coerência entre requisitos, contratos,
+critérios de aceite e pendências.
+
+Nenhum endpoint ou teste HTTP foi implementado nesta etapa.
+As 648 verificações da Issue #76 são evidências da base anterior,
+não testes dos contratos HTTP propostos.
+
+### Situação
+
+Proposta elaborada localmente na branch
+docs/spec-004-interface-aplicacao.
+
+Revisão final dos documentos, commit, PR e integração pendentes.
+Decisões OPEN-004-01 a OPEN-004-07 ainda não concluídas.

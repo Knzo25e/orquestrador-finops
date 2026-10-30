@@ -395,9 +395,13 @@ filtragem de consultas por usuário permanecem pendentes.
 - [x] Atualizar SPEC-006, mapa de specs e planejamento.
 - [x] Concluir revisão final dos arquivos novos e modificados.
 - [x] Conferir o conteúdo preparado para commit.
-- [ ] Criar commit e publicar a branch.
-- [ ] Abrir PR para revisão.
-- [ ] Integrar a entrega e atualizar o encerramento da issue.
+- [x] Criar commit e publicar a branch.
+- [x] Abrir PR para revisão.
+- [x] Integrar a entrega e atualizar o encerramento da issue.
+
+Entrega integrada à main pelo PR #77.
+Issue #76 encerrada no recorte documentado, preservando os limites
+registrados nas evidências.
 
 Total executado: 648 verificações distintas aprovadas,
 sendo 531 anteriores e 117 novas.
@@ -417,3 +421,57 @@ Os caminhos legados continuam acessíveis ao código interno;
 sua documentação não constitui barreira técnica de autorização.
 API REST, portal e atendimento integral à SPEC-006 não estão
 comprovados por esta entrega.
+
+## Issue #81 — Especificação da interface de aplicação
+
+### Elaboração documental
+
+- [x] Criar a branch docs/spec-004-interface-aplicacao.
+- [x] Inspecionar requisitos, arquitetura e contratos existentes.
+- [x] Elaborar a proposta da SPEC-004.
+- [x] Descrever o UC-01 e sua relação com a SPEC-002.
+- [x] Propor consulta do catálogo e criação persistente.
+- [x] Separar criação de validação financeira.
+- [x] Definir a proposta de entrada, UUID e repetição.
+- [x] Descrever respostas de sucesso, avisos e erros.
+- [x] Delimitar consulta e listagem de requisições fora do recorte inicial.
+- [x] Registrar critérios de aceite da futura implementação.
+- [x] Identificar capacidades ainda necessárias para listar o catálogo.
+- [x] Registrar as decisões OPEN-004-01 a OPEN-004-07.
+- [x] Atualizar o mapa de specs e o planejamento.
+- [x] Atualizar os registros restantes da Issue #76 na SPEC-006
+      e no documento de evidências.
+- [ ] Concluir a revisão documental do conjunto.
+- [ ] Conferir os arquivos preparados para commit.
+- [ ] Criar commit e publicar a branch.
+- [ ] Abrir PR para revisão da proposta.
+- [ ] Integrar a entrega documental após revisão.
+
+### Decisões ainda pendentes
+
+- [ ] OPEN-004-01: aprovar o recorte funcional.
+- [ ] OPEN-004-02: definir autenticação e origem confiável da identidade.
+- [ ] OPEN-004-03: definir coordenação diante de confirmação desconhecida.
+- [ ] OPEN-004-04: decidir o requisito de ocultação de UUIDs na criação.
+- [ ] OPEN-004-05: definir e justificar limites operacionais.
+- [ ] OPEN-004-06: definir integração HTTP e classificação de falhas.
+- [ ] OPEN-004-07: definir os contratos da consulta persistente do catálogo.
+
+A elaboração de uma proposta não equivale à aprovação das decisões.
+As pendências devem ser resolvidas ou encaminhadas com dependências
+explícitas antes de encerrar a Issue #81.
+
+### Limites
+
+Nenhum endpoint, integração com Spring Boot ou teste HTTP foi
+implementado nesta etapa.
+
+As 648 verificações da Issue #76 pertencem à base anterior
+e não comprovam os contratos HTTP propostos.
+
+A implementação deverá ser dividida em issues próprias.
+Operações protegidas dependem de identidade confiável e das
+garantias de coordenação aplicáveis.
+
+Documento:
+[SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md).

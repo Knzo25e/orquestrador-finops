@@ -10,7 +10,7 @@ Este mapa organiza o trabalho previsto. A existência de uma linha não comprova
 
 Os IDs existentes foram preservados. A ordem de execução é indicada pela posição na tabela e pelas dependências, não pela numeração dos IDs.
 
-## Mapa de Specs — posição após os PRs #66, #68 e #69
+## Mapa de Specs — acompanhamento das entregas
 
 | ID | Spec / comportamento esperado | Base principal | Dependências | Situação conhecida |
 |---|---|---|---|---|
@@ -18,8 +18,8 @@ Os IDs existentes foram preservados. A ordem de execução é indicada pela posi
 | 002 | Criar requisição com itens, total calculado e status INICIAL | RF-01; modelo de domínio; ADR-001; SPEC-002 | 001 | Implementação parcial; cálculo e status verificados na Issue #26/PR #27; proteção contra departamento nulo e dez verificações registradas na Issue #33/PR #34 |
 | 003 | Validar saldo e reserva, liberando automaticamente somente pedidos cujo saldo resultante fique acima da reserva | RF-02; RB-02; RB-05; RNF-01; RNF-02; UC-02; DA-01 | 001, 002 | Implementação inicial integrada pelo PR #40; verificações funcionais e concorrentes locais aprovadas; desempenho verificado na Issue #41 para o protocolo documentado; cobertura integral pendente |
 | 005 | Salvar e recuperar dados do fluxo de requisições entre sessões | Exigência de persistência do projeto final, seção 6.2; ADR-002; DA-01; SPEC-005 | 001, 002, 003 | A1 e A2 em memória integrados pelos PRs #50 e #54; detalhamento MySQL pelo PR #56; reconstituição pelo PR #58; conexão e esquema pelo PR #60; cadastros JDBC pelo PR #62; requisições e itens pelo PR #64; criação transacional pelo PR #66; validação financeira transacional pelo PR #68; evidências pelo PR #69. Total de 462 verificações locais e teste adicional entre processos aprovados. Cobertura integral da Spec e desempenho com MySQL ainda sujeitos às pendências e limites documentados |
-| 006 | [Perfis, identidade e controle de acesso](casos-de-uso/SPEC-006-perfis-acesso.md) | Personas; RF-01; RF-03; RF-04; RF-05; RNF-02 | 001 | Especificação integrada pelo PR #71; base de identidade e política pelo PR #73; persistência da autoria pelo PR #75. Autorização de criação, consulta, listagem e repetição implementada e verificada localmente na Issue #76, com 648 verificações aprovadas. Coordenação de vínculo demonstrada com fonte controlada no mesmo processo. Integração desta entrega à main, autenticação de produção e provedor real com as garantias de coordenação pendentes. Cobertura integral da SPEC não declarada |
-| 004 | Expor consulta do catálogo e envio de requisições pela interface de aplicação | RF-01; RF-02; RNF-02; ADR-001; ADR-003 | 002, 003, 005, 006 | Recorte inicial proposto; contrato REST e critérios de aceite ainda precisam ser especificados |
+| 006 | [Perfis, identidade e controle de acesso](casos-de-uso/SPEC-006-perfis-acesso.md) | Personas; RF-01; RF-03; RF-04; RF-05; RNF-02 | 001 | Especificação integrada pelo PR #71; base de identidade e política pelo PR #73; persistência da autoria pelo PR #75; autorização dos fluxos persistentes pelo PR #77, com encerramento da Issue #76. Foram registradas 648 verificações locais aprovadas. Coordenação de vínculo demonstrada com fonte controlada no mesmo processo. Autenticação de produção e provedor real com as garantias de coordenação permanecem pendentes. Cobertura integral da SPEC não declarada |
+| 004 | [Interface de consulta do catálogo e criação de requisições](casos-de-uso/SPEC-004-interface-aplicacao.md) | RF-01; RB-01; RNF-02; ADR-001; ADR-003; relação com RF-02 | 002, 003, 005, 006 | Proposta documental em elaboração na Issue #81: consulta do catálogo e criação persistente, sem validação financeira implícita. Consulta e listagem de requisições ficam fora do recorte inicial proposto. Contratos HTTP e critérios de aceite descritos para revisão; decisões OPEN-004-01 a OPEN-004-07 pendentes. Nenhum endpoint ou teste HTTP implementado nesta etapa |
 | 007 | Registrar e preservar histórico das intervenções manuais, incluindo autorização de uso da reserva | RF-05; DA-04; ADR-002 | 005, 006 | Spec individual e implementação pendentes; contemplar os dados de auditoria definidos na Issue #35 |
 | 008 | Configurar e alterar o teto mensal, preservando compromissos e bloqueando reduções abaixo do valor comprometido | RF-04; RF-05; RB-04; DA-01; DA-04 | 005, 006, 007 | Regra de teto definida na Issue #31; considerar o efeito do teto sobre a reserva; configuração do percentual permanece em OPEN-003-04 |
 | 009 | Registrar revisão técnica, autorização de uso da reserva e revalidar condições para liberação manual | RF-03; RF-04; RF-05; RB-02; RB-03; RB-04; RB-05; DA-01; DA-03; DA-04 | 003, 005, 006, 007, 008 | Decisões das Issues #31 e #35 documentadas; Spec individual, detalhes do fluxo manual e implementação pendentes |
@@ -52,8 +52,8 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
 
 ## Questões e verificações pendentes
 
-- **OPEN-MAPA-02:** Confirmar e detalhar o contrato REST previsto no mapa anterior. ADR-001 trata da arquitetura em camadas e não constitui uma decisão sobre REST.
-- **OPEN-MAPA-03:** Localizar ou elaborar o caso de uso UC-01 referenciado pela SPEC-002; o documento não foi encontrado no material analisado.
+- **OPEN-MAPA-02:** Contrato REST proposto na SPEC-004, Issue #81. A proposta ainda depende de revisão e das decisões OPEN-004-01 a OPEN-004-07; não representa API implementada.
+- **OPEN-MAPA-03:** UC-01 descrito na proposta da SPEC-004, relacionando consulta do catálogo e criação com a SPEC-002. Revisão e aprovação dessa delimitação permanecem pendentes.
 - Java 25 e Maven Wrapper padronizados na Issue #43, integrada pelo PR #44. A versão do Spring Boot e os detalhes de sua integração permanecem pendentes.
 - **OPEN-005-01 a OPEN-005-07:** conferir a situação de cada questão na [SPEC-005](casos-de-uso/SPEC-005-persistir-requisicoes.md), considerando os recortes JDBC já integrados. Não tratar todo o grupo como pendente nem como concluído. Vínculo do solicitante e cobertura integral exigem acompanhamento específico.
 - Conferir a cobertura integral dos requisitos e a ordem de execução na revisão do grupo.
@@ -101,6 +101,32 @@ Essas decisões não comprovam que Spring Boot, MySQL, repositórios em memória
   processo; não comprova coordenação distribuída ou autenticação real.
 - Dois adaptadores de entrada controlados delegam aos mesmos casos
   de uso da aplicação.
-- Revisão final e integração da Issue #76 à main pendentes.
+- A entrega da Issue #76 foi integrada à main pelo PR #77.
+  A issue foi encerrada no recorte documentado, sem declarar
+  atendimento integral à SPEC-006.
 - A exposição pela API depende de identidade confiável, composição
   pelas entradas autorizadas e cumprimento do contrato de coordenação.
+
+## Proposta de interface — Issue #81
+
+A [SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md) propõe:
+
+- GET /api/v1/catalogo/recursos.
+- POST /api/v1/requisicoes.
+- Criação separada da validação financeira.
+- Preservação do UUID e do conteúdo nas novas tentativas.
+- Respostas distintas para sucesso confirmado, conflito,
+  negativa de acesso e confirmação desconhecida.
+- Consulta e listagem de requisições em uma extensão posterior.
+
+A proposta registra critérios de aceite e as decisões pendentes
+OPEN-004-01 a OPEN-004-07. Entre elas estão autenticação,
+coordenação diante de commit desconhecido, tratamento da existência
+de UUIDs, limites operacionais e integração HTTP.
+
+A listagem persistente do catálogo exige capacidades adicionais
+na aplicação e na infraestrutura.
+
+Esta etapa é documental. Não adiciona Spring Boot, endpoints
+ou testes HTTP, nem autoriza exposição de operações protegidas
+sem resolver as dependências aplicáveis.
