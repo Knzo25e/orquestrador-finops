@@ -447,12 +447,26 @@ comprovados por esta entrega.
 - [ ] Abrir PR para revisão da proposta.
 - [ ] Integrar a entrega documental após revisão.
 
-### Decisões ainda pendentes
+OPEN-004-01 aprovada pelo responsável pelo projeto: a primeira
+entrega HTTP inclui consulta do catálogo e criação persistente
+em INICIAL, sem validação financeira implícita.
 
-- [ ] OPEN-004-01: aprovar o recorte funcional.
-- [ ] OPEN-004-02: definir autenticação e origem confiável da identidade.
+OPEN-004-01 e OPEN-004-04 possuem decisões registradas.
+OPEN-004-02 está parcialmente definida.
+OPEN-004-03, OPEN-004-05, OPEN-004-06 e OPEN-004-07 permanecem abertas.
+
+### Acompanhamento das decisões
+
+- [x] OPEN-004-01: aprovar o recorte funcional.
+- [ ] OPEN-004-02: concluir os contratos de autenticação.
+      Diretrizes aprovadas: contas próprias condicionadas às exigências
+      do professor, autorização no MySQL e sessão no servidor com cookie,
+      planejando portal e API na mesma origem.
+      Login, logout, credenciais, expiração e respostas ainda pendentes.
 - [ ] OPEN-004-03: definir coordenação diante de confirmação desconhecida.
-- [ ] OPEN-004-04: decidir o requisito de ocultação de UUIDs na criação.
+- [x] OPEN-004-04: aceitar, no recorte acadêmico, a possibilidade
+      de inferir que um UUID está ocupado pelo resultado do POST,
+      mantendo autorização e proteção do conteúdo dos pedidos.
 - [ ] OPEN-004-05: definir e justificar limites operacionais.
 - [ ] OPEN-004-06: definir integração HTTP e classificação de falhas.
 - [ ] OPEN-004-07: definir os contratos da consulta persistente do catálogo.
