@@ -385,3 +385,28 @@ atendimento integral à SPEC-006.
 
 Evidências:
 [Issue #76](../evidencias/issue-76/autorizacao-requisicoes.md).
+
+## Delimitação da existência de pedidos — Issue #81
+
+Na proposta da SPEC-004, a ocultação da existência distingue
+consulta de criação e repetição.
+
+A futura consulta HTTP por UUID deve produzir a mesma resposta
+pública para pedido inexistente e pedido fora do escopo
+do Desenvolvedor.
+
+No POST de criação e repetição, foi aceita para o recorte acadêmico
+a possibilidade de inferir que um UUID está ocupado, conforme
+OPEN-004-04. Essa aceitação delimita o requisito de ocultação
+nessa operação; não representa eliminação do risco.
+
+A autorização continua obrigatória. Pedidos fora do escopo não
+podem ter conteúdo, autoria, departamento, itens ou valores
+devolvidos, nem ser modificados pela tentativa.
+
+Essa decisão não altera as evidências históricas da Issue #76.
+Uma exposição com usuários ou dados reais exige reavaliação
+da limitação.
+
+Referência:
+[SPEC-004](SPEC-004-interface-aplicacao.md).

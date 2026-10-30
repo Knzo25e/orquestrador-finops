@@ -763,16 +763,19 @@ A criação protegida depende de uma implementação confiável
 do contrato de identidade coordenada. A fonte controlada dos
 testes anteriores não substitui autenticação de produção.
 
-### Decisões pendentes
+### Acompanhamento das decisões
 
 Acompanhar na SPEC-004:
 
-- OPEN-004-01: aprovação do recorte e suas limitações funcionais.
+- OPEN-004-01: recorte funcional aprovado pelo responsável pelo projeto;
+  consulta do catálogo e criação em INICIAL na primeira entrega,
+  com acompanhamento e submissão financeira em entregas posteriores.
 - OPEN-004-02: autenticação e origem confiável da identidade.
 - OPEN-004-03: coordenação, incluindo resultado remoto indeterminado
   após falha de comunicação durante o commit.
-- OPEN-004-04: requisito de ocultação da existência de UUIDs
-  na criação e repetição.
+- OPEN-004-04: limitação de inferência da existência de UUIDs aceita
+  para o POST no recorte acadêmico, sem permitir acesso ao conteúdo
+  ou alteração de pedidos fora do escopo.
 - OPEN-004-05: limites operacionais de entrada e consulta.
 - OPEN-004-06: integração HTTP e classificação das falhas.
 - OPEN-004-07: consulta persistente do catálogo.
@@ -801,8 +804,11 @@ não testes dos contratos HTTP propostos.
 
 ### Situação
 
-Proposta elaborada localmente na branch
-docs/spec-004-interface-aplicacao.
+Proposta documental integrada à main pelo PR #82.
 
-Revisão final dos documentos, commit, PR e integração pendentes.
-Decisões OPEN-004-01 a OPEN-004-07 ainda não concluídas.
+Recorte funcional aprovado posteriormente pelo responsável
+pelo projeto, conforme OPEN-004-01. O registro dessa decisão
+está sendo atualizado na branch docs/81-decisoes-interface-aplicacao.
+
+Decisões OPEN-004-02 a OPEN-004-07 permanecem abertas.
+A Issue #81 continua em andamento.

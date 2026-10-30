@@ -19,7 +19,7 @@ Os IDs existentes foram preservados. A ordem de execução é indicada pela posi
 | 003 | Validar saldo e reserva, liberando automaticamente somente pedidos cujo saldo resultante fique acima da reserva | RF-02; RB-02; RB-05; RNF-01; RNF-02; UC-02; DA-01 | 001, 002 | Implementação inicial integrada pelo PR #40; verificações funcionais e concorrentes locais aprovadas; desempenho verificado na Issue #41 para o protocolo documentado; cobertura integral pendente |
 | 005 | Salvar e recuperar dados do fluxo de requisições entre sessões | Exigência de persistência do projeto final, seção 6.2; ADR-002; DA-01; SPEC-005 | 001, 002, 003 | A1 e A2 em memória integrados pelos PRs #50 e #54; detalhamento MySQL pelo PR #56; reconstituição pelo PR #58; conexão e esquema pelo PR #60; cadastros JDBC pelo PR #62; requisições e itens pelo PR #64; criação transacional pelo PR #66; validação financeira transacional pelo PR #68; evidências pelo PR #69. Total de 462 verificações locais e teste adicional entre processos aprovados. Cobertura integral da Spec e desempenho com MySQL ainda sujeitos às pendências e limites documentados |
 | 006 | [Perfis, identidade e controle de acesso](casos-de-uso/SPEC-006-perfis-acesso.md) | Personas; RF-01; RF-03; RF-04; RF-05; RNF-02 | 001 | Especificação integrada pelo PR #71; base de identidade e política pelo PR #73; persistência da autoria pelo PR #75; autorização dos fluxos persistentes pelo PR #77, com encerramento da Issue #76. Foram registradas 648 verificações locais aprovadas. Coordenação de vínculo demonstrada com fonte controlada no mesmo processo. Autenticação de produção e provedor real com as garantias de coordenação permanecem pendentes. Cobertura integral da SPEC não declarada |
-| 004 | [Interface de consulta do catálogo e criação de requisições](casos-de-uso/SPEC-004-interface-aplicacao.md) | RF-01; RB-01; RNF-02; ADR-001; ADR-003; relação com RF-02 | 002, 003, 005, 006 | Proposta documental em elaboração na Issue #81: consulta do catálogo e criação persistente, sem validação financeira implícita. Consulta e listagem de requisições ficam fora do recorte inicial proposto. Contratos HTTP e critérios de aceite descritos para revisão; decisões OPEN-004-01 a OPEN-004-07 pendentes. Nenhum endpoint ou teste HTTP implementado nesta etapa |
+| 004 | [Interface de consulta do catálogo e criação de requisições](casos-de-uso/SPEC-004-interface-aplicacao.md) | RF-01; RB-01; RNF-02; ADR-001; ADR-003; relação com RF-02 | 002, 003, 005, 006 | Proposta documental integrada pelo PR #82, acompanhada na Issue #81. Recorte funcional aprovado em OPEN-004-01: consulta do catálogo e criação persistente, sem validação financeira implícita. Consulta e listagem de requisições ficam para entregas posteriores. Detalhes dos contratos em revisão; decisões OPEN-004-02 a OPEN-004-07 pendentes. Nenhum endpoint ou teste HTTP implementado nesta etapa |
 | 007 | Registrar e preservar histórico das intervenções manuais, incluindo autorização de uso da reserva | RF-05; DA-04; ADR-002 | 005, 006 | Spec individual e implementação pendentes; contemplar os dados de auditoria definidos na Issue #35 |
 | 008 | Configurar e alterar o teto mensal, preservando compromissos e bloqueando reduções abaixo do valor comprometido | RF-04; RF-05; RB-04; DA-01; DA-04 | 005, 006, 007 | Regra de teto definida na Issue #31; considerar o efeito do teto sobre a reserva; configuração do percentual permanece em OPEN-003-04 |
 | 009 | Registrar revisão técnica, autorização de uso da reserva e revalidar condições para liberação manual | RF-03; RF-04; RF-05; RB-02; RB-03; RB-04; RB-05; DA-01; DA-03; DA-04 | 003, 005, 006, 007, 008 | Decisões das Issues #31 e #35 documentadas; Spec individual, detalhes do fluxo manual e implementação pendentes |
@@ -119,10 +119,10 @@ A [SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md) propõe:
   negativa de acesso e confirmação desconhecida.
 - Consulta e listagem de requisições em uma extensão posterior.
 
-A proposta registra critérios de aceite e as decisões pendentes
-OPEN-004-01 a OPEN-004-07. Entre elas estão autenticação,
-coordenação diante de commit desconhecido, tratamento da existência
-de UUIDs, limites operacionais e integração HTTP.
+A proposta documental foi integrada pelo PR #82.
+O recorte funcional foi posteriormente aprovado pelo responsável
+pelo projeto, conforme OPEN-004-01.
+OPEN-004-01 e OPEN-004-04 decididas; OPEN-004-02 parcialmente definida; OPEN-004-03, OPEN-004-05, OPEN-004-06 e OPEN-004-07 pendentes.
 
 A listagem persistente do catálogo exige capacidades adicionais
 na aplicação e na infraestrutura.
