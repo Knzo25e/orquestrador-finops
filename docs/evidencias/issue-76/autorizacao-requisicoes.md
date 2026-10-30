@@ -2,13 +2,20 @@
 
 ## Situação
 
-Implementação e verificações locais em andamento na branch
-feat/76-autorizacao-requisicoes.
+Entrega integrada à main pelo PR #77, com merge commit 39f7e8a.
+Issue #76 encerrada no recorte implementado e verificado.
 
 Regressão sem banco e JDBC aprovada em 29/10/2026.
 Verificação adicional de dois adaptadores controlados aprovada.
 
-Revisão final, commit, PR e integração à main permanecem pendentes.
+Após a integração, a main local foi atualizada para fe83867.
+O comando Maven compile retornou BUILD SUCCESS, reutilizando
+as classes atualizadas, e git diff --check não apontou problemas.
+Essa execução não representa uma nova execução dos verificadores.
+
+As contagens e evidências abaixo correspondem aos conjuntos
+efetivamente executados. O encerramento não amplia as garantias
+demonstradas nem comprova atendimento integral à SPEC-006.
 
 ## Implementação
 

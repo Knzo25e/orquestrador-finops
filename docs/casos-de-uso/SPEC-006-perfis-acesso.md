@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- Status: base de identidade e persistência de autoria integradas; autorização dos fluxos persistentes implementada e verificada localmente na Issue #76, com identidade controlada e coordenação de vínculo no mesmo processo; integração desta entrega à main e autenticação de produção pendentes.
+- Status: base de identidade integrada pelo PR #73, persistência de autoria pelo PR #75 e autorização dos fluxos persistentes pelo PR #77. Issue #76 encerrada no recorte documentado, com identidade controlada e coordenação de vínculo no mesmo processo. Autenticação de produção, provedor real e cobertura integral permanecem pendentes.
 - Objetivo: identificar o usuário responsável pelas operações e controlar
   o acesso conforme seu perfil, sua autoria e seu vínculo departamental.
 - Dependência: SPEC-001 — Domínio.
@@ -303,6 +303,15 @@ Evidências e limites:
 [Issue #74](../evidencias/issue-74/autoria-requisicoes.md).
 
 ## Autorização dos fluxos persistentes — Issue #76
+
+### Situação da entrega
+
+Entrega integrada à main pelo PR #77, com merge commit 39f7e8a.
+Issue #76 encerrada no recorte implementado e verificado.
+
+O encerramento não amplia as garantias demonstradas pelos testes:
+a identidade é controlada e a coordenação foi verificada no mesmo
+processo. Os limites registrados abaixo permanecem aplicáveis.
 
 A criação coordenada obtém a identidade por contrato confiável e deriva
 dela o autor e o departamento. A entrada não recebe esses identificadores
