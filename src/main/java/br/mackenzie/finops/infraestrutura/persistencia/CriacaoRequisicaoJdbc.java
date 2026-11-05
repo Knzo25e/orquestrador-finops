@@ -13,6 +13,7 @@ import br.mackenzie.finops.dominio.entidades.Departamento;
 import br.mackenzie.finops.dominio.entidades.ItemRequisicao;
 import br.mackenzie.finops.dominio.entidades.RecursoCatalogo;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
+import br.mackenzie.finops.aplicacao.excecoes.SolicitacaoInvalidaException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -255,9 +256,9 @@ public final class CriacaoRequisicaoJdbc
 
         Departamento departamento = departamentos
                 .buscarPorId(solicitacao.departamentoId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "O departamento solicitado não está cadastrado."
-                ));
+                        .orElseThrow(() -> new SolicitacaoInvalidaException(
+                            "O departamento solicitado não está cadastrado."
+         ));
 
         Requisicao requisicao;
 
@@ -284,9 +285,9 @@ public final class CriacaoRequisicaoJdbc
 
             if (recurso == null) {
                 recurso = recursos.buscarPorId(item.recursoId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Um recurso solicitado não está cadastrado."
-                        ));
+                        .orElseThrow(() -> new SolicitacaoInvalidaException(
+                            "Um recurso solicitado não está cadastrado."
+        ));
 
                 recursosConsultados.put(item.recursoId(), recurso);
             }
