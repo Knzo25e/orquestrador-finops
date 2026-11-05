@@ -322,9 +322,16 @@ Não introduz uma segunda chave de idempotência em cabeçalho HTTP.
 - Propriedades JSON duplicadas devem ser rejeitadas para evitar
   interpretações ambíguas da entrada.
 
-Limites operacionais de tamanho do corpo e número de itens deverão
-ser definidos antes da implementação. O limite do tipo inteiro
-não representa, por si só, um limite operacional adequado.
+Para o POST em ambiente controlado da issue #88:
+
+- O corpo JSON pode ter até 65.536 bytes (64 KiB), inclusive.
+  Acima desse tamanho, a resposta é 413 com código CORPO_MUITO_GRANDE.
+- A coleção itens aceita de 1 a 100 elementos, inclusive.
+  Com o corpo dentro do limite de bytes, 101 itens ou mais resultam
+  em 400 com código ENTRADA_INVALIDA.
+- Cada ocorrência conta como um item, inclusive quando o mesmo
+  recursoId aparece novamente. A ordem recebida é preservada.
+- quantidade aceita inteiros de 1 a 2147483647 por item, inclusive.
 
 ### Sequência dos itens
 
