@@ -22,15 +22,31 @@ public record RespostaCriacaoHttp(
                 ))
                 .toList();
 
+        String estadoPublico = switch (requisicao.getStatus()) {
+            case "INICIAL" -> "INICIAL";
+            case "Provisionamento Liberado" -> "PROVISIONAMENTO_LIBERADO";
+            case "Revisão Pendente" -> "REVISAO_PENDENTE";
+            default -> throw new IllegalStateException(
+                    "Estado sem representação no contrato HTTP."
+            );
+        };
+
         var motivo = requisicao.getMotivoRevisao();
+        String motivoPublico = motivo == null ? null : switch (motivo) {
+            case REVISAO_POR_SALDO_INSUFICIENTE -> "SALDO_INSUFICIENTE";
+            case REVISAO_POR_RESERVA -> "RESERVA";
+            default -> throw new IllegalStateException(
+                    "Motivo sem representação no contrato HTTP."
+            );
+        };
+
         var pedido = new Pedido(
                 requisicao.getId(),
-                requisicao.getStatus(),
-                motivo == null ? null : motivo.name(),
+                estadoPublico,
+                motivoPublico,
                 requisicao.getCustoTotalProjetado().toPlainString(),
                 itens
         );
-
         List<Aviso> avisos = resultado.falhaNoFechamento()
                 ? List.of(new Aviso(
                         "FALHA_NO_FECHAMENTO",

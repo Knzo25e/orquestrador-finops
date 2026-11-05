@@ -173,7 +173,7 @@ class RequisicaoHttpTest {
 
         var pedido = json.get("requisicao");
         assertEquals(requisicaoId.toString(), pedido.get("id").stringValue());
-        assertEquals("Provisionamento Liberado", pedido.get("estado").stringValue());
+        assertEquals("PROVISIONAMENTO_LIBERADO", pedido.get("estado").stringValue());
         assertEquals("25.00", pedido.get("custoTotalProjetado").stringValue());
         assertEquals("12.50", pedido.get("itens").get(0).get("precoUnitario").stringValue());
     }
