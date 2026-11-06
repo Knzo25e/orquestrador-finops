@@ -218,3 +218,4 @@ Esse procedimento se aplica ao problema observado. Outras falhas de acesso exige
 - [Arquitetura e ADRs](docs/arquitetura.md)
 - [Mapa de Specs](docs/mapa-de-specs.md)
 - [SPEC-003 — Validação orçamentária](docs/casos-de-uso/SPEC-003-validar-orcamento.md)
+- [Roteiro local e critérios acadêmicos do MVP](docs/review/recorte-mvp-academico.md)

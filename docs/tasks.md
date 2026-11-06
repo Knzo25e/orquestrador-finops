@@ -489,3 +489,12 @@ garantias de coordenação aplicáveis.
 
 Documento:
 [SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md).
+
+## Issue #93 — Recorte acadêmico e execução local
+
+- [x] Conferir as seções 6 a 11 do enunciado e rastrear as exigências aos requisitos do projeto.
+- [x] Documentar o roteiro local, os resultados e as lacunas de evidência na [revisão do MVP](review/recorte-mvp-academico.md).
+- [x] Registrar a proposta de submissão financeira separada da criação HTTP, com critérios de autorização, concorrência e repetição.
+- [ ] Aprovar o mecanismo de identidade da demonstração e os cenários de RF-03, RF-04 e RF-05.
+- [ ] Revisar e aprovar o contrato da submissão e sua fronteira transacional.
+- [ ] Planejar a implementação e a verificação do fluxo integrado em tarefa própria.
