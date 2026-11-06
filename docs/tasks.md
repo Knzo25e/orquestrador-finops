@@ -495,6 +495,8 @@ Documento:
 - [x] Conferir as seções 6 a 11 do enunciado e rastrear as exigências aos requisitos do projeto.
 - [x] Documentar o roteiro local, os resultados e as lacunas de evidência na [revisão do MVP](review/recorte-mvp-academico.md).
 - [x] Registrar a proposta de submissão financeira separada da criação HTTP, com critérios de autorização, concorrência e repetição.
-- [ ] Aprovar o mecanismo de identidade da demonstração e os cenários de RF-03, RF-04 e RF-05.
-- [ ] Revisar e aprovar o contrato da submissão e sua fronteira transacional.
-- [ ] Planejar a implementação e a verificação do fluxo integrado em tarefa própria.
+- [x] Registrar contas próprias com sessão por cookie e os cenários aprovados de RF-03, RF-04 e RF-05.
+- [x] Exercitar criação HTTP, validação interna e repetição no mesmo pedido com MySQL e dados próprios do teste.
+- [x] Planejar as entregas e revisar as propostas de autorização, transação e transições com o Astra.
+- [ ] Aprovar os contratos de sessão, submissão, consulta e ações manuais e a coordenação por tentativa.
+- [ ] Delimitar as Specs 007 a 009 e implementar os recortes aprovados em tarefas próprias.

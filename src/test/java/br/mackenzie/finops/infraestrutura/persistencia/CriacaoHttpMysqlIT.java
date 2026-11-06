@@ -1,16 +1,25 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
 import br.mackenzie.finops.aplicacao.CriarRequisicaoCoordenadaUseCase;
+import br.mackenzie.finops.aplicacao.ValidarRequisicaoPersistenteUseCase;
 import br.mackenzie.finops.aplicacao.seguranca.ContextoIdentidade;
 import br.mackenzie.finops.aplicacao.seguranca.PerfilUsuario;
+import br.mackenzie.finops.dominio.entidades.Departamento;
+import br.mackenzie.finops.dominio.entidades.RecursoCatalogo;
+import br.mackenzie.finops.dominio.entidades.ResultadoValidacao;
 import br.mackenzie.finops.infraestrutura.http.RequisicaoController;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +31,7 @@ import org.springframework.context.annotation.Import;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(
         classes = CriacaoHttpMysqlIT.Configuracao.class,
@@ -30,6 +40,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 )
 class CriacaoHttpMysqlIT {
 
+    private static final UUID AUTOR_ID = UUID.randomUUID();
+    private static final UUID DEPARTAMENTO_ID = UUID.randomUUID();
+    private static final UUID RECURSO_ID = UUID.randomUUID();
+    private static final BigDecimal SALDO_INICIAL = new BigDecimal("1000.00");
+    private static final BigDecimal SALDO_APOS_LIBERACAO = new BigDecimal("975.00");
+    private static boolean cenarioPreparado;
+
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration
     @Import(RequisicaoController.class)
@@ -37,19 +54,60 @@ class CriacaoHttpMysqlIT {
 
         @Bean
         CriarRequisicaoCoordenadaUseCase criarRequisicao() {
-            var configuracao = ConfiguracaoBanco.carregarDoAmbiente();
-            var fabrica = new FabricaConexoes(configuracao);
-
-            var autor = idDoCenario("FINOPS_IT_AUTOR");
-            var departamento = idDoCenario("FINOPS_IT_DEPARTAMENTO");
             var identidade = new ContextoIdentidade(
-                    autor, PerfilUsuario.DESENVOLVEDOR, true, departamento
+                    AUTOR_ID, PerfilUsuario.DESENVOLVEDOR, true, DEPARTAMENTO_ID
             );
 
             return new CriarRequisicaoCoordenadaUseCase(
-                    new IdentidadeCoordenadaTeste(autor, identidade),
-                    new CriacaoRequisicaoJdbc(fabrica)
+                    new IdentidadeCoordenadaTeste(AUTOR_ID, identidade),
+                    new CriacaoRequisicaoJdbc(fabrica())
             );
+        }
+    }
+
+    @BeforeAll
+    static void prepararCenario() throws SQLException {
+        try (var conexao = fabrica().abrir()) {
+            assertEquals("finops_test", conexao.getCatalog());
+            conexao.setAutoCommit(false);
+            new DepartamentoRepositoryJdbc(conexao).adicionar(
+                    new Departamento(DEPARTAMENTO_ID, "Departamento do IT", SALDO_INICIAL)
+            );
+            new RecursoCatalogoRepositoryJdbc(conexao).adicionar(
+                    new RecursoCatalogo(RECURSO_ID, "Recurso do IT", new BigDecimal("12.50"))
+            );
+            conexao.commit();
+            cenarioPreparado = true;
+        }
+    }
+
+    @AfterAll
+    static void limparCenario() throws SQLException {
+        if (!cenarioPreparado) {
+            return;
+        }
+        try (var conexao = fabrica().abrir()) {
+            assertEquals("finops_test", conexao.getCatalog());
+            conexao.setAutoCommit(false);
+            excluir(conexao, """
+                    DELETE FROM item_requisicao WHERE requisicao_id IN (
+                        SELECT id FROM requisicao WHERE departamento_id = ? AND desenvolvedor_id = ?
+                    )
+                    """, DEPARTAMENTO_ID, AUTOR_ID);
+            excluir(conexao, "DELETE FROM requisicao WHERE departamento_id = ? AND desenvolvedor_id = ?",
+                    DEPARTAMENTO_ID, AUTOR_ID);
+            excluir(conexao, "DELETE FROM recurso_catalogo WHERE id = ?", RECURSO_ID);
+            excluir(conexao, "DELETE FROM departamento WHERE id = ?", DEPARTAMENTO_ID);
+            conexao.commit();
+        }
+    }
+
+    private static void excluir(Connection conexao, String sql, UUID... ids) throws SQLException {
+        try (var comando = conexao.prepareStatement(sql)) {
+            for (int i = 0; i < ids.length; i++) {
+                comando.setString(i + 1, ids[i].toString());
+            }
+            comando.executeUpdate();
         }
     }
 
@@ -57,35 +115,40 @@ class CriacaoHttpMysqlIT {
     private int porta;
 
     @Test
-    void criaRepeteERejeitaAlteracaoDoMesmoPedidoNoMysql() throws Exception {
+    void criaPorHttpValidaSeparadamenteERepeteSemNovoDebitoNoMysql() throws Exception {
         UUID pedidoId = UUID.randomUUID();
 
-        conferirPost(pedidoId, 201, "CRIADA");
-        conferirPost(pedidoId, 200, "JA_EXISTENTE");
+        conferirPost(pedidoId, 201, "CRIADA", "INICIAL");
+        conferirPost(pedidoId, 200, "JA_EXISTENTE", "INICIAL");
         conferirConflito(pedidoId);
+        conferirSaldo(SALDO_INICIAL);
+
+        // Usa a entrada interna vigente. A submissão autorizada por HTTP tem contrato próprio.
+        var validacao = new ValidarRequisicaoPersistenteUseCase(new ValidacaoRequisicaoJdbc(fabrica()));
+        assertEquals(ResultadoValidacao.LIBERADA, validacao.executar(pedidoId).resultado());
+        conferirSaldo(SALDO_APOS_LIBERACAO);
+        assertEquals(ResultadoValidacao.JA_LIBERADA, validacao.executar(pedidoId).resultado());
+        conferirPost(pedidoId, 200, "JA_EXISTENTE", "PROVISIONAMENTO_LIBERADO");
+        conferirSaldo(SALDO_APOS_LIBERACAO);
     }
 
-        @Test
+    @Test
     void recursoInexistenteRetorna422SemGravarPedidoNoMysql() throws Exception {
         var pedidoId = UUID.randomUUID();
         var recursoInexistenteId = UUID.randomUUID();
-        var recursoValidoId = idDoCenario("FINOPS_IT_RECURSO");
-
-        var fabrica = new FabricaConexoes(
-                ConfiguracaoBanco.carregarDoAmbiente()
-        );
+        var fabrica = fabrica();
 
         try (var conexao = fabrica.abrir()) {
             assertEquals("finops_test", conexao.getCatalog());
 
             var recursos = new RecursoCatalogoRepositoryJdbc(conexao);
 
-            org.junit.jupiter.api.Assertions.assertTrue(
-                    recursos.buscarPorId(recursoValidoId).isPresent(),
+            assertTrue(
+                    recursos.buscarPorId(RECURSO_ID).isPresent(),
                     "O recurso válido do cenário precisa estar cadastrado."
             );
 
-            org.junit.jupiter.api.Assertions.assertTrue(
+            assertTrue(
                     recursos.buscarPorId(recursoInexistenteId).isEmpty(),
                     "O recurso usado para provocar a rejeição deve estar ausente."
             );
@@ -108,7 +171,7 @@ class CriacaoHttpMysqlIT {
                         }
                         """.formatted(
                                 pedidoId,
-                                recursoValidoId,
+                                RECURSO_ID,
                                 recursoInexistenteId
                         )))
                 .build();
@@ -137,14 +200,14 @@ class CriacaoHttpMysqlIT {
         try (var conexao = fabrica.abrir()) {
             var requisicoes = new RequisicaoRepositoryJdbc(conexao);
 
-            org.junit.jupiter.api.Assertions.assertTrue(
+            assertTrue(
                     requisicoes.buscarPorId(pedidoId).isEmpty(),
                     "Uma solicitação rejeitada não deve deixar o pedido gravado."
             );
         }
     }
 
-    private void conferirPost(UUID pedidoId, int statusEsperado, String situacaoEsperada)
+    private void conferirPost(UUID pedidoId, int statusEsperado, String situacaoEsperada, String estadoEsperado)
             throws Exception {
         var resposta = enviar(pedidoId, 2);
 
@@ -155,8 +218,16 @@ class CriacaoHttpMysqlIT {
 
         var gravada = corpo.get("requisicao");
         assertEquals(pedidoId.toString(), gravada.get("id").stringValue());
-        assertEquals("INICIAL", gravada.get("estado").stringValue());
+        assertEquals(estadoEsperado, gravada.get("estado").stringValue());
         assertEquals("25.00", gravada.get("custoTotalProjetado").stringValue());
+    }
+
+    private void conferirSaldo(BigDecimal esperado) throws SQLException {
+        try (var conexao = fabrica().abrir()) {
+            var departamento = new DepartamentoRepositoryJdbc(conexao)
+                    .buscarPorId(DEPARTAMENTO_ID).orElseThrow();
+            assertEquals(esperado, departamento.getSaldoDisponivel());
+        }
     }
 
     private void conferirConflito(UUID pedidoId) throws Exception {
@@ -177,7 +248,6 @@ class CriacaoHttpMysqlIT {
     }
 
     private HttpResponse<String> enviar(UUID pedidoId, int quantidade) throws Exception {
-        var recursoId = idDoCenario("FINOPS_IT_RECURSO");
         var pedido = HttpRequest.newBuilder(
                         URI.create("http://127.0.0.1:" + porta + "/api/v1/requisicoes"))
                 .header("Content-Type", "application/json")
@@ -186,7 +256,7 @@ class CriacaoHttpMysqlIT {
                           "requisicaoId": "%s",
                           "itens": [{"recursoId": "%s", "quantidade": %d}]
                         }
-                        """.formatted(pedidoId, recursoId, quantidade)))
+                        """.formatted(pedidoId, RECURSO_ID, quantidade)))
                 .build();
 
         try (var cliente = HttpClient.newHttpClient()) {
@@ -194,11 +264,7 @@ class CriacaoHttpMysqlIT {
         }
     }
 
-    private static UUID idDoCenario(String variavel) {
-        String valor = System.getenv(variavel);
-        if (valor == null || valor.isBlank()) {
-            throw new IllegalStateException("Defina a variável de teste " + variavel);
-        }
-        return UUID.fromString(valor);
+    private static FabricaConexoes fabrica() {
+        return new FabricaConexoes(ConfiguracaoBanco.carregarDoAmbiente());
     }
 }
