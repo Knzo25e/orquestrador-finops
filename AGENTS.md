@@ -14,7 +14,7 @@ O projeto usa Java 25, Maven Wrapper (Maven 3.10.0), Spring Boot 4.1.2 com Sprin
 ## Escopo acadêmico e planejamento
 
 - O documento oficial do professor exige dois perfis distintos, persistência, um fluxo não trivial e regras de negócio explícitas. A obrigatoriedade de login institucional, portal visual completo ou integração real com a AWS depende de confirmação explícita.
-- A exclusão de RF-03, RF-04 ou RF-05 do escopo aprovado exige autorização explícita do responsável pelo projeto. O recorte final do MVP ainda será confirmado.
+- A exclusão de RF-03, RF-04 ou RF-05 do escopo aprovado exige autorização explícita do responsável pelo projeto. Os cenários aprovados para a demonstração estão no [plano técnico](docs/plan.md#recorte-aprovado-para-26112026).
 - O prazo final é **26/11/2026**. A meta interna proposta é congelar novas funcionalidades em **21/11/2026** e reservar os dias finais para integração, testes, correções, documentação e apresentação. Revise a meta se o cronograma mostrar que ela é inviável.
 
 ## Arquitetura e desenvolvimento
@@ -47,7 +47,7 @@ Os pacotes ficam em `src/main/java/br/mackenzie/finops` e seguem a separação d
 ## Build e verificações
 
 - Configure `JAVA_HOME` com o JDK 25 na sessão. No Windows, use `./mvnw.cmd -version`, `./mvnw.cmd compile` e `./mvnw.cmd verify`.
-- O Maven executa os testes JUnit convencionais. Para incluir a integração HTTP com MySQL, execute `./mvnw.cmd "-Dtest=*Test,CriacaoHttpMysqlIT" test` com um `finops_test` isolado, scripts V001 e V002 aplicados e dados de cenário. Confira `FINOPS_IT_AUTOR`, `FINOPS_IT_DEPARTAMENTO` e `FINOPS_IT_RECURSO` no teste.
+- O Maven executa os testes JUnit convencionais. Para incluir a integração HTTP com MySQL, execute `./mvnw.cmd "-Dtest=*Test,CriacaoHttpMysqlIT" test` com um `finops_test` isolado e os scripts V001 e V002 aplicados. O teste prepara e limpa seus próprios dados de cenário.
 - Execute os verificadores com método `main` separadamente, conforme o [README](README.md) e as evidências da Issue pertinente. Os cenários JDBC exigem Connector/J no classpath, as variáveis `FINOPS_DB_URL`, `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD` e uma base exclusiva de teste. Verifique a limpeza dos dados dos cenários.
 - Nunca leia ou exponha segredos de arquivos `.env` ou inclua credenciais em logs, commits e PRs. Consulte [.github/copilot-instructions.md](.github/copilot-instructions.md) para as regras de confirmação de mudanças de dependências.
 

@@ -817,18 +817,29 @@ A Issue #81 continua em andamento.
 
 A [revisão do enunciado e o roteiro de verificação](review/recorte-mvp-academico.md)
 relacionam as seções 6 a 11 aos requisitos e às evidências do projeto.
-A aprovação desta etapa abrange preparar uma execução local reproduzível
-e propor a submissão financeira autorizada como operação distinta da criação.
 
-1. Reproduzir as verificações de HTTP controlado, perfis, persistência e
-   validação entre processos usando MySQL isolado.
-2. Definir o mecanismo de identidade da demonstração, os cenários RF-03
-   a RF-05 e os critérios da submissão. Revisar autorização e coordenação
-   transacional com o Astra antes da implementação.
-3. Depois da aprovação do contrato, preparar uma aplicação executável,
-   conectar a submissão ao motor financeiro e verificar o fluxo integrado.
+### Recorte aprovado para 26/11/2026
 
-Usar 21/11/2026 como meta interna proposta de congelamento, sujeita à
-viabilidade. Reservar os dias finais para integração, testes, correções,
-documentação e apresentação em 26/11/2026. Manter RF-03 a RF-05 no escopo
-aprovado enquanto o recorte final do MVP estiver em definição.
+- Desenvolvedor com conta própria e sessão por cookie consulta catálogo, cria pedido em `INICIAL`, submete separadamente e consulta o resultado dos próprios pedidos no departamento atual.
+- Arquiteto Cloud consulta pedidos de departamentos distintos, registra aprovação ou rejeição técnica com justificativa e encaminha pedidos aprovados à etapa financeira adequada. A aprovação técnica preserva o saldo e deixa a liberação a cargo da etapa financeira.
+- Na demonstração, um pedido retido pela reserva passa por aprovação técnica e autorização explícita de reserva, com revalidação. Outro cenário demonstra insuficiência de saldo e ajuste do teto com preservação dos compromissos. O roteiro inclui rejeição técnica e consulta, pelo Arquiteto, dos registros imutáveis das intervenções.
+
+### Decisões propostas, pendentes de aprovação
+
+1. **OPEN-004-02 — Sessão e aplicação executável.** Formulário simples do Spring Security na mesma origem da API, logout por POST e token CSRF em login, logout e mutações. Criar as duas contas por preparação local com senhas fornecidas fora do repositório e armazenar hashes adaptativos no MySQL. Usar HTTPS, cookie de sessão `HttpOnly`, `Secure` e `SameSite=Lax`, expiração por inatividade e troca do ID no login. A navegação redireciona para login. Para a API com sessão ausente ou expirada, propor `403 SESSAO_NECESSARIA` distinguível de `403 ACESSO_NEGADO`. Um `401` exige desafio aplicável e depende de outro contrato. [Form Login](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/form.html) · [CSRF](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html) · [Senhas](https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html) · [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.2)
+2. **OPEN-004-03 — Autorização por tentativa transacional.** A sessão identifica o usuário. Perfil, atividade e vínculo vigentes vêm do MySQL, com `FOR SHARE` por usuário na mesma conexão da mutação. Ordem proposta usuário → departamento → requisição. Escritores de identidade seguem o mesmo protocolo. Na reconciliação, uma nova transação relê e reautoriza. A SPEC-006 hoje descreve coordenação abrangendo criação e reconciliação, e `CriacaoRequisicaoJdbc` reutiliza a identidade. Aprovar a revisão desse contrato antes de adaptar as portas. Um commit de resultado incerto exige reconciliação, com autorização vigente e sem retentativa automática. [SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md#open-004-03--coordenação-e-confirmação-desconhecida) · [Bloqueios InnoDB](https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html)
+3. **Submissão e consultas.** Propor `POST /api/v1/requisicoes/{id}/validacao` para o Desenvolvedor autor, com vínculo verificado na transação e o mesmo UUID nas repetições. Preservar o resultado de confirmação desconhecida e o comportamento vigente para estados fora do fluxo. Expor consulta de pedido por UUID com resposta equivalente para ausente ou fora do escopo, e listagem que derive o departamento do Desenvolvedor da identidade. O Arquiteto pode selecionar departamentos na consulta. A política vigente e os DTOs aprovados de criação são a base para detalhar o contrato.
+4. **Specs 007–009 e OPEN-003-05 — Intervenções manuais.** As três Specs estão mapeadas, com detalhamento individual pendente. Propor comandos distintos de revisão técnica, ajuste de teto, autorização de reserva e liberação financeira. A autorização de reserva vale para a tentativa atual, com revalidação e registro atômicos. Se a reserva deixar de ser necessária, usar ação financeira separada. Para a aprovação técnica que já encontra saldo acima da reserva, propor um estado de espera por liberação financeira, sujeito à aprovação da transição. Se houver negativa financeira, propor manter a pendência e registrar a decisão. Definir a tabela completa antes de mudar domínio ou esquema.
+5. **RF-05 e repetição das ações manuais.** Propor evento append-only na mesma transação da intervenção, com responsável, data, ação, justificativa, alvo e valores previstos em RF-05. Usar UUID por comando para reconciliar confirmação incerta e evitar novo débito ou evento em repetição equivalente. Restringir a conta da aplicação a leitura e inserção no histórico e a consulta ao Arquiteto autenticado. A imutabilidade proposta vale para as operações da aplicação. Aprovar o contrato de consulta e de reconciliação antes da implementação.
+
+### Entregas e verificações
+
+| Janela proposta | Entrega e aceite |
+|---|---|
+| 05–08/11 | Fechar os contratos de identidade, transação e fluxo manual. A revisão do Astra apontou a divergência de reconciliação e as lacunas do fluxo manual. |
+| 09–13/11 | Composição executável, contas, sessão e coordenação de identidade. Testar login, logout, expiração, CSRF e desativação ou troca de vínculo concorrente com criação e reconciliação. |
+| 14–16/11 | Desenvolvedor com catálogo, criação, submissão e consulta, e Arquiteto com consulta entre departamentos. Testar negação entre autores e departamentos, reserva, insuficiência, débito único, rollback e commit incerto. |
+| 14–20/11 | Após aprovação das Specs, preparar auditoria (007), ajuste de teto (008) e revisão/liberação manual (009), nessa ordem de dependência. Testar recálculo de saldo com compromissos preservados, rejeição de teto abaixo do comprometido, disputa de ajuste e liberação, falha na gravação da auditoria e repetição sem novo débito ou evento. |
+| 21–26/11 | Meta interna de congelamento em 21/11, sujeita à viabilidade. De 22 a 25/11, integração, regressão, documentação e ensaio. Demonstração em 26/11. |
+
+Autenticação e coordenação afetam a infraestrutura Spring/JDBC, as portas da aplicação e a migração de usuários. As entregas financeiras manuais afetam domínio, aplicação, JDBC e migrações de estados e auditoria. A janela manual é a mais curta em relação às dependências. Se houver atraso, levar ao responsável as alternativas de sequência e capacidade, preservando os cenários aprovados.
