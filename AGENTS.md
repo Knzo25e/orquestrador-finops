@@ -1,6 +1,6 @@
 # Orquestrador FinOps
 
-Portal interno de governança de nuvem da disciplina de Modelagem de Sistemas, curso de Engenharia Elétrica da Universidade Presbiteriana Mackenzie. O sistema registra pedidos de infraestrutura e aplica regras de orçamento e autorização. A entrega acadêmica é em **26/11/2026**. Repositório oficial [Knzo25e/orquestrador-finops](https://github.com/Knzo25e/orquestrador-finops).
+Portal interno de governança de nuvem da disciplina de Modelagem de Sistemas, curso de Engenharia Elétrica da Universidade Presbiteriana Mackenzie. O sistema registra pedidos de infraestrutura e aplica regras de orçamento e autorização. Repositório oficial [Knzo25e/orquestrador-finops](https://github.com/Knzo25e/orquestrador-finops).
 
 O projeto usa Java 25, Maven Wrapper (Maven 3.10.0), Spring Boot 4.1.2 com Spring MVC no adaptador HTTP, JDBC com Connector/J 9.7.0 e MySQL/InnoDB. Confira as versões efetivas em [pom.xml](pom.xml) e na [configuração do Wrapper](.mvn/wrapper/maven-wrapper.properties).
 
@@ -10,6 +10,12 @@ O projeto usa Java 25, Maven Wrapper (Maven 3.10.0), Spring Boot 4.1.2 com Sprin
 - Use requisitos e ADRs vigentes para orientar a solução e a Spec aprovada para o contrato do recorte. Uma decisão posterior explicitamente aprovada prevalece sobre o trecho que ela revisa. A integração de uma proposta em um PR, por si só, não aprova todas as decisões abertas.
 - Use [README](README.md), [plano](docs/plan.md), [tarefas](docs/tasks.md) e [evidências](docs/evidencias) para localizar comandos, histórico e limites. Confirme o estado da implementação no código, nos testes e no histórico integrado.
 - Em caso de divergência, identifique os trechos e as decisões aplicáveis, registre a questão como OPEN-XX, explique o impacto, apresente alternativas e recomende uma delas. Aguarde a decisão do responsável antes de implementar a parte afetada.
+
+## Escopo acadêmico e planejamento
+
+- O documento oficial do professor exige dois perfis distintos, persistência, um fluxo não trivial e regras de negócio explícitas. A obrigatoriedade de login institucional, portal visual completo ou integração real com a AWS depende de confirmação explícita.
+- A exclusão de RF-03, RF-04 ou RF-05 do escopo aprovado exige autorização explícita do responsável pelo projeto. O recorte final do MVP ainda será confirmado.
+- O prazo final é **26/11/2026**. A meta interna proposta é congelar novas funcionalidades em **21/11/2026** e reservar os dias finais para integração, testes, correções, documentação e apresentação. Revise a meta se o cronograma mostrar que ela é inviável.
 
 ## Arquitetura e desenvolvimento
 
@@ -47,8 +53,10 @@ Os pacotes ficam em `src/main/java/br/mackenzie/finops` e seguem a separação d
 
 ## Git e GitHub
 
+A aprovação da tarefa autoriza implementar, testar, criar commits, fazer push da branch autorizada, atualizar a Issue correspondente e abrir um PR Draft, sem autorização individual para cada operação. Mudanças de escopo, de regras de negócio ou da arquitetura aprovada, assim como qualquer merge, exigem autorização explícita.
+
 - Após a aprovação da tarefa, use branch específica, preferencialmente sob `codex/`, commits pequenos e descritivos (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`) e push somente da branch de trabalho. Vincule a Issue e a Spec quando aplicável.
-- Procure registros equivalentes antes de abrir Issues. Use Issues para trabalho independente, defeitos relevantes e decisões que exigem acompanhamento. Registre contexto, requisitos, critérios, dependências e prioridade.
+- Registre na Issue atual alterações pequenas, correções pontuais e testes complementares ligados à tarefa. Procure registros equivalentes antes de abrir novas Issues e reserve-as para trabalho independente, defeitos relevantes e decisões que exigem acompanhamento. Registre contexto, requisitos, critérios, dependências e prioridade.
 - Abra PRs como Draft. Registre escopo, Issue e Spec, critérios comprovados, testes, evidências, riscos e decisões pendentes. Marcar o PR como pronto exige autorização.
 - Obtenha autorização explícita para merge em `main` ou branch protegida, push direto em `main`, force push, rebase ou reset destrutivo, exclusão de branches, descarte de alterações locais, alteração de Specs ou decisões aprovadas, mudanças de regras financeiras ou de segurança e fechamento de Issues sem conclusão comprovada.
 
