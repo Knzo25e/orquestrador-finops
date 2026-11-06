@@ -54,7 +54,10 @@ class AutorizacaoCriacaoHttpTest {
     private static final UUID DEPARTAMENTO = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     @Configuration(proxyBeanMethods = false)
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(excludeName = {
+            "org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration",
+            "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration"
+    })
     @Import(RequisicaoController.class)
     static class Configuracao {
 
