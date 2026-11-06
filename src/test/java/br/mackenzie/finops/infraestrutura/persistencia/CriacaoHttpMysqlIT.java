@@ -48,7 +48,10 @@ class CriacaoHttpMysqlIT {
     private static boolean cenarioPreparado;
 
     @Configuration(proxyBeanMethods = false)
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(excludeName = {
+            "org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration",
+            "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration"
+    })
     @Import(RequisicaoController.class)
     static class Configuracao {
 

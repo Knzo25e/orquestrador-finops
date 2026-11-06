@@ -39,7 +39,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CatalogoHttpTest {
 
     @Configuration(proxyBeanMethods = false)
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(excludeName = {
+            "org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration",
+            "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration"
+    })
     @Import(CatalogoController.class)
     static class Configuracao {
 
