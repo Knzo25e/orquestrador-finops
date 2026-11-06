@@ -144,7 +144,7 @@ class CriacaoIdentidadeMysqlIT {
         }
     }
 
-    private static void executarEmOutroProcesso(String acao, UUID... ids) throws Exception {
+    static void executarEmOutroProcesso(String acao, UUID... ids) throws Exception {
         var comando = new java.util.ArrayList<>(List.of(
                 Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                 "-cp", System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")),

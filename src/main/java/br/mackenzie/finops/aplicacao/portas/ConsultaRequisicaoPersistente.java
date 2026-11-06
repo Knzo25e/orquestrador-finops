@@ -1,5 +1,6 @@
 package br.mackenzie.finops.aplicacao.portas;
 
+import br.mackenzie.finops.aplicacao.resultados.ResumoRequisicao;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 
 import java.util.List;
@@ -59,4 +60,12 @@ public interface ConsultaRequisicaoPersistente {
      * Retorna lista não modificável; ausência de pedidos retorna lista vazia.
      */
     List<Requisicao> listarPorDepartamento(UUID departamentoId);
+
+    /**
+     * Aplica departamento, autor e cursor no armazenamento antes do limite.
+     * Autor nulo representa uma consulta do Arquiteto. Ordena pelo UUID textual.
+     */
+    default List<ResumoRequisicao> listarResumos(UUID departamentoId, UUID autorId, UUID apos, int limite) {
+        throw new UnsupportedOperationException("O adaptador não oferece consulta paginada.");
+    }
 }

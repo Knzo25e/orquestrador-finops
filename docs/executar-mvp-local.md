@@ -1,6 +1,6 @@
 # Executar a aplicação local com sessão
 
-Entrega da [Issue #96](https://github.com/Knzo25e/orquestrador-finops/issues/96), conforme OPEN-004-02 e OPEN-004-03 da [SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md).
+Sessão e identidade na [Issue #96](https://github.com/Knzo25e/orquestrador-finops/issues/96). Submissão e consultas na [Issue #99](https://github.com/Knzo25e/orquestrador-finops/issues/99), conforme os contratos aprovados no [PR #98](https://github.com/Knzo25e/orquestrador-finops/pull/98).
 
 ## Preparar MySQL e HTTPS
 
@@ -13,8 +13,8 @@ Entrega da [Issue #96](https://github.com/Knzo25e/orquestrador-finops/issues/96)
    VALUES ('10000000-0000-4000-8000-000000000002', 'Recurso de demonstração', 12.50);
    ```
 
-2. Configure JDK 25 em `JAVA_HOME` e `FINOPS_DB_URL`, `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD` na sessão. Exemplo de URL local `jdbc:mysql://localhost:3306/finops_dev?sslMode=REQUIRED`. A conta que roda o servidor precisa de leitura de usuários, departamentos e catálogo e leitura e inserção de pedidos e itens. Use uma conta de preparação com permissão de inserir usuários para o cadastro das contas. Alterações administrativas de atividade, perfil e departamento escrevem na mesma linha de `usuario` protegida pelas operações, em uma transação.
-3. Use um PKCS12 externo ao repositório com certificado para `localhost`. Para gerar um certificado local, em PowerShell:
+2. Configure JDK 25 em `JAVA_HOME` e `FINOPS_DB_URL`, `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD` na sessão. Exemplo de URL local `jdbc:mysql://localhost:3306/finops_dev?sslMode=REQUIRED`. A conta que roda o servidor precisa de leitura de usuários, departamentos, catálogo, pedidos e itens, inserção de pedidos e itens e atualização de `departamento.saldo_disponivel`, `requisicao.estado` e `requisicao.motivo_revisao`. Use uma conta de preparação com permissão de inserir usuários para o cadastro. Alterações administrativas de atividade, perfil e departamento escrevem na mesma linha de `usuario` protegida pelas operações, em uma transação.
+3. Use um PKCS12 externo ao repositório com certificado para o endereço de loopback usado pelo cliente. O exemplo inclui `localhost` e `127.0.0.1`. Para gerar um certificado local, em PowerShell:
 
    ```powershell
    $chave = Join-Path $env:LOCALAPPDATA 'finops-local.p12'
@@ -39,9 +39,9 @@ $jar = 'target/orquestrador-finops-0.1.0-SNAPSHOT.jar'
 
 Execute o cadastro uma vez em terminal interativo. O comando pede as senhas de `desenvolvedor` e `arquiteto` sem eco, usa o codificador do Spring Security e grava as duas contas na mesma transação. Use senhas distintas com pelo menos 12 caracteres e até 72 bytes UTF-8. Para iniciar o servidor, use a conta de banco com os privilégios de execução.
 
-Abra [https://localhost:8443/login](https://localhost:8443/login). O login leva ao catálogo. Ambos os perfis podem consultá-lo. Somente o Desenvolvedor ativo com departamento pode criar pedidos, e o servidor determina autoria e departamento. O POST persiste em `INICIAL`. Submissão, consulta de pedidos e ações manuais aguardam os respectivos contratos.
+Abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login) com o certificado do exemplo. O login leva ao catálogo. Ambos os perfis podem consultá-lo. O Desenvolvedor ativo com departamento cria em `INICIAL` e submete e consulta pedidos próprios do departamento atual. O Arquiteto consulta pedidos por UUID ou lista por departamento, incluindo registros legados.
 
-No console do navegador, na mesma origem e já autenticado, o exemplo abaixo cria um pedido com o recurso do exemplo. Guarde o UUID e a sequência de itens ao repetir.
+No console do navegador, na mesma origem e autenticado como Desenvolvedor, execute o fluxo com o recurso do exemplo. Guarde o UUID e a sequência de itens ao repetir a criação.
 
 ```javascript
 const pedido = {
@@ -49,13 +49,26 @@ const pedido = {
   itens: [{ recursoId: "10000000-0000-4000-8000-000000000002", quantidade: 2 }]
 };
 const { cabecalho, token } = await fetch("/api/v1/csrf").then(r => r.json());
-const resposta = await fetch("/api/v1/requisicoes", {
+const criacao = await fetch("/api/v1/requisicoes", {
   method: "POST",
   headers: { "Content-Type": "application/json", [cabecalho]: token },
   body: JSON.stringify(pedido)
 });
-console.log(resposta.status, await resposta.json());
+console.log(criacao.status, await criacao.json());
+if (!criacao.ok) throw new Error("Criação falhou.");
+
+const rota = `/api/v1/requisicoes/${pedido.requisicaoId}`;
+const validar = () => fetch(`${rota}/validacao`, {
+  method: "POST",
+  headers: { [cabecalho]: token }
+});
+const validacao = await validar();
+console.log(validacao.status, await validacao.json());
+console.log(await fetch(rota).then(r => r.json()));
+console.log(await fetch("/api/v1/requisicoes?limite=25").then(r => r.json()));
 ```
+
+Em base nova, a quantidade 2 projeta R$ 25,00. A criação retorna `201`, a validação retorna `LIBERADA` e o detalhe mostra `PROVISIONAMENTO_LIBERADO`. Repita `validar()` para obter `JA_LIBERADA` sem outro desconto. Em outra sessão, o Arquiteto pode chamar `GET /api/v1/requisicoes?departamentoId=10000000-0000-4000-8000-000000000001`. Use `proximoCursor` no parâmetro `apos` quando houver outra página.
 
 Na navegação, a sessão ausente redireciona ao formulário. A API retorna provisoriamente `403 SESSAO_NECESSARIA` para sessão ausente ou expirada, `403 CSRF_INVALIDO` para token ausente ou inválido em mutação com sessão, e `403 ACESSO_NEGADO` por falta de permissão. Login e logout por POST também exigem token. Em `/logout`, o navegador exibe a confirmação do Spring Security. O identificador da sessão muda no login, a sessão expira após 30 minutos de inatividade e o cookie usa `Secure`, `HttpOnly` e `SameSite=Lax`.
 
@@ -64,9 +77,11 @@ Na navegação, a sessão ausente redireciona ao formulário. A API retorna prov
 Use um `finops_test` isolado, com V001 a V003 e uma conta de teste com leitura e escrita nas tabelas do cenário. Os testes criam e removem os próprios registros. A suíte prepara um certificado temporário e verifica a sessão em HTTPS.
 
 ```powershell
-.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT" verify
+.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT" verify
 ```
 
-Os testes da criação usam transações reais, incluindo disputa pelo UUID, mudança de vínculo entre tentativas e bloqueios observados por outra JVM. A perda de confirmação é simulada antes e depois de efetivar o commit.
+Os testes exercitam transações reais, incluindo disputa pelo UUID, troca de vínculo, desativação, rollback da validação e bloqueios observados por outra JVM. A perda de confirmação é simulada antes e depois de efetivar o commit.
 
-Em 06/11/2026, passaram 39 testes com JDK 25.0.2 e MySQL 8.0.44. Também passaram os verificadores JDBC de criação (47), validação financeira (84), concorrência de criação autorizada (10) e vínculo coordenado anterior (10). O JAR empacotado cadastrou as duas contas por terminal e iniciou em HTTPS. Em sessões distintas, ambos consultaram o catálogo, o Arquiteto recebeu 403 na criação e o Desenvolvedor obteve 201 e 200 na repetição. O MySQL confirmou dois hashes bcrypt, um pedido e o saldo inicial preservado.
+Em 06/11/2026, a suíte da Issue #99 aprovou 49 testes com JDK 25.0.2 e MySQL 8.0.44. Os cinco verificadores JDBC de regressão aprovaram 164 verificações. O JAR empacotado reproduziu o fluxo HTTPS com uma conta de banco restrita aos privilégios descritos acima.
+
+Na sondagem local de três submissões por endereço, os POSTs levaram 30 a 43 ms via `127.0.0.1` e cerca de 2,05 a 2,07 s via `localhost`. A conexão TCP levou 4 ms via IPv4 direto e cerca de 2,04 s via `localhost` nessa máquina. Use IPv4 direto para reproduzir a demonstração local. O ensaio representativo do RNF-01 com MySQL e concorrência permanece no plano de verificação.
