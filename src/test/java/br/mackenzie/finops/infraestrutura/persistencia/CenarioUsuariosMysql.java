@@ -67,10 +67,11 @@ final class CenarioUsuariosMysql implements AutoCloseable {
             conexao.setAutoCommit(false);
             executar(conexao, """
                     DELETE FROM item_requisicao WHERE requisicao_id IN (
-                        SELECT id FROM requisicao WHERE desenvolvedor_id = ?
+                        SELECT id FROM requisicao WHERE departamento_id IN (?, ?)
                     )
-                    """, autor.toString());
-            executar(conexao, "DELETE FROM requisicao WHERE desenvolvedor_id = ?", autor.toString());
+                    """, departamento.toString(), outroDepartamento.toString());
+            executar(conexao, "DELETE FROM requisicao WHERE departamento_id IN (?, ?)",
+                    departamento.toString(), outroDepartamento.toString());
             executar(conexao, "DELETE FROM usuario WHERE login IN (?, ?)", desenvolvedor, arquiteto);
             executar(conexao, "DELETE FROM recurso_catalogo WHERE id = ?", recurso.toString());
             executar(conexao, "DELETE FROM departamento WHERE id IN (?, ?)",
