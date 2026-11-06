@@ -812,3 +812,23 @@ está sendo atualizado na branch docs/81-decisoes-interface-aplicacao.
 
 Decisões OPEN-004-02 a OPEN-004-07 permanecem abertas.
 A Issue #81 continua em andamento.
+
+## Recorte acadêmico e execução local — Issue #93
+
+A [revisão do enunciado e o roteiro de verificação](review/recorte-mvp-academico.md)
+relacionam as seções 6 a 11 aos requisitos e às evidências do projeto.
+A aprovação desta etapa abrange preparar uma execução local reproduzível
+e propor a submissão financeira autorizada como operação distinta da criação.
+
+1. Reproduzir as verificações de HTTP controlado, perfis, persistência e
+   validação entre processos usando MySQL isolado.
+2. Definir o mecanismo de identidade da demonstração, os cenários RF-03
+   a RF-05 e os critérios da submissão. Revisar autorização e coordenação
+   transacional com o Astra antes da implementação.
+3. Depois da aprovação do contrato, preparar uma aplicação executável,
+   conectar a submissão ao motor financeiro e verificar o fluxo integrado.
+
+Usar 21/11/2026 como meta interna proposta de congelamento, sujeita à
+viabilidade. Reservar os dias finais para integração, testes, correções,
+documentação e apresentação em 26/11/2026. Manter RF-03 a RF-05 no escopo
+aprovado enquanto o recorte final do MVP estiver em definição.
