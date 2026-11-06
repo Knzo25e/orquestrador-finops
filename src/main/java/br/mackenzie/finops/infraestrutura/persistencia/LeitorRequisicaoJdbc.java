@@ -1,5 +1,6 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
+import br.mackenzie.finops.aplicacao.resultados.ResumoRequisicao;
 import br.mackenzie.finops.dominio.entidades.Departamento;
 import br.mackenzie.finops.dominio.entidades.ItemRequisicao;
 import br.mackenzie.finops.dominio.entidades.RecursoCatalogo;
@@ -232,9 +233,51 @@ final class LeitorRequisicaoJdbc {
             }
         } catch (SQLException excecao) {
             throw new FalhaPersistenciaException(
-                    "Falha ao consultar requisições no banco."
+                    "Falha ao consultar requisições no banco.", excecao
             );
         } catch (IllegalArgumentException excecao) {
+            throw inconsistencia();
+        }
+    }
+
+    List<ResumoRequisicao> listarResumos(UUID departamentoId, UUID autorId, UUID apos, int limite) {
+        String sql = """
+                SELECT id, departamento_id, desenvolvedor_id, estado, motivo_revisao, custo_total
+                FROM requisicao WHERE departamento_id = ?
+                """ + (autorId == null ? "" : " AND desenvolvedor_id = ?")
+                + (apos == null ? "" : " AND id > ?") + " ORDER BY id LIMIT ?";
+        try (var comando = conexao.prepareStatement(sql)) {
+            conferirIsolamento();
+            int posicao = 1;
+            comando.setString(posicao++, departamentoId.toString());
+            if (autorId != null) {
+                comando.setString(posicao++, autorId.toString());
+            }
+            if (apos != null) {
+                comando.setString(posicao++, apos.toString());
+            }
+            comando.setInt(posicao, limite);
+
+            try (var linhas = comando.executeQuery()) {
+                var resumos = new ArrayList<ResumoRequisicao>();
+                while (linhas.next()) {
+                    String autor = linhas.getString("desenvolvedor_id");
+                    var estado = EstadoRequisicaoJdbc.recuperar(
+                            linhas.getString("estado"), linhas.getString("motivo_revisao")
+                    );
+                    resumos.add(new ResumoRequisicao(
+                            ValidacaoCadastroJdbc.interpretarId(linhas.getString("id")),
+                            ValidacaoCadastroJdbc.interpretarId(linhas.getString("departamento_id")),
+                            autor == null ? null : ValidacaoCadastroJdbc.interpretarId(autor),
+                            estado.status(), estado.motivoRevisao(),
+                            ValidacaoCadastroJdbc.validarValorMonetario(linhas.getBigDecimal("custo_total"), "O custo total")
+                    ));
+                }
+                return List.copyOf(resumos);
+            }
+        } catch (SQLException falha) {
+            throw new FalhaPersistenciaException("Falha ao consultar resumos de requisições.", falha);
+        } catch (IllegalArgumentException falha) {
             throw inconsistencia();
         }
     }

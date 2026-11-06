@@ -1,11 +1,13 @@
 package br.mackenzie.finops.aplicacao;
 
 import br.mackenzie.finops.aplicacao.excecoes.AcessoNegadoException;
+import br.mackenzie.finops.aplicacao.excecoes.EntradaRequisicaoInvalidaException;
 import br.mackenzie.finops.aplicacao.portas.ConsultaRequisicaoPersistente;
 import br.mackenzie.finops.aplicacao.portas.ProvedorIdentidade;
 import br.mackenzie.finops.aplicacao.seguranca.ContextoIdentidade;
 import br.mackenzie.finops.aplicacao.seguranca.PerfilUsuario;
 import br.mackenzie.finops.aplicacao.seguranca.PoliticaAutorizacao;
+import br.mackenzie.finops.aplicacao.resultados.ResumoRequisicao;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 
 import java.util.List;
@@ -13,6 +15,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public final class ListarRequisicoesAutorizadasUseCase {
+    public static final int LIMITE_PADRAO = 25;
+    private static final int LIMITE_MAXIMO = 100;
 
     private final ProvedorIdentidade identidades;
     private final ConsultaRequisicaoPersistente consultas;
@@ -89,6 +93,37 @@ public final class ListarRequisicoesAutorizadasUseCase {
 
         return List.copyOf(encontradas);
     }
+
+    public Pagina executarPagina(UUID departamentoInformado, UUID apos, int limite) {
+        ContextoIdentidade identidade = obterIdentidadeAutorizada();
+        boolean arquiteto = identidade.perfil() == PerfilUsuario.ARQUITETO_CLOUD;
+        if (limite < 1 || limite > LIMITE_MAXIMO || arquiteto != (departamentoInformado != null)) {
+            throw new EntradaRequisicaoInvalidaException();
+        }
+
+        UUID departamento = arquiteto ? departamentoInformado : identidade.departamentoId();
+        UUID autor = arquiteto ? null : identidade.usuarioId();
+        var resumos = consultas.listarResumos(departamento, autor, apos, limite + 1);
+        if (resumos == null || resumos.size() > limite + 1) {
+            throw new IllegalStateException("A consulta retornou uma página inválida.");
+        }
+
+        String anterior = apos == null ? null : apos.toString();
+        for (var resumo : resumos) {
+            if (resumo == null || resumo.id() == null || !departamento.equals(resumo.departamentoId())
+                    || !politica.podeConsultarRequisicao(identidade, resumo.autorId(), resumo.departamentoId())
+                    || (anterior != null && anterior.compareTo(resumo.id().toString()) >= 0)) {
+                throw new IllegalStateException("A consulta retornou um resumo inválido ou fora do escopo.");
+            }
+            anterior = resumo.id().toString();
+        }
+
+        boolean temMais = resumos.size() > limite;
+        var pagina = List.copyOf(resumos.subList(0, Math.min(resumos.size(), limite)));
+        return new Pagina(pagina, temMais ? pagina.getLast().id() : null);
+    }
+
+    public record Pagina(List<ResumoRequisicao> requisicoes, UUID proximoCursor) {}
 
     private ContextoIdentidade obterIdentidadeAutorizada() {
         Optional<ContextoIdentidade> resultado =
