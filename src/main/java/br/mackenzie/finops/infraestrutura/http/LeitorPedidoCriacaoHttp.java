@@ -78,12 +78,15 @@ final class LeitorPedidoCriacaoHttp {
         }
     }
 
-    private static UUID lerUuid(JsonNode valor) {
+    static UUID lerUuid(JsonNode valor) {
         if (!valor.isString()) {
             throw new EntradaInvalidaException();
         }
 
-        String texto = valor.stringValue();
+        return lerUuid(valor.stringValue());
+    }
+
+    static UUID lerUuid(String texto) {
         UUID uuid;
         try {
             uuid = UUID.fromString(texto);

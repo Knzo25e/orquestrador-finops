@@ -1,6 +1,7 @@
 package br.mackenzie.finops.infraestrutura.servidor;
 
 import br.mackenzie.finops.aplicacao.ConsultarRequisicaoAutorizadaUseCase;
+import br.mackenzie.finops.aplicacao.AjustarTetoUseCase;
 import br.mackenzie.finops.aplicacao.CriarRequisicaoCoordenadaUseCase;
 import br.mackenzie.finops.aplicacao.ListarCatalogoAutorizadoUseCase;
 import br.mackenzie.finops.aplicacao.ListarIntervencoesUseCase;
@@ -8,6 +9,7 @@ import br.mackenzie.finops.aplicacao.ListarRequisicoesAutorizadasUseCase;
 import br.mackenzie.finops.aplicacao.ValidarRequisicaoAutorizadaUseCase;
 import br.mackenzie.finops.aplicacao.portas.ProvedorIdentidade;
 import br.mackenzie.finops.infraestrutura.persistencia.ConfiguracaoBanco;
+import br.mackenzie.finops.infraestrutura.persistencia.AjusteOrcamentarioJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaCatalogoJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaIntervencoesJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaRequisicaoJdbc;
@@ -70,6 +72,11 @@ class ComposicaoFinops {
         return new ValidarRequisicaoAutorizadaUseCase(
                 ComposicaoFinops::usuarioAutenticado, new ValidacaoRequisicaoJdbc(fabrica)
         );
+    }
+
+    @Bean
+    AjustarTetoUseCase ajustarTeto(FabricaConexoes fabrica) {
+        return new AjustarTetoUseCase(ComposicaoFinops::usuarioAutenticado, new AjusteOrcamentarioJdbc(fabrica));
     }
 
     @Bean
