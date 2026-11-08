@@ -824,7 +824,13 @@ relacionam as seções 6 a 11 aos requisitos e às evidências do projeto.
 - Arquiteto Cloud consulta pedidos de departamentos distintos, registra aprovação ou rejeição técnica com justificativa e encaminha pedidos aprovados à etapa financeira adequada. A aprovação técnica preserva o saldo e deixa a liberação a cargo da etapa financeira.
 - Na demonstração, um pedido retido pela reserva passa por aprovação técnica e autorização explícita de reserva, com revalidação. Outro cenário demonstra insuficiência de saldo e ajuste do teto com preservação dos compromissos. O roteiro inclui rejeição técnica e consulta, pelo Arquiteto, dos registros imutáveis das intervenções.
 
-### Decisões propostas, pendentes de aprovação
+### Decisões para a implementação
+
+Os itens 1 e 2 foram aprovados em 06/11/2026, com o código
+`SESSAO_NECESSARIA` provisório e a separação das falhas de CSRF.
+Implementação e evidências na [Issue #96](https://github.com/Knzo25e/orquestrador-finops/issues/96)
+e no [roteiro de execução local](executar-mvp-local.md). Os itens 3 a 5
+seguem para detalhamento e aprovação.
 
 1. **OPEN-004-02 — Sessão e aplicação executável.** Formulário simples do Spring Security na mesma origem da API, logout por POST e token CSRF em login, logout e mutações. Criar as duas contas por preparação local com senhas fornecidas fora do repositório e armazenar hashes adaptativos no MySQL. Usar HTTPS, cookie de sessão `HttpOnly`, `Secure` e `SameSite=Lax`, expiração por inatividade e troca do ID no login. A navegação redireciona para login. Para a API com sessão ausente ou expirada, propor `403 SESSAO_NECESSARIA` distinguível de `403 ACESSO_NEGADO`. Um `401` exige desafio aplicável e depende de outro contrato. [Form Login](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/form.html) · [CSRF](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html) · [Senhas](https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html) · [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.2)
 2. **OPEN-004-03 — Autorização por tentativa transacional.** A sessão identifica o usuário. Perfil, atividade e vínculo vigentes vêm do MySQL, com `FOR SHARE` por usuário na mesma conexão da mutação. Ordem proposta usuário → departamento → requisição. Escritores de identidade seguem o mesmo protocolo. Na reconciliação, uma nova transação relê e reautoriza. A SPEC-006 hoje descreve coordenação abrangendo criação e reconciliação, e `CriacaoRequisicaoJdbc` reutiliza a identidade. Aprovar a revisão desse contrato antes de adaptar as portas. Um commit de resultado incerto exige reconciliação, com autorização vigente e sem retentativa automática. [SPEC-004](casos-de-uso/SPEC-004-interface-aplicacao.md#open-004-03--coordenação-e-confirmação-desconhecida) · [Bloqueios InnoDB](https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html)

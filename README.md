@@ -16,6 +16,7 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 
 ## Situação atual
 
+- O servidor local executável usa HTTPS, contas MySQL e sessão com Spring Security. Veja [como preparar e executar](docs/executar-mvp-local.md).
 - Domínio e casos de uso implementados em Java.
 - Valores monetários representados por BigDecimal.
 - Reserva fixa de 10% do orçamento mensal, com arredondamento HALF_UP para duas casas decimais.
@@ -29,7 +30,7 @@ O sistema avalia requisições de infraestrutura considerando o saldo e a reserv
 - Os casos de uso A2 em memória permanecem disponíveis; criação e validação persistentes possuem casos de uso próprios.
 - Validação financeira transacional com MySQL integrada pelo PR #68, com evidências integradas pelo PR #69.
 - 462 verificações locais aprovadas, além do teste adicional de criação, validação e repetição em processos Java separados.
-- Fluxo manual, configuração editável da reserva e integração com Spring Boot permanecem pendentes.
+- Fluxo manual, configuração editável da reserva e submissão financeira pela API permanecem pendentes.
 - Não há provisionamento real na AWS.
 
 ## Requisitos para desenvolvimento

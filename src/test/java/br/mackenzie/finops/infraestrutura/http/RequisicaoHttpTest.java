@@ -47,7 +47,10 @@ import static org.mockito.Mockito.when;
 class RequisicaoHttpTest {
 
     @Configuration(proxyBeanMethods = false)
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(excludeName = {
+            "org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration",
+            "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration"
+    })
 @Import({
         RequisicaoController.class,
         TratamentoErrosHttp.class
