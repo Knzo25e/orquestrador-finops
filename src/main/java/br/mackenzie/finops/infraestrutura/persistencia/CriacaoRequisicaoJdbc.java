@@ -6,9 +6,11 @@ import br.mackenzie.finops.aplicacao.excecoes.AcessoNegadoException;
 import br.mackenzie.finops.aplicacao.excecoes.ConfirmacaoCriacaoDesconhecidaException;
 import br.mackenzie.finops.aplicacao.excecoes.FalhaCriacaoPersistenteException;
 import br.mackenzie.finops.aplicacao.portas.CriacaoRequisicaoAutorizadaPersistente;
+import br.mackenzie.finops.aplicacao.portas.CriacaoComIdentidadeTransacional;
 import br.mackenzie.finops.aplicacao.portas.CriacaoRequisicaoPersistente;
 import br.mackenzie.finops.aplicacao.resultados.ResultadoCriacaoRequisicao;
 import br.mackenzie.finops.aplicacao.seguranca.ContextoIdentidade;
+import br.mackenzie.finops.aplicacao.seguranca.PoliticaAutorizacao;
 import br.mackenzie.finops.dominio.entidades.Departamento;
 import br.mackenzie.finops.dominio.entidades.ItemRequisicao;
 import br.mackenzie.finops.dominio.entidades.RecursoCatalogo;
@@ -17,7 +19,9 @@ import br.mackenzie.finops.aplicacao.excecoes.SolicitacaoInvalidaException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,7 +35,7 @@ import java.util.UUID;
  */
 public final class CriacaoRequisicaoJdbc
         implements CriacaoRequisicaoPersistente,
-        CriacaoRequisicaoAutorizadaPersistente {
+        CriacaoRequisicaoAutorizadaPersistente, CriacaoComIdentidadeTransacional {
 
     private final FornecedorConexaoJdbc fornecedor;
 
@@ -70,7 +74,7 @@ public final class CriacaoRequisicaoJdbc
             );
         }
 
-        return executarComReconciliacao(solicitacao, null);
+        return executarComReconciliacao(conexao -> new Tentativa(solicitacao, null));
     }
 
     /**
@@ -87,26 +91,66 @@ public final class CriacaoRequisicaoJdbc
                 identidade
         );
 
-        return executarComReconciliacao(solicitacao, identidade);
+        return executarComReconciliacao(conexao -> new Tentativa(solicitacao, identidade));
+    }
+
+    @Override
+    public ResultadoCriacaoRequisicao executarComIdentidade(
+            UUID usuarioAutenticado, UUID requisicaoId, List<ItemSolicitado> itens
+    ) {
+        if (usuarioAutenticado == null) {
+            throw new AcessoNegadoException();
+        }
+        List<ItemSolicitado> itensDaTentativa = itens == null ? null : new ArrayList<>(itens);
+        return executarComReconciliacao(conexao -> {
+            var identidade = UsuariosJdbc.identidadeBloqueada(conexao, usuarioAutenticado)
+                    .orElseThrow(AcessoNegadoException::new);
+            var departamentoId = identidade.departamentoId();
+            if (!new PoliticaAutorizacao().podeCriarRequisicao(identidade, departamentoId)) {
+                throw new AcessoNegadoException();
+            }
+            bloquearDepartamento(conexao, departamentoId);
+            var solicitacao = SolicitacaoCriacaoRequisicao.comAutoria(
+                    requisicaoId, departamentoId, itensDaTentativa, usuarioAutenticado
+            );
+            return new Tentativa(solicitacao, identidade);
+        });
+    }
+
+    private static void bloquearDepartamento(Connection conexao, UUID id) throws SQLException {
+        try (var consulta = conexao.prepareStatement(
+                "SELECT id FROM departamento WHERE id = ? FOR SHARE"
+        )) {
+            consulta.setString(1, id.toString());
+            try (var resultado = consulta.executeQuery()) {
+                if (!resultado.next()) {
+                    throw new SolicitacaoInvalidaException("O departamento não está cadastrado.");
+                }
+            }
+        }
+    }
+
+    private record Tentativa(SolicitacaoCriacaoRequisicao solicitacao, ContextoIdentidade identidade) {}
+
+    @FunctionalInterface
+    private interface PreparacaoTentativa {
+        Tentativa preparar(Connection conexao) throws SQLException;
     }
 
     private ResultadoCriacaoRequisicao executarComReconciliacao(
-            SolicitacaoCriacaoRequisicao solicitacao,
-            ContextoIdentidade identidade
+            PreparacaoTentativa preparacao
     ) {
         try {
-            return executarTentativa(solicitacao, false, identidade);
+            return executarTentativa(preparacao, false);
         } catch (RequisicaoDuplicadaException duplicata) {
             // A tentativa anterior já encerrou sua transação e conexão.
             // A nova tentativa repete a autorização sobre o vencedor.
-            return executarTentativa(solicitacao, true, identidade);
+            return executarTentativa(preparacao, true);
         }
     }
 
     private ResultadoCriacaoRequisicao executarTentativa(
-            SolicitacaoCriacaoRequisicao solicitacao,
-            boolean somenteConferir,
-            ContextoIdentidade identidade
+            PreparacaoTentativa preparacao, boolean somenteConferir
     ) {
         Connection conexao = null;
         ResultadoCriacaoRequisicao resultado = null;
@@ -117,13 +161,6 @@ public final class CriacaoRequisicaoJdbc
         boolean fechamentoFalhou = false;
 
         try {
-            if (identidade != null) {
-                AutorizacaoCriacaoJdbc.conferirSolicitacao(
-                        solicitacao,
-                        identidade
-                );
-            }
-
             conexao = fornecedor.abrir();
 
             if (conexao == null) {
@@ -134,6 +171,10 @@ public final class CriacaoRequisicaoJdbc
                     Connection.TRANSACTION_REPEATABLE_READ
             );
             conexao.setAutoCommit(false);
+
+            var tentativa = preparacao.preparar(conexao);
+            var solicitacao = tentativa.solicitacao();
+            var identidade = tentativa.identidade();
 
             if (identidade != null) {
                 // A consulta do cabeçalho e a recuperação abaixo usam

@@ -3,9 +3,9 @@
 ## Identificação
 
 - Issue: #81.
-- Status: recorte funcional aprovado pelo responsável pelo projeto
-  na Issue #81; detalhes do contrato em revisão.
-  Decisões OPEN-004-02 a OPEN-004-07 e implementação pendentes.
+- Status: recorte de catálogo e criação aprovado na Issue #81.
+  A Issue #96 registra a implementação de sessão e coordenação
+  de identidade aprovadas em OPEN-004-02 e OPEN-004-03.
 - Objetivo: permitir consulta do catálogo e criação persistente
   de requisições por uma interface de aplicação, preservando
   autorização, idempotência e garantias transacionais.
@@ -89,9 +89,8 @@ implementação confiável de ExecucaoComIdentidadeCoordenada.
 Autor, perfil, situação ativa e departamento não podem ser aceitos
 como declarações confiáveis enviadas pelo cliente.
 
-A versão do Spring Boot e sua configuração permanecem pendentes.
-Este documento não comprova implementação nem atendimento integral
-às SPECs 004, 005 ou 006.
+O adaptador executável utiliza a versão do Spring Boot registrada
+no [pom.xml](../../pom.xml). A verificação local está na Issue #96.
 
 ## UC-01 — Consultar catálogo e criar requisição
 
@@ -532,7 +531,8 @@ ou conteúdo de pedidos não autorizados.
 | Situação | HTTP | Código público |
 |---|---:|---|
 | JSON malformado, campos inválidos, desconhecidos ou duplicados | 400 | ENTRADA_INVALIDA |
-| Credenciais ausentes ou inválidas, conforme integração de autenticação | 401 | AUTENTICACAO_NECESSARIA |
+| Sessão ausente ou expirada na API baseada em sessão | 403 | SESSAO_NECESSARIA |
+| Token CSRF ausente ou inválido em mutação autenticada | 403 | CSRF_INVALIDO |
 | Identidade autenticada sem permissão para a operação | 403 | ACESSO_NEGADO |
 | Repetição fora do escopo autorizado | 403 | ACESSO_NEGADO |
 | Conteúdo diferente para UUID existente e autorizado | 409 | CONFLITO_IDENTIFICADOR |
@@ -564,9 +564,9 @@ e deve incluir o desafio WWW-Authenticate correspondente.
 O mecanismo inicial aprovado utiliza sessão no servidor com cookie,
 conforme OPEN-004-02.
 
-O contrato de respostas para autenticação ausente ou inválida,
-incluindo o uso de 401 e WWW-Authenticate, ainda exige definição
-compatível com esse mecanismo.
+A navegação usa o formulário. Para a API baseada em sessão,
+`403 SESSAO_NECESSARIA` é o contrato provisório aprovado em
+OPEN-004-02.
 
 Não anunciar Basic ou Bearer se esses mecanismos não forem
 efetivamente oferecidos pela aplicação.
@@ -803,6 +803,15 @@ e coordenação adequada.
 
 ### OPEN-004-02 — Autenticação e origem da identidade
 
+Em 06/11/2026, o responsável aprovou o recorte de contas próprias,
+formulário Spring Security, sessão no servidor e CSRF para login,
+logout e mutações. A API baseada em sessão usa provisoriamente
+`403 SESSAO_NECESSARIA` para sessão ausente ou expirada,
+`403 CSRF_INVALIDO` para falha de token em mutação autenticada e
+`403 ACESSO_NEGADO` para falta de permissão. A navegação redireciona
+ao formulário. A sessão identifica o usuário e os atributos de
+autorização são obtidos do MySQL. [Execução local](../executar-mvp-local.md)
+
 #### Diretriz aprovada pelo responsável pelo projeto
 
 Adotar contas próprias do projeto, com autenticação implementada
@@ -1008,8 +1017,15 @@ antes da implementação.
 - Limites de espera e deadlocks encerram a tentativa com tratamento
   explícito, sem repetir automaticamente uma operação de resultado incerto.
 
-Status: proposta técnica a revisar e verificar.
-Não constitui garantia já implementada.
+Em 06/11/2026, o responsável aprovou a coordenação por tentativa.
+A criação usa `REPEATABLE READ` e protege usuário e departamento
+com leituras compartilhadas na mesma transação, antes do acesso
+à requisição. A ordem dos agregados protegidos é usuário →
+departamento → requisição. Na disputa pela chave única, a
+reconciliação relê a identidade após encerrar a tentativa anterior.
+Commit incerto preserva o resultado de confirmação desconhecida.
+O escopo executável desta decisão é a criação já contratada. A
+submissão e as consultas novas dependem de seus contratos próprios.
 
 ### OPEN-004-04 — Limitação de existência aceita no recorte acadêmico
 

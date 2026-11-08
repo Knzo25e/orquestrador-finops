@@ -334,6 +334,13 @@ de reconciliação após disputa pelo UUID.
 
 ### Coordenação da identidade
 
+Para a criação HTTP autenticada, a decisão de 06/11/2026 em
+[OPEN-004-03](SPEC-004-interface-aplicacao.md#open-004-03--coordenação-e-confirmação-desconhecida)
+define coordenação por tentativa no MySQL. A autorização é reavaliada
+na transação de reconciliação, que pode negar uma tentativa após
+mudança de vínculo. As evidências a seguir descrevem o recorte
+histórico de identidade controlada da Issue #76.
+
 CriarRequisicaoCoordenadaUseCase exige uma execução coordenada que
 abrange autorização, operação transacional e eventual reconciliação.
 
