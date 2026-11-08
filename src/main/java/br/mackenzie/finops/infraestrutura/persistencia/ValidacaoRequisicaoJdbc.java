@@ -1,10 +1,15 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
 import br.mackenzie.finops.aplicacao.ValidarOrcamentoUseCase;
+import br.mackenzie.finops.aplicacao.excecoes.AcessoNegadoException;
 import br.mackenzie.finops.aplicacao.excecoes.ConfirmacaoValidacaoDesconhecidaException;
 import br.mackenzie.finops.aplicacao.excecoes.FalhaValidacaoPersistenteException;
+import br.mackenzie.finops.aplicacao.excecoes.RequisicaoNaoEncontradaException;
+import br.mackenzie.finops.aplicacao.excecoes.ServicoIndisponivelException;
+import br.mackenzie.finops.aplicacao.portas.ValidacaoRequisicaoAutorizadaPersistente;
 import br.mackenzie.finops.aplicacao.portas.ValidacaoRequisicaoPersistente;
 import br.mackenzie.finops.aplicacao.resultados.ResultadoValidacaoPersistente;
+import br.mackenzie.finops.aplicacao.seguranca.PoliticaAutorizacao;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 import br.mackenzie.finops.dominio.entidades.ResultadoValidacao;
 
@@ -21,7 +26,7 @@ import java.util.UUID;
  * encerramento da transação.
  */
 public final class ValidacaoRequisicaoJdbc
-        implements ValidacaoRequisicaoPersistente {
+        implements ValidacaoRequisicaoPersistente, ValidacaoRequisicaoAutorizadaPersistente {
 
     private final FornecedorConexaoJdbc fornecedor;
 
@@ -48,6 +53,31 @@ public final class ValidacaoRequisicaoJdbc
 
     @Override
     public ResultadoValidacaoPersistente executar(UUID requisicaoId) {
+        return executar(requisicaoId, conexao -> new BloqueadorValidacaoJdbc(conexao).bloquear(requisicaoId), false);
+    }
+
+    @Override
+    public ResultadoValidacaoPersistente executarAutorizado(UUID usuarioAutenticado, UUID requisicaoId) {
+        if (usuarioAutenticado == null) {
+            throw new AcessoNegadoException();
+        }
+        return executar(requisicaoId, conexao -> {
+            var identidade = UsuariosJdbc.identidadeBloqueada(conexao, usuarioAutenticado)
+                    .orElseThrow(AcessoNegadoException::new);
+            if (!new PoliticaAutorizacao().podeSubmeterRequisicao(identidade)) {
+                throw new AcessoNegadoException();
+            }
+            return new BloqueadorValidacaoJdbc(conexao)
+                    .bloquearNoEscopo(requisicaoId, identidade.departamentoId(), identidade.usuarioId());
+        }, true);
+    }
+
+    @FunctionalInterface
+    private interface Bloqueio {
+        UUID bloquear(Connection conexao) throws SQLException;
+    }
+
+    private ResultadoValidacaoPersistente executar(UUID requisicaoId, Bloqueio bloqueio, boolean autorizada) {
         if (requisicaoId == null) {
             throw new IllegalArgumentException(
                     "O identificador da requisição é obrigatório."
@@ -73,8 +103,7 @@ public final class ValidacaoRequisicaoJdbc
             );
             conexao.setAutoCommit(false);
 
-            UUID departamentoId = new BloqueadorValidacaoJdbc(conexao)
-                    .bloquear(requisicaoId);
+            UUID departamentoId = bloqueio.bloquear(conexao);
 
             Requisicao requisicao = recuperar(
                     conexao,
@@ -111,9 +140,12 @@ public final class ValidacaoRequisicaoJdbc
             transacaoEncerrada = true;
             resultado = candidato;
         } catch (SQLException | FalhaPersistenciaException excecao) {
-            falha = new FalhaValidacaoPersistenteException();
+            falha = autorizada && FalhaPersistenciaException.indisponibilidade(excecao)
+                    ? new ServicoIndisponivelException() : new FalhaValidacaoPersistenteException();
         } catch (RuntimeException excecao) {
             if (excecao instanceof IllegalArgumentException
+                    || excecao instanceof AcessoNegadoException
+                    || excecao instanceof RequisicaoNaoEncontradaException
                     || excecao instanceof ConfirmacaoValidacaoDesconhecidaException
                     || excecao instanceof FalhaValidacaoPersistenteException) {
                 falha = excecao;

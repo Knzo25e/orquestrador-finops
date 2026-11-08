@@ -1,5 +1,6 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
+import br.mackenzie.finops.aplicacao.resultados.ResumoRequisicao;
 import br.mackenzie.finops.aplicacao.portas.RequisicaoRepository;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 
@@ -63,6 +64,10 @@ public final class RequisicaoRepositoryJdbc
     @Override
     public List<Requisicao> listarPorDepartamento(UUID departamentoId) {
         return leitor.listarPorDepartamento(departamentoId);
+    }
+
+    List<ResumoRequisicao> listarResumos(UUID departamentoId, UUID autorId, UUID apos, int limite) {
+        return leitor.listarResumos(departamentoId, autorId, apos, limite);
     }
 
     /**
