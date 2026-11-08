@@ -10,6 +10,10 @@ import java.util.UUID;
  */
 public final class PoliticaAutorizacao {
 
+    public boolean podeAcessarIntervencoes(ContextoIdentidade identidade) {
+        return identidadeAtiva(identidade) && identidade.perfil() == PerfilUsuario.ARQUITETO_CLOUD;
+    }
+
     public boolean podeConsultarCatalogo(ContextoIdentidade identidade) {
         return identidadeAtiva(identidade);
     }
