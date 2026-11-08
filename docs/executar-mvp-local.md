@@ -4,7 +4,7 @@ Sessão e identidade na [Issue #96](https://github.com/Knzo25e/orquestrador-fino
 
 ## Preparar MySQL e HTTPS
 
-1. Em um banco local `finops_dev`, aplique [V001, V002 e V003](../src/main/resources/db/mysql) em ordem. Em uma base já migrada, aplique somente as migrações faltantes. Cadastre pelo menos um departamento e um recurso. Exemplo para uma base vazia:
+1. Em um banco local `finops_dev`, aplique [V001 a V004](../src/main/resources/db/mysql) em ordem. Em uma base já migrada, aplique somente as migrações faltantes. Cadastre pelo menos um departamento e um recurso. Exemplo para uma base vazia:
 
    ```sql
    INSERT INTO departamento (id, nome, teto_mensal, saldo_disponivel)
@@ -74,10 +74,10 @@ Na navegação, a sessão ausente redireciona ao formulário. A API retorna prov
 
 ## Regressão com MySQL
 
-Use um `finops_test` isolado, com V001 a V003 e uma conta de teste com leitura e escrita nas tabelas do cenário. Os testes criam e removem os próprios registros. A suíte prepara um certificado temporário e verifica a sessão em HTTPS.
+Use um `finops_test` isolado, com V001 a V004 e uma conta administrativa de teste com leitura e escrita nas tabelas do cenário em `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD`. Os testes criam e removem os próprios registros. A suíte prepara um certificado temporário e verifica a sessão em HTTPS. Para `SessaoMysqlIT` e `AuditoriaMysqlIT`, configure também `FINOPS_RUNTIME_DB_USER` e `FINOPS_RUNTIME_DB_PASSWORD` com uma conta separada de execução. Ela deve ter somente `SELECT/INSERT` no histórico e os privilégios explícitos das demais tabelas. A suíte HTTPS usa essa conta restrita. [Privilégios e reprodução da auditoria](evidencias/issue-101/auditoria-imutavel.md)
 
 ```powershell
-.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT" verify
+.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT,AuditoriaMysqlIT" verify
 ```
 
 Os testes exercitam transações reais, incluindo disputa pelo UUID, troca de vínculo, desativação, rollback da validação e bloqueios observados por outra JVM. A perda de confirmação é simulada antes e depois de efetivar o commit.

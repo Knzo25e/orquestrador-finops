@@ -1,8 +1,8 @@
 # SPEC-007 — Auditoria de intervenções manuais
 
-**Proposta para aprovação.** RF-05 e DA-04 exigem histórico imutável das intervenções efetivadas. Esta Spec depende da persistência e da identidade confiável das Specs 005 e 006 e sustenta as propostas 008 e 009. Revisada com o Astra. [Issue #101](https://github.com/Knzo25e/orquestrador-finops/issues/101)
+**Contrato e OPEN-007-01 aprovados pelo responsável em 07/11/2026.** RF-05 e DA-04 exigem histórico imutável das intervenções efetivadas. Esta Spec depende da persistência e da identidade confiável das Specs 005 e 006 e sustenta as propostas 008 e 009. Revisada com o Astra. [Issue #101](https://github.com/Knzo25e/orquestrador-finops/issues/101)
 
-## Contrato proposto
+## Contrato aprovado
 
 - Cada comando das Specs 008 e 009 recebe `operacaoId` (UUID canônico) e `justificativa` (1 a 500 caracteres após remover espaços nas bordas). A sessão fornece o identificador do usuário. O MySQL fornece perfil e atividade atuais. Somente Arquiteto Cloud ativo executa ou consulta intervenções.
 - Um registro append-only contém `operacaoId`, `acao`, `responsavelId`, `instante` UTC do servidor, `justificativa` normalizada, `departamentoId`, `requisicaoId` quando aplicável, `resultado` e `dados` com a fotografia financeira ou de estado pertinente. A chave única é `operacaoId`. Guardar também os parâmetros originais normalizados, como `novoTeto` ou `decisao`, e o resultado e código HTTP originais para reconciliação.
@@ -20,6 +20,12 @@ A repetição com mesmo autor, ação, alvo e entrada normalizada recupera o res
 
 ## Decisão e aceite
 
-**OPEN-007-01.** Aprovar registro e recibo em uma única linha imutável por comando autorizado que chegou a uma decisão de negócio sobre um alvo existente. Recomendo registrar também negativas e operações sem mudança com resultado próprio e valores anteriores/posteriores. Isso torna recuperável a resposta original após commit incerto. Uma falha técnica com rollback ou uma tentativa sem autorização fica fora do histórico de intervenções.
+**OPEN-007-01 — aprovada em 07/11/2026.** Registro e recibo em uma única linha imutável por comando autorizado que chegou a uma decisão de negócio sobre um alvo existente. Registrar também negativas e operações sem mudança com resultado próprio e valores anteriores/posteriores. Isso torna recuperável a resposta original após commit incerto. Uma falha técnica com rollback ou uma tentativa sem autorização fica fora do histórico de intervenções.
 
 Aceite mínimo inclui falha de inserção revertendo a intervenção, tentativa SQL de alterar/excluir com usuário da aplicação, repetição após commit incerto sem novo evento, colisão concorrente do UUID, revogação durante operação e listagem paginada restrita ao Arquiteto. Usar testes MySQL com conexões e processos independentes.
+
+## Base implementada
+
+A migração V004, o coordenador interno `IntervencaoAuditadaJdbc` e a consulta HTTP concretizam esta base. O coordenador usa a ação do adaptador na conexão já autorizada e bloqueada, grava parâmetros normalizados, resultado, fotografia, status HTTP e versão 1 e recupera o recibo na repetição. A justificativa integra a comparação. A ordem das propriedades JSON não altera a equivalência. A ação interna não pode encerrar a transação ou produzir efeitos externos.
+
+O cursor é Base64 URL sem padding de `instanteUTC|operacaoId`, com precisão de microssegundos. Cada página reautoriza e aplica departamento, requisição e posição antes de buscar `limite + 1`. O histórico público omite os parâmetros internos e o status do recibo. Os comandos de escrita e as transições das Specs 008/009 dependem de suas aprovações. [Reprodução e evidências](../evidencias/issue-101/auditoria-imutavel.md)

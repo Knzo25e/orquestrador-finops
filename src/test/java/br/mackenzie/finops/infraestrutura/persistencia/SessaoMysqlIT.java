@@ -23,7 +23,11 @@ import javax.net.ssl.TrustManagerFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.ObjectMapper;
@@ -35,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(classes = FinopsServidor.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(SessaoMysqlIT.BancoRuntime.class)
 class SessaoMysqlIT {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String REQUISICOES = "/api/v1/requisicoes";
@@ -43,6 +48,16 @@ class SessaoMysqlIT {
     private static Path pastaTls;
     private static Path chaveTls;
     private static SSLContext tlsCliente;
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class BancoRuntime {
+        @Bean
+        @Primary
+        FabricaConexoes runtime() {
+            return new FabricaConexoes(new ConfiguracaoBanco(System.getenv("FINOPS_DB_URL"),
+                    System.getenv("FINOPS_RUNTIME_DB_USER"), System.getenv("FINOPS_RUNTIME_DB_PASSWORD")));
+        }
+    }
 
     @LocalServerPort
     private int porta;
@@ -130,6 +145,52 @@ class SessaoMysqlIT {
             erro(dev.post("/logout", "application/x-www-form-urlencoded", "", null), "CSRF_INVALIDO");
             assertEquals(302, dev.post("/logout", "application/x-www-form-urlencoded", "", dev.csrf()).statusCode());
             erro(dev.get(catalogo), "SESSAO_NECESSARIA");
+        }
+    }
+
+    @Test
+    void consultaHistoricoPorHttpsComSessaoRealEReautorizaCadaPagina() throws Exception {
+        try (var c = new CenarioIntervencoesMysql(); var anonimo = new Navegador();
+             var dev = new Navegador(); var arq = new Navegador()) {
+            var rota = "/api/v1/departamentos/" + c.usuarios.departamento + "/intervencoes";
+            erro(anonimo.get(rota), "SESSAO_NECESSARIA");
+            entrar(dev, c.usuarios.desenvolvedor, c.usuarios.senha);
+            entrar(arq, c.usuarios.arquiteto, c.usuarios.senha);
+            erro(dev.get(rota), "ACESSO_NEGADO");
+            var vazia = arq.get(rota);
+            assertEquals(200, vazia.statusCode(), vazia.body());
+            assertTrue(JSON.readTree(vazia.body()).get("intervencoes").isEmpty());
+            var primeiro = c.executar(c.comando(UUID.randomUUID(), c.usuarios.departamento));
+            var segundo = c.executar(c.comando(UUID.randomUUID(), c.usuarios.departamento));
+            var resposta = arq.get(rota + "?limite=1");
+            assertEquals(200, resposta.statusCode(), resposta.body());
+            assertTrue(resposta.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+            var pagina = JSON.readTree(resposta.body());
+            var evento = pagina.get("intervencoes").get(0);
+            assertEquals(segundo.evento().operacaoId().toString(), evento.get("operacaoId").stringValue());
+            assertEquals(c.arquiteto.toString(), evento.get("responsavelId").stringValue());
+            assertEquals("998.00", evento.get("dados").get("saldoPosterior").stringValue());
+            assertEquals(9, evento.size());
+            assertFalse(resposta.body().contains("parametros"));
+            assertFalse(resposta.body().contains("senha"));
+            var cursor = pagina.get("proximoCursor").stringValue();
+            var seguinte = arq.get(rota + "?limite=1&apos=" + cursor);
+            assertEquals(primeiro.evento().operacaoId().toString(),
+                    JSON.readTree(seguinte.body()).get("intervencoes").get(0).get("operacaoId").stringValue());
+            assertTrue(JSON.readTree(seguinte.body()).get("proximoCursor").isNull());
+            assertTrue(JSON.readTree(arq.get(rota + "?requisicaoId=" + UUID.randomUUID()).body()).get("intervencoes").isEmpty());
+            for (String filtro : List.of("?limite=0", "?limite=101", "?limite=abc", "?apos=invalido",
+                    "?limite=1&limite=2", "?perfil=ARQUITETO_CLOUD", "?requisicaoId=1-1-1-1-1")) {
+                erro(arq.get(rota + filtro), 400, "ENTRADA_INVALIDA");
+            }
+            erro(arq.get("/api/v1/departamentos/" + UUID.randomUUID() + "/intervencoes"), 404,
+                    "DEPARTAMENTO_NAO_ENCONTRADO");
+            erro(arq.get("/api/v1/departamentos/invalido/intervencoes"), 400, "ENTRADA_INVALIDA");
+            try (var conexao = c.usuarios.abrir()) {
+                CenarioUsuariosMysql.executar(conexao, "UPDATE usuario SET ativo = FALSE WHERE id = ?", c.arquiteto.toString());
+            }
+            erro(arq.get(rota + "?apos=" + cursor), "ACESSO_NEGADO");
+            assertEquals(2, c.quantidade());
         }
     }
 
