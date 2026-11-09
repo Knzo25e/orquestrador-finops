@@ -123,6 +123,7 @@ Este modelo descreve o comportamento esperado, atualizado pela decisão sobre re
 | Revisão Pendente | Requisição encaminhada para análise técnica por insuficiência de saldo ou por atingir ou consumir a reserva. |
 | AGUARDANDO_AJUSTE_ORCAMENTARIO | Requisição aprovada tecnicamente, cuja liberação depende de ajuste autorizado para obter saldo suficiente. |
 | AGUARDANDO_AUTORIZACAO_FINANCEIRA | Requisição aprovada tecnicamente, com saldo suficiente na última avaliação, mas cuja liberação depende de autorização explícita para utilizar a reserva. |
+| AGUARDANDO_LIBERACAO_FINANCEIRA | Requisição aprovada tecnicamente, cuja última avaliação preserva a reserva. Exige comando financeiro separado para liberar. Aprovado em OPEN-009-01 em 09/11/2026. |
 | Provisionamento Liberado | Condições financeiras atendidas e valor comprometido uma única vez. Representa autorização, não provisionamento efetivo na AWS. |
 | Rejeitado | Requisição rejeitada na revisão técnica pelo Arquiteto Cloud, com justificativa. |
 O motivo da revisão deve distinguir insuficiência de saldo de utilização da reserva. O estado Revisão Pendente, isoladamente, não identifica essa diferença.
@@ -144,10 +145,11 @@ O motivo da revisão deve distinguir insuficiência de saldo de utilização da 
 | Revisão Pendente | Arquiteto rejeita tecnicamente com justificativa | Rejeitado | Nenhum |
 | Revisão Pendente | Arquiteto aprova tecnicamente e a avaliação atual encontra saldo insuficiente | AGUARDANDO_AJUSTE_ORCAMENTARIO | Nenhum |
 | Revisão Pendente | Arquiteto aprova tecnicamente, há saldo suficiente e a liberação atinge ou consome a reserva | AGUARDANDO_AUTORIZACAO_FINANCEIRA | Nenhum |
+| Revisão Pendente | Arquiteto aprova tecnicamente e o saldo resultante preserva a reserva | AGUARDANDO_LIBERACAO_FINANCEIRA | Nenhum |
 
 A aprovação técnica nunca compromete saldo nem libera provisionamento por si só.
 
-Se, no momento da aprovação técnica, uma mudança orçamentária já tiver tornado possível a liberação sem utilização da reserva, o encaminhamento deverá ser detalhado na Spec 009. Esse caso não autoriza liberação como efeito implícito da aprovação técnica.
+Se uma mudança orçamentária já permitir liberação sem utilizar a reserva, a aprovação técnica encaminha para AGUARDANDO_LIBERACAO_FINANCEIRA. A liberação exige outra operação, conforme a SPEC-009 aprovada.
 
 #### Revalidação financeira após aprovação técnica
 
@@ -166,14 +168,8 @@ Toda liberação deve considerar saldo, teto e reserva vigentes, de forma consis
 
 Aumentar o orçamento não aprova tecnicamente uma requisição em Revisão Pendente. Autorizar uso da reserva não permite saldo negativo.
 
-#### Detalhamento pendente do fluxo manual
+#### Detalhamento aprovado do fluxo manual
 
-A Spec 009 deverá definir:
-
-- O encaminhamento quando a necessidade de utilizar a reserva desaparecer durante a espera.
-- O efeito de alterações do custo ou das condições financeiras sobre uma autorização já registrada.
-- O tratamento de uma autorização financeira negada.
-
-Essas situações ainda não constituem transições aprovadas neste documento. Devem ser acompanhadas em OPEN-003-05 da SPEC-003.
+A matriz completa da [SPEC-009](casos-de-uso/SPEC-009-revisao-liberacao-manual.md), aprovada em 09/11/2026, complementa as transições acima e resolve o recorte manual de OPEN-003-05. A autorização de reserva vale para a tentativa atual. A negativa preserva saldo e pendência. Quando a reserva deixa de ser necessária, AUTORIZAR_RESERVA e NEGAR_RESERVA retornam RESERVA_DISPENSADA e encaminham para AGUARDANDO_LIBERACAO_FINANCEIRA, exigindo LIBERAR_SEM_RESERVA em operação separada.
 
 Os nomes desta seção são referências documentais. A padronização no código e nos diagramas deverá acompanhar as alterações correspondentes.

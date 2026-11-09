@@ -1,8 +1,8 @@
 # SPEC-009 — Revisão técnica e liberação manual
 
-**Proposta para aprovação.** RF-03 a RF-05 e RB-02 a RB-05. Depende das Specs 003, 005, 006, [007](SPEC-007-auditoria-intervencoes.md) e [008](SPEC-008-ajustar-teto.md). A base aprovada está nas seções de transições de [spec.md](../spec.md) e em OPEN-003-05. Revisada com o Astra.
+**OPEN-009-01, OPEN-009-02 e OPEN-009-03 aprovadas pelo responsável em 09/11/2026.** RF-03 a RF-05 e RB-02 a RB-05. Depende das Specs 003, 005, 006, [007](SPEC-007-auditoria-intervencoes.md) e [008](SPEC-008-ajustar-teto.md). A base aprovada está nas seções de transições de [spec.md](../spec.md) e em OPEN-003-05. Revisada com o Astra. Implementação na [Issue #107](https://github.com/Knzo25e/orquestrador-finops/issues/107).
 
-## Comandos propostos
+## Comandos aprovados
 
 | Método e rota | Entrada além de `operacaoId` e `justificativa` | Condição |
 |---|---|---|
@@ -18,13 +18,13 @@ Os comandos exigem sessão, CSRF e Arquiteto Cloud ativo. O `200` inclui `operac
 | `REJEITAR` | Qualquer | `REJEITADO` | Registra rejeição e justificativa. Saldo preservado. |
 | `APROVAR` | Custo acima do saldo | `AGUARDANDO_AJUSTE_ORCAMENTARIO` | Saldo preservado. |
 | `APROVAR` | Custo cabe no saldo e saldo resultante atinge ou consome a reserva | `AGUARDANDO_AUTORIZACAO_FINANCEIRA` | Saldo preservado. |
-| `APROVAR` | Saldo resultante acima da reserva | `AGUARDANDO_LIBERACAO_FINANCEIRA` **proposto** | Saldo preservado. A liberação exige outro comando. |
+| `APROVAR` | Saldo resultante acima da reserva | `AGUARDANDO_LIBERACAO_FINANCEIRA` | Saldo preservado. A liberação exige outro comando. |
 
 ## Revalidação financeira
 
 Reavaliar custo histórico, saldo, teto e reserva na tentativa atual. Aplicar RB-05 sob os bloqueios da SPEC-007. Na liberação, confirmar saldo, estado e histórico juntos. O ajuste de teto é ação separada da SPEC-008.
 
-| Condição vigente em estado de espera financeira | Decisão | Destino e resultado propostos |
+| Condição vigente em estado de espera financeira | Decisão | Destino e resultado aprovados |
 |---|---|---|
 | Custo acima do saldo | Qualquer | `AGUARDANDO_AJUSTE_ORCAMENTARIO`, `AGUARDA_AJUSTE`. Sem débito ou autorização reaproveitável. |
 | Saldo suficiente e reserva necessária | `LIBERAR_SEM_RESERVA` | `AGUARDANDO_AUTORIZACAO_FINANCEIRA`, `AGUARDA_AUTORIZACAO`. Sem débito. |
@@ -37,8 +37,18 @@ Um novo comando sobre pedido já liberado ou rejeitado preserva o estado e saldo
 
 ## Decisões e aceite
 
-- **OPEN-009-01.** Recomendo o novo estado de espera sem reserva. Ampliar um estado existente é alternativa, mas misturaria pedidos que dependem de autorização de reserva com pedidos que já podem seguir para liberação financeira.
-- **OPEN-009-02.** Recomendo autorização de reserva válida somente na tentativa de liberação atual e negativa justificada que preserve a pendência. Aprovar também os resultados para mudança nas condições durante a espera. Assim, uma autorização anterior não fica disponível para uso com saldo, teto ou custo diferentes.
-- **OPEN-009-03.** Aprovar rotas, representação pública, compatibilidade de estados e a tabela completa. As linhas marcadas como propostas detalham lacunas e aguardam aprovação antes de qualquer migração ou mudança de comportamento.
+- **OPEN-009-01 — aprovada em 09/11/2026.** Novo estado de espera sem reserva e aprovação técnica sem débito, com os encaminhamentos da matriz.
+- **OPEN-009-02 — aprovada em 09/11/2026.** Autorização de reserva válida somente na tentativa de liberação atual, negativa justificada que preserve a pendência e resultados da revalidação quando as condições mudarem.
+- **OPEN-009-03 — aprovada em 09/11/2026.** Rotas, representação pública, compatibilidade de estados e matriz completa. Preservar autoria, preços, itens e motivos originais no histórico.
 
 Aceite da demonstração inclui aprovação técnica sem débito, rejeição justificada, autorização explícita da reserva, ajuste após insuficiência seguido de nova revalidação e consulta do histórico. Testar desaparecimento da necessidade de reserva, nova insuficiência, negativa financeira, duas liberações concorrentes, ajuste versus liberação, falha de auditoria, commit incerto, troca de perfil e regressão da validação automática.
+
+## Base executável
+
+V005 amplia `requisicao.estado` de 32 para 40 caracteres e inclui os quatro novos estados nos checks. Os três códigos anteriores e seus dados são preservados. A reconstituição e o DTO compartilhado atendem detalhe, listagem resumida e repetição da criação nos novos estados.
+
+O coordenador autoriza e protege o usuário antes de descobrir o departamento do pedido, na mesma conexão. Depois, bloqueia departamento e requisição e confere o vínculo. Um Desenvolvedor ou usuário inativo recebe `403` para alvo existente ou ausente. Arquiteto autorizado recebe o `404` público do pedido ausente.
+
+O evento registra estado anterior/novo, motivo original, custo histórico, saldo anterior/novo, teto e reserva considerados. `motivoOriginal` é vazio quando não havia motivo na tentativa. `versaoFotografia: "1"` e `requisicaoJson` armazenam o DTO completo antes do commit. O replay reconstrói a resposta a partir desse recibo, incluindo os preços históricos. O envelope de sucesso inclui `avisos`, e erros de negócio registrados incluem `operacaoId` e os avisos de fechamento aplicáveis. Resultados incertos continuam recebendo `503 CONFIRMACAO_INTERVENCAO_DESCONHECIDA`.
+
+[Reprodução e evidências](../evidencias/issue-107/fluxo-manual.md). A aprovação técnica, o ajuste de teto e a liberação permanecem operações independentes.
