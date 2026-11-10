@@ -12,10 +12,13 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
@@ -37,6 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 @SpringBootTest(classes = FinopsServidor.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(SessaoMysqlIT.BancoRuntime.class)
@@ -48,14 +54,32 @@ class SessaoMysqlIT {
     private static Path pastaTls;
     private static Path chaveTls;
     private static SSLContext tlsCliente;
+    private static final AtomicReference<Boolean> PERDER_CONFIRMACAO = new AtomicReference<>();
 
     @TestConfiguration(proxyBeanMethods = false)
     static class BancoRuntime {
         @Bean
         @Primary
-        FabricaConexoes runtime() {
-            return new FabricaConexoes(new ConfiguracaoBanco(System.getenv("FINOPS_DB_URL"),
+        FabricaConexoes runtime() throws SQLException {
+            var fabrica = new FabricaConexoes(new ConfiguracaoBanco(System.getenv("FINOPS_DB_URL"),
                     System.getenv("FINOPS_RUNTIME_DB_USER"), System.getenv("FINOPS_RUNTIME_DB_PASSWORD")));
+            var controlada = mock(FabricaConexoes.class, delegatesTo(fabrica));
+            doAnswer(chamada -> {
+                var real = fabrica.abrir();
+                Boolean confirmar = PERDER_CONFIRMACAO.getAndSet(null);
+                if (confirmar == null) {
+                    return real;
+                }
+                var conexao = mock(Connection.class, delegatesTo(real));
+                doAnswer(commit -> {
+                    if (confirmar) {
+                        real.commit();
+                    }
+                    throw new SQLException("Perda simulada da confirmação HTTP.");
+                }).when(conexao).commit();
+                return conexao;
+            }).when(controlada).abrir();
+            return controlada;
         }
     }
 
@@ -191,6 +215,91 @@ class SessaoMysqlIT {
             }
             erro(arq.get(rota + "?apos=" + cursor), "ACESSO_NEGADO");
             assertEquals(2, c.quantidade());
+        }
+    }
+
+    @Test
+    void arquitetoAjustaTetoPorHttpsEAuditaRecusasComRepeticaoEntreSessoes() throws Exception {
+        try (var c = new CenarioIntervencoesMysql(); var dev = new Navegador(); var arq = new Navegador();
+             var outraSessao = new Navegador(); var anonimo = new Navegador()) {
+            entrar(dev, c.usuarios.desenvolvedor, c.usuarios.senha);
+            entrar(arq, c.usuarios.arquiteto, c.usuarios.senha);
+            entrar(outraSessao, c.usuarios.arquiteto, c.usuarios.senha);
+            var pedido = criar(dev, c.usuarios.recurso, 56);
+            resultado(submeter(dev, pedido), "LIBERADA", "PROVISIONAMENTO_LIBERADO", null);
+            var rota = "/api/v1/departamentos/" + c.usuarios.departamento + "/ajustes-orcamentarios";
+            var operacao = UUID.randomUUID();
+            String corpo = "{\"operacaoId\":\"" + operacao + "\",\"novoTeto\":\"1500.00\",\"justificativa\":\"Motivo do ajuste\"}";
+            erro(anonimo.post(rota, "application/json", corpo, null), "SESSAO_NECESSARIA");
+            erro(dev.post(rota, "application/json", corpo, dev.csrf()), "ACESSO_NEGADO");
+            erro(arq.post(rota, "application/json", corpo, null), "CSRF_INVALIDO");
+            assertEquals(0, c.quantidade());
+            var ajustada = arq.post(rota, "application/json", corpo, arq.csrf());
+            assertEquals(200, ajustada.statusCode(), ajustada.body());
+            assertTrue(ajustada.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+            var fotografia = JSON.readTree(ajustada.body());
+            assertEquals("TETO_AJUSTADO", fotografia.get("resultado").stringValue());
+            assertEquals("800.00", fotografia.get("ajuste").get("saldoNovo").stringValue());
+            assertEquals("700.00", fotografia.get("ajuste").get("comprometido").stringValue());
+            var negativaId = UUID.randomUUID();
+            String negativo = corpo.replace(operacao.toString(), negativaId.toString()).replace("1500.00", "600.00");
+            var negativa = arq.post(rota, "application/json", negativo, arq.csrf());
+            erro(negativa, 409, "TETO_ABAIXO_DO_COMPROMETIDO");
+            assertEquals(negativaId.toString(), JSON.readTree(negativa.body()).get("erro").get("operacaoId").stringValue());
+            String reducao = corpo.replace(operacao.toString(), UUID.randomUUID().toString()).replace("1500.00", "900.00");
+            assertEquals(200, outraSessao.post(rota, "application/json", reducao, outraSessao.csrf()).statusCode());
+            assertEquals(fotografia, JSON.readTree(outraSessao.post(rota, "application/json", corpo, outraSessao.csrf()).body()));
+            var repetida = outraSessao.post(rota, "application/json", negativo, outraSessao.csrf());
+            assertEquals(409, repetida.statusCode());
+            assertEquals(JSON.readTree(negativa.body()), JSON.readTree(repetida.body()));
+            erro(arq.post(rota, "application/json", corpo.replace("1500.00", "1600.00"), arq.csrf()),
+                    409, "OPERACAO_ID_EM_CONFLITO");
+            erro(arq.post(rota, "application/json", corpo.replace("Motivo do ajuste", "Outro motivo"), arq.csrf()),
+                    409, "OPERACAO_ID_EM_CONFLITO");
+            String semMudanca = reducao.replace(JSON.readTree(reducao).get("operacaoId").stringValue(), UUID.randomUUID().toString());
+            assertEquals("TETO_INALTERADO", JSON.readTree(arq.post(rota, "application/json", semMudanca, arq.csrf()).body())
+                    .get("resultado").stringValue());
+            assertEquals("200.00", c.saldo(c.usuarios.departamento));
+            assertEquals("PROVISIONAMENTO_LIBERADO", detalhe(dev, pedido).get("estado").stringValue());
+            var historico = JSON.readTree(arq.get("/api/v1/departamentos/" + c.usuarios.departamento + "/intervencoes").body());
+            assertEquals(4, historico.get("intervencoes").size());
+            assertEquals(4, c.quantidade());
+            try (var conexao = c.usuarios.abrir()) {
+                CenarioUsuariosMysql.executar(conexao, "UPDATE usuario SET ativo = FALSE WHERE id = ?", c.arquiteto.toString());
+            }
+            erro(outraSessao.post(rota, "application/json", corpo, outraSessao.csrf()), "ACESSO_NEGADO");
+        }
+    }
+
+    @Test
+    void perdaDeConfirmacaoPorHttpsRetorna503EReconciliacaoExplicitaPreservaEfeitoUnico() throws Exception {
+        for (boolean confirmado : List.of(false, true)) {
+            for (String teto : List.of("1500.00", "600.00")) {
+                try (var c = new CenarioIntervencoesMysql(); var arq = new Navegador()) {
+                    var pedido = UUID.randomUUID();
+                    new CriacaoRequisicaoJdbc(c.runtime).executarComIdentidade(c.usuarios.autor, pedido,
+                            List.of(new ItemSolicitado(c.usuarios.recurso, 56)));
+                    new ValidacaoRequisicaoJdbc(c.runtime).executarAutorizado(c.usuarios.autor, pedido);
+                    entrar(arq, c.usuarios.arquiteto, c.usuarios.senha);
+                    var csrf = arq.csrf();
+                    var operacao = UUID.randomUUID();
+                    var rota = "/api/v1/departamentos/" + c.usuarios.departamento + "/ajustes-orcamentarios";
+                    String corpo = "{\"operacaoId\":\"" + operacao + "\",\"novoTeto\":\"" + teto
+                            + "\",\"justificativa\":\"Confirmação desconhecida\"}";
+                    PERDER_CONFIRMACAO.set(confirmado);
+                    var incerta = arq.post(rota, "application/json", corpo, csrf);
+                    erro(incerta, 503, "CONFIRMACAO_INTERVENCAO_DESCONHECIDA");
+                    assertEquals(operacao.toString(), JSON.readTree(incerta.body()).get("erro").get("operacaoId").stringValue());
+                    assertEquals(confirmado ? 1 : 0, c.quantidade());
+                    var reconciliada = arq.post(rota, "application/json", corpo, csrf);
+                    assertEquals(teto.equals("600.00") ? 409 : 200, reconciliada.statusCode(), reconciliada.body());
+                    assertEquals(JSON.readTree(reconciliada.body()), JSON.readTree(arq.post(rota, "application/json", corpo, csrf).body()));
+                    assertEquals(1, c.quantidade());
+                    assertEquals(teto.equals("1500.00") ? "800.00" : "300.00", c.saldo(c.usuarios.departamento));
+                } finally {
+                    PERDER_CONFIRMACAO.set(null);
+                }
+            }
         }
     }
 
