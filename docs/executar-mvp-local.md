@@ -13,7 +13,7 @@ Sessão e identidade na [Issue #96](https://github.com/Knzo25e/orquestrador-fino
    VALUES ('10000000-0000-4000-8000-000000000002', 'Recurso de demonstração', 12.50);
    ```
 
-2. Configure JDK 25 em `JAVA_HOME` e `FINOPS_DB_URL`, `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD` na sessão. Exemplo de URL local `jdbc:mysql://localhost:3306/finops_dev?sslMode=REQUIRED`. A conta que roda o servidor precisa de leitura de usuários, departamentos, catálogo, pedidos e itens, inserção de pedidos e itens e atualização de `departamento.saldo_disponivel`, `requisicao.estado` e `requisicao.motivo_revisao`. Use uma conta de preparação com permissão de inserir usuários para o cadastro. Alterações administrativas de atividade, perfil e departamento escrevem na mesma linha de `usuario` protegida pelas operações, em uma transação.
+2. Configure JDK 25 em `JAVA_HOME` e `FINOPS_DB_URL`, `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD` na sessão. Exemplo de URL local `jdbc:mysql://localhost:3306/finops_dev?sslMode=REQUIRED`. A conta que roda o servidor precisa de leitura de usuários, departamentos, catálogo, pedidos e itens, inserção de pedidos e itens e atualização de `departamento.teto_mensal`, `departamento.saldo_disponivel`, `requisicao.estado` e `requisicao.motivo_revisao`. No histórico `intervencao`, conceda somente `SELECT/INSERT`, sem permissões herdadas de alteração, remoção ou DDL. Use uma conta de preparação com permissão de inserir usuários para o cadastro. Alterações administrativas de atividade, perfil e departamento escrevem na mesma linha de `usuario` protegida pelas operações, em uma transação.
 3. Use um PKCS12 externo ao repositório com certificado para o endereço de loopback usado pelo cliente. O exemplo inclui `localhost` e `127.0.0.1`. Para gerar um certificado local, em PowerShell:
 
    ```powershell
@@ -77,7 +77,7 @@ Na navegação, a sessão ausente redireciona ao formulário. A API retorna prov
 Use um `finops_test` isolado, com V001 a V004 e uma conta administrativa de teste com leitura e escrita nas tabelas do cenário em `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD`. Os testes criam e removem os próprios registros. A suíte prepara um certificado temporário e verifica a sessão em HTTPS. Para `SessaoMysqlIT` e `AuditoriaMysqlIT`, configure também `FINOPS_RUNTIME_DB_USER` e `FINOPS_RUNTIME_DB_PASSWORD` com uma conta separada de execução. Ela deve ter somente `SELECT/INSERT` no histórico e os privilégios explícitos das demais tabelas. A suíte HTTPS usa essa conta restrita. [Privilégios e reprodução da auditoria](evidencias/issue-101/auditoria-imutavel.md)
 
 ```powershell
-.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT,AuditoriaMysqlIT" verify
+.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT,AuditoriaMysqlIT,AjusteOrcamentarioMysqlIT" verify
 ```
 
 Os testes exercitam transações reais, incluindo disputa pelo UUID, troca de vínculo, desativação, rollback da validação e bloqueios observados por outra JVM. A perda de confirmação é simulada antes e depois de efetivar o commit.
@@ -85,3 +85,27 @@ Os testes exercitam transações reais, incluindo disputa pelo UUID, troca de v�
 Em 06/11/2026, a suíte da Issue #99 aprovou 49 testes com JDK 25.0.2 e MySQL 8.0.44. Os cinco verificadores JDBC de regressão aprovaram 164 verificações. O JAR empacotado reproduziu o fluxo HTTPS com uma conta de banco restrita aos privilégios descritos acima.
 
 Na sondagem local de três submissões por endereço, os POSTs levaram 30 a 43 ms via `127.0.0.1` e cerca de 2,05 a 2,07 s via `localhost`. A conexão TCP levou 4 ms via IPv4 direto e cerca de 2,04 s via `localhost` nessa máquina. Use IPv4 direto para reproduzir a demonstração local. O ensaio representativo do RNF-01 com MySQL e concorrência permanece no plano de verificação.
+
+## Ajustar teto e consultar auditoria
+
+Em uma sessão do Arquiteto Cloud, execute o exemplo abaixo com um departamento existente. O Desenvolvedor recebe `403 ACESSO_NEGADO` ao tentar ajustar. A operação preserva os compromissos existentes, e o histórico inclui ajustes, negativas de negócio e teto inalterado. Guarde o corpo completo para uma repetição ou reconciliação explícita.
+
+```javascript
+const departamentoAjuste = "10000000-0000-4000-8000-000000000001";
+const ajusteTeto = {
+  operacaoId: crypto.randomUUID(),
+  novoTeto: "1500.00",
+  justificativa: "Adequação à demanda do departamento"
+};
+const csrfAjuste = await fetch("/api/v1/csrf").then(r => r.json());
+const enviarAjuste = () => fetch(`/api/v1/departamentos/${departamentoAjuste}/ajustes-orcamentarios`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", [csrfAjuste.cabecalho]: csrfAjuste.token },
+  body: JSON.stringify(ajusteTeto)
+});
+const respostaAjuste = await enviarAjuste();
+console.log(respostaAjuste.status, await respostaAjuste.json());
+console.log(await fetch(`/api/v1/departamentos/${departamentoAjuste}/intervencoes?limite=25`).then(r => r.json()));
+```
+
+Repetir `enviarAjuste()` recupera a resposta original após reautorização. Um teto abaixo do comprometido recebe `409 TETO_ABAIXO_DO_COMPROMETIDO` e gera um recibo sem alteração financeira. Um novo comando de negócio usa outro UUID. Um `503 CONFIRMACAO_INTERVENCAO_DESCONHECIDA` requer reconciliação explícita com o mesmo UUID e corpo. Consulte os [resultados e limites da SPEC-008](evidencias/issue-105/ajuste-teto.md).
