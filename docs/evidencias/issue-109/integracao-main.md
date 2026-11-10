@@ -30,7 +30,7 @@ Antes deste relatório, o diff para `main` tinha 88 arquivos, com 61 adições e
 
 A única diferença de conteúdo entre a integração e a ponta `2299aad` é a preservação de `docs/review/contratos-submissao-consulta.md`, proveniente do #98 na `main`, além deste relatório. O documento preservado tem o mesmo blob `5501f02a12035f1d67ffe2c15094ae6d2f4757a1` na base e na integração. Não houve mudança inesperada no código, alteração de dependências, commits duplicados por cherry-pick ou exclusão de arquivos da base. `git diff --check` passou.
 
-A alteração local preexistente em `.vscode/settings.json` permanece na cópia original e ficou fora da integração. As branches compartilhadas e `main` conservaram suas referências. A nova branch contém os merges e este registro operacional.
+A alteração local preexistente em `.vscode/settings.json` permanece na cópia original e ficou fora da integração. Esta preparação escreveu apenas na nova branch de integração. As atualizações de #106 e #108 nas bases foram observadas no GitHub e preservadas nos merges adicionais. A nova branch contém os merges e este registro operacional.
 
 ## Regressão completa na árvore integrada
 
