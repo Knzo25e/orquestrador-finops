@@ -3,11 +3,13 @@ package br.mackenzie.finops.infraestrutura.servidor;
 import br.mackenzie.finops.aplicacao.ConsultarRequisicaoAutorizadaUseCase;
 import br.mackenzie.finops.aplicacao.CriarRequisicaoCoordenadaUseCase;
 import br.mackenzie.finops.aplicacao.ListarCatalogoAutorizadoUseCase;
+import br.mackenzie.finops.aplicacao.ListarIntervencoesUseCase;
 import br.mackenzie.finops.aplicacao.ListarRequisicoesAutorizadasUseCase;
 import br.mackenzie.finops.aplicacao.ValidarRequisicaoAutorizadaUseCase;
 import br.mackenzie.finops.aplicacao.portas.ProvedorIdentidade;
 import br.mackenzie.finops.infraestrutura.persistencia.ConfiguracaoBanco;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaCatalogoJdbc;
+import br.mackenzie.finops.infraestrutura.persistencia.ConsultaIntervencoesJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaRequisicaoJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.CriacaoRequisicaoJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.FabricaConexoes;
@@ -68,6 +70,12 @@ class ComposicaoFinops {
         return new ValidarRequisicaoAutorizadaUseCase(
                 ComposicaoFinops::usuarioAutenticado, new ValidacaoRequisicaoJdbc(fabrica)
         );
+    }
+
+    @Bean
+    ListarIntervencoesUseCase listarIntervencoes(FabricaConexoes fabrica) {
+        return new ListarIntervencoesUseCase(
+                ComposicaoFinops::usuarioAutenticado, new ConsultaIntervencoesJdbc(fabrica));
     }
 
     @Bean
