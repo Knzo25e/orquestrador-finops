@@ -2,6 +2,8 @@ package br.mackenzie.finops.infraestrutura.servidor;
 
 import br.mackenzie.finops.aplicacao.ConsultarRequisicaoAutorizadaUseCase;
 import br.mackenzie.finops.aplicacao.AjustarTetoUseCase;
+import br.mackenzie.finops.aplicacao.IntervirRequisicaoUseCase;
+import br.mackenzie.finops.infraestrutura.persistencia.IntervencaoRequisicaoJdbc;
 import br.mackenzie.finops.aplicacao.CriarRequisicaoCoordenadaUseCase;
 import br.mackenzie.finops.aplicacao.ListarCatalogoAutorizadoUseCase;
 import br.mackenzie.finops.aplicacao.ListarIntervencoesUseCase;
@@ -72,6 +74,11 @@ class ComposicaoFinops {
         return new ValidarRequisicaoAutorizadaUseCase(
                 ComposicaoFinops::usuarioAutenticado, new ValidacaoRequisicaoJdbc(fabrica)
         );
+    }
+
+    @Bean
+    IntervirRequisicaoUseCase intervirRequisicao(FabricaConexoes fabrica) {
+        return new IntervirRequisicaoUseCase(ComposicaoFinops::usuarioAutenticado, new IntervencaoRequisicaoJdbc(fabrica));
     }
 
     @Bean

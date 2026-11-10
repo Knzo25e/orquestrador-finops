@@ -2,6 +2,7 @@ package br.mackenzie.finops.infraestrutura.servidor;
 
 import br.mackenzie.finops.infraestrutura.http.CatalogoController;
 import br.mackenzie.finops.infraestrutura.http.AjusteOrcamentarioController;
+import br.mackenzie.finops.infraestrutura.http.IntervencaoRequisicaoController;
 import br.mackenzie.finops.infraestrutura.http.IntervencoesController;
 import br.mackenzie.finops.infraestrutura.http.OperacoesRequisicaoController;
 import br.mackenzie.finops.infraestrutura.http.RequisicaoController;
@@ -16,7 +17,7 @@ import org.springframework.context.annotation.PropertySource;
 @Import({
         CatalogoController.class, RequisicaoController.class,
         OperacoesRequisicaoController.class, IntervencoesController.class,
-        AjusteOrcamentarioController.class, TratamentoErrosHttp.class
+        AjusteOrcamentarioController.class, IntervencaoRequisicaoController.class, TratamentoErrosHttp.class
 })
 @PropertySource("classpath:finops-servidor.properties")
 public class FinopsServidor {

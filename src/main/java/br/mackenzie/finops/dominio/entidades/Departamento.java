@@ -123,6 +123,10 @@ public class Departamento {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
+    public BigDecimal getPercentualReserva() {
+        return PERCENTUAL_RESERVA;
+    }
+
     private static BigDecimal validarValorMonetario(
             BigDecimal valor,
             String campo

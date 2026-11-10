@@ -4,7 +4,7 @@ Sessão e identidade na [Issue #96](https://github.com/Knzo25e/orquestrador-fino
 
 ## Preparar MySQL e HTTPS
 
-1. Em um banco local `finops_dev`, aplique [V001 a V004](../src/main/resources/db/mysql) em ordem. Em uma base já migrada, aplique somente as migrações faltantes. Cadastre pelo menos um departamento e um recurso. Exemplo para uma base vazia:
+1. Em um banco local `finops_dev`, aplique [V001 a V005](../src/main/resources/db/mysql) em ordem. Em uma base já migrada, aplique somente as migrações faltantes. V005 amplia a coluna de estado para os novos códigos e altera checks. Prepare backup antes de aplicar DDL no banco real. Cadastre pelo menos um departamento e um recurso. Exemplo para uma base vazia:
 
    ```sql
    INSERT INTO departamento (id, nome, teto_mensal, saldo_disponivel)
@@ -74,10 +74,10 @@ Na navegação, a sessão ausente redireciona ao formulário. A API retorna prov
 
 ## Regressão com MySQL
 
-Use um `finops_test` isolado, com V001 a V004 e uma conta administrativa de teste com leitura e escrita nas tabelas do cenário em `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD`. Os testes criam e removem os próprios registros. A suíte prepara um certificado temporário e verifica a sessão em HTTPS. Para `SessaoMysqlIT` e `AuditoriaMysqlIT`, configure também `FINOPS_RUNTIME_DB_USER` e `FINOPS_RUNTIME_DB_PASSWORD` com uma conta separada de execução. Ela deve ter somente `SELECT/INSERT` no histórico e os privilégios explícitos das demais tabelas. A suíte HTTPS usa essa conta restrita. [Privilégios e reprodução da auditoria](evidencias/issue-101/auditoria-imutavel.md)
+Use um `finops_test` isolado, com V001 a V005 e uma conta administrativa de teste com leitura e escrita nas tabelas do cenário em `FINOPS_DB_USER` e `FINOPS_DB_PASSWORD`. Os testes criam e removem os próprios registros. A suíte prepara um certificado temporário e verifica a sessão em HTTPS. Configure também `FINOPS_RUNTIME_DB_USER` e `FINOPS_RUNTIME_DB_PASSWORD` com uma conta separada de execução. Ela deve ter somente `SELECT/INSERT` no histórico e os privilégios explícitos das demais tabelas. A suíte HTTPS usa essa conta restrita. `MigracaoEstadosMysqlIT` exige que a conta administrativa possa criar e remover um schema temporário exclusivo com prefixo `finops_test_migracao_`. [Privilégios e reprodução da auditoria](evidencias/issue-101/auditoria-imutavel.md)
 
 ```powershell
-.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT,AuditoriaMysqlIT,AjusteOrcamentarioMysqlIT" verify
+.\mvnw.cmd -B "-Dtest=*Test,CriacaoHttpMysqlIT,SessaoMysqlIT,CriacaoIdentidadeMysqlIT,ValidacaoAutorizadaMysqlIT,AuditoriaMysqlIT,AjusteOrcamentarioMysqlIT,FluxoManualMysqlIT,MigracaoEstadosMysqlIT" verify
 ```
 
 Os testes exercitam transações reais, incluindo disputa pelo UUID, troca de vínculo, desativação, rollback da validação e bloqueios observados por outra JVM. A perda de confirmação é simulada antes e depois de efetivar o commit.
@@ -109,3 +109,32 @@ console.log(await fetch(`/api/v1/departamentos/${departamentoAjuste}/intervencoe
 ```
 
 Repetir `enviarAjuste()` recupera a resposta original após reautorização. Um teto abaixo do comprometido recebe `409 TETO_ABAIXO_DO_COMPROMETIDO` e gera um recibo sem alteração financeira. Um novo comando de negócio usa outro UUID. Um `503 CONFIRMACAO_INTERVENCAO_DESCONHECIDA` requer reconciliação explícita com o mesmo UUID e corpo. Consulte os [resultados e limites da SPEC-008](evidencias/issue-105/ajuste-teto.md).
+
+## Revisão técnica e liberação manual
+
+Na sessão do Desenvolvedor, crie e submeta um pedido que alcance a reserva ou exceda o saldo, conforme o fluxo anterior. Na sessão do Arquiteto, use o UUID desse pedido e uma justificativa em cada comando. Cada nova decisão recebe um `operacaoId`. Guarde o corpo original para repetição ou reconciliação explícita.
+
+```javascript
+const pedidoManual = "UUID_DO_PEDIDO_EM_REVISAO";
+const csrfManual = await fetch("/api/v1/csrf").then(r => r.json());
+const aprovacaoTecnica = {
+  operacaoId: crypto.randomUUID(), decisao: "APROVAR",
+  justificativa: "Recurso tecnicamente adequado à demanda"
+};
+const autorizacaoFinanceira = {
+  operacaoId: crypto.randomUUID(), decisao: "AUTORIZAR_RESERVA",
+  justificativa: "Uso de reserva autorizado para a tentativa atual"
+};
+const enviarManual = (etapa, corpo) => fetch(`/api/v1/requisicoes/${pedidoManual}/${etapa}`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", [csrfManual.cabecalho]: csrfManual.token },
+  body: JSON.stringify(corpo)
+});
+const revisaoManual = await enviarManual("revisao-tecnica", aprovacaoTecnica);
+console.log(revisaoManual.status, await revisaoManual.json());
+// Confirme o resultado técnico e o saldo antes de executar a etapa financeira.
+const liberacaoManual = await enviarManual("liberacao-financeira", autorizacaoFinanceira);
+console.log(liberacaoManual.status, await liberacaoManual.json());
+```
+
+Use `REJEITAR` na revisão para rejeição justificada. Na etapa financeira, `NEGAR_RESERVA` preserva a pendência. Se faltar saldo, ajuste o teto em outra operação. Quando a reserva for dispensada, use um comando novo com `LIBERAR_SEM_RESERVA`. A aprovação técnica preserva o saldo. O histórico por departamento e pedido permite conferir todas as decisões. [Roteiro demonstrado, testes e limites](evidencias/issue-107/fluxo-manual.md).

@@ -504,6 +504,143 @@ class SessaoMysqlIT {
         return pedido;
     }
 
+    @Test
+    void demonstraRevisaoReservaAjusteRejeicaoEHistoricoPorHttps() throws Exception {
+        try (var c = new CenarioIntervencoesMysql(); var dev = new Navegador(); var arq = new Navegador();
+             var anonimo = new Navegador()) {
+            entrar(dev, c.usuarios.desenvolvedor, c.usuarios.senha);
+            entrar(arq, c.usuarios.arquiteto, c.usuarios.senha);
+            var reserva = criar(dev, c.usuarios.recurso, 72);
+            var insuficiente = criar(dev, c.usuarios.recurso, 96);
+            var rejeitado = criar(dev, c.usuarios.recurso, 80);
+            resultado(submeter(dev, reserva), "REVISAO_POR_RESERVA", "REVISAO_PENDENTE", "RESERVA");
+            resultado(submeter(dev, insuficiente), "REVISAO_POR_SALDO_INSUFICIENTE", "REVISAO_PENDENTE", "SALDO_INSUFICIENTE");
+            resultado(submeter(dev, rejeitado), "REVISAO_POR_RESERVA", "REVISAO_PENDENTE", "RESERVA");
+            var tecnica = REQUISICOES + "/" + reserva + "/revisao-tecnica";
+            var financeira = REQUISICOES + "/" + reserva + "/liberacao-financeira";
+            var corpoAprovacao = corpoIntervencao(UUID.randomUUID(), "APROVAR");
+            erro(anonimo.post(tecnica, "application/json", corpoAprovacao, null), "SESSAO_NECESSARIA");
+            erro(arq.post(tecnica, "application/json", corpoAprovacao, null), "CSRF_INVALIDO");
+            for (UUID id : List.of(reserva, UUID.randomUUID())) {
+                erro(dev.post(REQUISICOES + "/" + id + "/revisao-tecnica", "application/json", corpoAprovacao, dev.csrf()), "ACESSO_NEGADO");
+                erro(dev.post(REQUISICOES + "/" + id + "/liberacao-financeira", "application/json",
+                        corpoIntervencao(UUID.randomUUID(), "AUTORIZAR_RESERVA"), dev.csrf()), "ACESSO_NEGADO");
+            }
+            erro(arq.post(tecnica, "application/json", corpoIntervencao(UUID.randomUUID(), "AUTORIZAR_RESERVA"), arq.csrf()), 400, "ENTRADA_INVALIDA");
+            erro(arq.post(financeira, "application/json", corpoAprovacao, arq.csrf()), 400, "ENTRADA_INVALIDA");
+            erro(arq.post(tecnica + "?perfil=ARQUITETO_CLOUD", "application/json", corpoAprovacao, arq.csrf()), 400, "ENTRADA_INVALIDA");
+            erro(arq.post(REQUISICOES + "/" + UUID.randomUUID() + "/revisao-tecnica", "application/json", corpoAprovacao, arq.csrf()),
+                    404, "REQUISICAO_NAO_ENCONTRADA");
+            assertEquals(0, c.quantidade());
+            var aprovada = arq.post(tecnica, "application/json", corpoAprovacao, arq.csrf());
+            assertEquals(200, aprovada.statusCode(), aprovada.body());
+            assertEquals("APROVADA_TECNICAMENTE", JSON.readTree(aprovada.body()).get("resultado").stringValue());
+            assertEquals("1000.00", c.saldo(c.usuarios.departamento));
+            conferirEstadoNosContratos(dev, reserva, c.usuarios.recurso, 72, "AGUARDANDO_AUTORIZACAO_FINANCEIRA");
+            erro(submeter(dev, reserva), 409, "ESTADO_NAO_PERMITIDO");
+            var reprovada = arq.post(REQUISICOES + "/" + rejeitado + "/revisao-tecnica", "application/json",
+                    corpoIntervencao(UUID.randomUUID(), "REJEITAR"), arq.csrf());
+            assertEquals("REJEITADA", JSON.readTree(reprovada.body()).get("resultado").stringValue());
+            conferirEstadoNosContratos(dev, rejeitado, c.usuarios.recurso, 80, "REJEITADO");
+            assertEquals(200, arq.post(REQUISICOES + "/" + insuficiente + "/revisao-tecnica", "application/json",
+                    corpoIntervencao(UUID.randomUUID(), "APROVAR"), arq.csrf()).statusCode());
+            conferirEstadoNosContratos(dev, insuficiente, c.usuarios.recurso, 96, "AGUARDANDO_AJUSTE_ORCAMENTARIO");
+            assertEquals("RESERVA_NEGADA", JSON.readTree(arq.post(financeira, "application/json",
+                    corpoIntervencao(UUID.randomUUID(), "NEGAR_RESERVA"), arq.csrf()).body()).get("resultado").stringValue());
+            assertEquals("1000.00", c.saldo(c.usuarios.departamento));
+            assertEquals("AGUARDA_AUTORIZACAO", JSON.readTree(arq.post(financeira, "application/json",
+                    corpoIntervencao(UUID.randomUUID(), "LIBERAR_SEM_RESERVA"), arq.csrf()).body()).get("resultado").stringValue());
+            var corpoLiberacao = corpoIntervencao(UUID.randomUUID(), "AUTORIZAR_RESERVA");
+            var liberada = arq.post(financeira, "application/json", corpoLiberacao, arq.csrf());
+            assertEquals("LIBERADA_COM_RESERVA", JSON.readTree(liberada.body()).get("resultado").stringValue());
+            assertEquals("100.00", c.saldo(c.usuarios.departamento));
+            assertEquals(JSON.readTree(liberada.body()), JSON.readTree(arq.post(financeira, "application/json", corpoLiberacao, arq.csrf()).body()));
+            assertEquals(JSON.readTree(aprovada.body()), JSON.readTree(arq.post(tecnica, "application/json", corpoAprovacao, arq.csrf()).body()));
+            erro(arq.post(financeira, "application/json", corpoIntervencao(UUID.randomUUID(), "AUTORIZAR_RESERVA"), arq.csrf()),
+                    409, "ESTADO_NAO_PERMITIDO");
+            erro(arq.post(tecnica, "application/json", corpoAprovacao.replace("APROVAR", "REJEITAR"), arq.csrf()),
+                    409, "OPERACAO_ID_EM_CONFLITO");
+            var ajuste = "{\"operacaoId\":\"" + UUID.randomUUID() + "\",\"novoTeto\":\"2500.00\",\"justificativa\":\"Demanda aprovada\"}";
+            assertEquals(200, arq.post("/api/v1/departamentos/" + c.usuarios.departamento + "/ajustes-orcamentarios",
+                    "application/json", ajuste, arq.csrf()).statusCode());
+            var rotaInsuficiente = REQUISICOES + "/" + insuficiente + "/liberacao-financeira";
+            assertEquals("RESERVA_DISPENSADA", JSON.readTree(arq.post(rotaInsuficiente, "application/json",
+                    corpoIntervencao(UUID.randomUUID(), "AUTORIZAR_RESERVA"), arq.csrf()).body()).get("resultado").stringValue());
+            conferirEstadoNosContratos(dev, insuficiente, c.usuarios.recurso, 96, "AGUARDANDO_LIBERACAO_FINANCEIRA");
+            assertEquals("1600.00", c.saldo(c.usuarios.departamento));
+            assertEquals("LIBERADA", JSON.readTree(arq.post(rotaInsuficiente, "application/json",
+                    corpoIntervencao(UUID.randomUUID(), "LIBERAR_SEM_RESERVA"), arq.csrf()).body()).get("resultado").stringValue());
+            assertEquals("400.00", c.saldo(c.usuarios.departamento));
+            var rotaHistorico = "/api/v1/departamentos/" + c.usuarios.departamento + "/intervencoes";
+            var historico = arq.get(rotaHistorico);
+            assertTrue(historico.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+            assertEquals(10, JSON.readTree(historico.body()).get("intervencoes").size());
+            var filtrados = JSON.readTree(arq.get(rotaHistorico + "?requisicaoId=" + reserva).body()).get("intervencoes");
+            assertEquals(5, filtrados.size());
+            for (var evento : filtrados) {
+                assertEquals(c.arquiteto.toString(), evento.get("responsavelId").stringValue());
+                assertTrue(evento.get("instante").stringValue().endsWith("Z"));
+            }
+            assertEquals("RESERVA", filtrados.get(4).get("dados").get("motivoOriginal").stringValue());
+            try (var conexao = c.usuarios.abrir()) {
+                CenarioUsuariosMysql.executar(conexao, "UPDATE usuario SET perfil = 'DESENVOLVEDOR' WHERE id = ?", c.arquiteto.toString());
+            }
+            erro(arq.post(financeira, "application/json", corpoLiberacao, arq.csrf()), "ACESSO_NEGADO");
+            assertEquals(10, c.quantidade());
+        }
+    }
+
+    @Test
+    void intervencaoManualPorHttpsReconciliaCommitIncertoInclusiveNegativa() throws Exception {
+        for (boolean confirmado : List.of(false, true)) {
+            for (String decisao : List.of("APROVAR", "AUTORIZAR_RESERVA", "LIBERAR_SEM_RESERVA")) {
+                try (var c = new CenarioIntervencoesMysql(); var arq = new Navegador()) {
+                    var pedido = FluxoManualMysqlIT.criarRevisao(c, 72);
+                    if (decisao.equals("AUTORIZAR_RESERVA")) {
+                        FluxoManualMysqlIT.intervir(c, pedido, FluxoManualMysqlIT.entrada(br.mackenzie.finops.dominio.entidades.DecisaoManual.APROVAR));
+                    }
+                    int anteriores = c.quantidade();
+                    entrar(arq, c.usuarios.arquiteto, c.usuarios.senha);
+                    var csrf = arq.csrf();
+                    var operacao = UUID.randomUUID();
+                    var corpo = corpoIntervencao(operacao, decisao);
+                    var rota = REQUISICOES + "/" + pedido + (decisao.equals("APROVAR") ? "/revisao-tecnica" : "/liberacao-financeira");
+                    PERDER_CONFIRMACAO.set(confirmado);
+                    var incerta = arq.post(rota, "application/json", corpo, csrf);
+                    erro(incerta, 503, "CONFIRMACAO_INTERVENCAO_DESCONHECIDA");
+                    assertEquals(operacao.toString(), JSON.readTree(incerta.body()).get("erro").get("operacaoId").stringValue());
+                    assertEquals(anteriores + (confirmado ? 1 : 0), c.quantidade());
+                    var reconciliada = arq.post(rota, "application/json", corpo, csrf);
+                    assertEquals(decisao.equals("LIBERAR_SEM_RESERVA") ? 409 : 200, reconciliada.statusCode(), reconciliada.body());
+                    assertEquals(JSON.readTree(reconciliada.body()), JSON.readTree(arq.post(rota, "application/json", corpo, csrf).body()));
+                    assertEquals(anteriores + 1, c.quantidade());
+                    assertEquals(decisao.equals("AUTORIZAR_RESERVA") ? "100.00" : "1000.00", c.saldo(c.usuarios.departamento));
+                } finally { PERDER_CONFIRMACAO.set(null); }
+            }
+        }
+    }
+
+    private void conferirEstadoNosContratos(Navegador dev, UUID pedido, UUID recurso, int quantidade, String estado) throws Exception {
+        assertEquals(estado, detalhe(dev, pedido).get("estado").stringValue());
+        var pagina = pagina(dev, "?limite=100");
+        boolean encontrado = false;
+        for (var resumo : pagina.get("requisicoes")) {
+            if (pedido.toString().equals(resumo.get("id").stringValue())) {
+                assertEquals(estado, resumo.get("estado").stringValue());
+                encontrado = true;
+            }
+        }
+        assertTrue(encontrado);
+        String corpo = "{\"requisicaoId\":\"" + pedido + "\",\"itens\":[{\"recursoId\":\"" + recurso + "\",\"quantidade\":" + quantidade + "}]}";
+        var repetida = dev.post(REQUISICOES, "application/json", corpo, dev.csrf());
+        assertEquals(200, repetida.statusCode(), repetida.body());
+        assertEquals(estado, JSON.readTree(repetida.body()).get("requisicao").get("estado").stringValue());
+    }
+
+    private static String corpoIntervencao(UUID operacao, String decisao) {
+        return "{\"operacaoId\":\"" + operacao + "\",\"decisao\":\"" + decisao + "\",\"justificativa\":\"Decisão registrada\"}";
+    }
+
     private void entrar(Navegador navegador, String login, String senha) throws Exception {
         var pagina = navegador.get("/login");
         assertEquals(200, pagina.statusCode());

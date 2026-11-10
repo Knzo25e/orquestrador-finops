@@ -1,6 +1,8 @@
 package br.mackenzie.finops.infraestrutura.http;
 
 import br.mackenzie.finops.aplicacao.resultados.ResultadoCriacaoRequisicao;
+import br.mackenzie.finops.aplicacao.resultados.FotografiaRequisicao;
+import br.mackenzie.finops.dominio.entidades.EstadoRequisicao;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 import br.mackenzie.finops.dominio.entidades.ResultadoValidacao;
 
@@ -18,39 +20,23 @@ public record RespostaCriacaoHttp(
     }
 
     static Pedido pedido(Requisicao requisicao) {
-        List<Item> itens = requisicao.getItens().stream()
+        var fotografia = FotografiaRequisicao.de(requisicao);
+        List<Item> itens = fotografia.itens().stream()
                 .map(item -> new Item(
-                        item.getRecurso().getId(),
-                        item.getQuantidade(),
-                        item.getPrecoUnitario().toPlainString(),
-                        item.getCustoSubtotal().toPlainString()
+                        item.recursoId(), item.quantidade(), item.precoUnitario(), item.subtotal()
                 ))
                 .toList();
 
-        return new Pedido(requisicao.getId(), estadoPublico(requisicao.getStatus()),
-                motivoPublico(requisicao.getMotivoRevisao()), requisicao.getCustoTotalProjetado().toPlainString(), itens);
+        return new Pedido(fotografia.id(), fotografia.estado(), fotografia.motivoRevisao(), fotografia.custoTotalProjetado(), itens);
     }
 
     static String estadoPublico(String estado) {
-        return switch (estado) {
-            case "INICIAL" -> "INICIAL";
-            case "Provisionamento Liberado" -> "PROVISIONAMENTO_LIBERADO";
-            case "Revisão Pendente" -> "REVISAO_PENDENTE";
-            default -> throw new IllegalStateException(
-                    "Estado sem representação no contrato HTTP."
-            );
-        };
+        return EstadoRequisicao.deStatus(estado).name();
 
     }
 
     static String motivoPublico(ResultadoValidacao motivo) {
-        return motivo == null ? null : switch (motivo) {
-            case REVISAO_POR_SALDO_INSUFICIENTE -> "SALDO_INSUFICIENTE";
-            case REVISAO_POR_RESERVA -> "RESERVA";
-            default -> throw new IllegalStateException(
-                    "Motivo sem representação no contrato HTTP."
-            );
-        };
+        return FotografiaRequisicao.motivoPublico(motivo);
 
     }
 
