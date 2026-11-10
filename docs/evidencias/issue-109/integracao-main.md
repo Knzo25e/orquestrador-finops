@@ -4,7 +4,7 @@ Preparação autorizada em 10/11/2026. O merge final em `main` aguarda autoriza�
 
 ## Revisão em ordem
 
-Primeiro foi revisado o [PR #106](https://github.com/Knzo25e/orquestrador-finops/pull/106), de `7f065cf` a `12e3d3e`, contra a SPEC-008. Em seguida, o [PR #108](https://github.com/Knzo25e/orquestrador-finops/pull/108), de `12e3d3e` a `2299aad`, contra a SPEC-009 e a auditoria da SPEC-007. Ambos continuam abertos como Draft. As revisões do Codex e do Astra não identificaram bloqueador comprovado. O Astra fez análise estática, e o Codex executou as verificações abaixo.
+Primeiro foi revisado o [PR #106](https://github.com/Knzo25e/orquestrador-finops/pull/106), de `7f065cf` a `12e3d3e`, contra a SPEC-008. Em seguida, o [PR #108](https://github.com/Knzo25e/orquestrador-finops/pull/108), de `12e3d3e` a `2299aad`, contra a SPEC-009 e a auditoria da SPEC-007. Durante a preparação, o GitHub registrou #106 integrado em codex/specs-manuais-rnf e #108 integrado em codex/ajuste-teto-orcamentario. Ambos estão fechados como merged, enquanto main permanece na mesma base. As revisões do Codex e do Astra não identificaram bloqueador comprovado. O Astra fez análise estática, e o Codex executou as verificações abaixo.
 
 No #106, foram conferidos os contratos decimais e HTTP, preservação de compromissos, teto inalterado, recusa auditada e transação coordenada. No #108, foram conferidos a matriz manual, autorização anterior à descoberta do alvo, locks, fotografia original no replay, histórico e compatibilidade de V005, reconstituição e DTOs. A aprovação técnica preserva saldo, e a autorização financeira vale para a tentativa atual.
 
@@ -20,7 +20,9 @@ Foi criada uma worktree limpa e a branch `codex/integracao-mvp-main` a partir de
 | `27e43ba` | `origin/codex/ajuste-teto-orcamentario` — #106 | `12e3d3e` |
 | `5f34da0` | `origin/codex/revisao-liberacao-manual` — #108 | `2299aad` |
 
-O commit efetivamente compilado, testado e demonstrado foi `5f34da016a9eef76b1191344426edf061c4be0c1`, com árvore `b50f45db14f67b52d400a01665bcfa8a1f5772d0`. Este relatório foi acrescentado posteriormente. A igualdade do código, testes, dependências, Wrapper e AGENTS com a ponta do #108 foi conferida por diff. A ancestralidade de `main` e das cinco referências incorporadas foi conferida com `git merge-base --is-ancestor`. Os commits originais conservam seus objetos, autoria e histórico.
+Os registros adicionais foram preservados em 9180136 (#106) e 163486d (#108). O diff dos arquivos executáveis e dos testes para 5f34da0 é vazio.
+
+O commit efetivamente compilado, testado e demonstrado foi `5f34da016a9eef76b1191344426edf061c4be0c1`, com árvore `b50f45db14f67b52d400a01665bcfa8a1f5772d0`. Este relatório foi acrescentado posteriormente. Os registros de merge do GitHub também foram incorporados depois dos testes, sem mudança de código, testes, dependências, Wrapper ou AGENTS. A igualdade do código, testes, dependências, Wrapper e AGENTS com a ponta do #108 foi conferida por diff. A ancestralidade de `main` e das cinco referências incorporadas foi conferida com `git merge-base --is-ancestor`. Os commits originais conservam seus objetos, autoria e histórico.
 
 ## Diff final
 
@@ -77,9 +79,8 @@ O ensaio passou. Servidor, dados e certificados de teste foram encerrados/removi
 
 Continuam pendentes o ensaio representativo do RNF-01 e o corte real do transporte com commit remoto em andamento. Os testes de confirmação desconhecida injetam a falha antes/depois do commit real. A administração do banco pode alterar a proteção do histórico. Esses limites não foram considerados integralmente comprovados.
 
-Após autorização explícita do responsável, conferir se a `main` ainda corresponde à base `001042f` e se a branch integrada mantém o SHA revisado. Havendo nova alteração, incorporá-la por merge nessa branch e verificar o delta antes de liberar a integração. Recomenda-se merge do PR de integração com commit de merge, preservando os commits originais e os cinco merges desta preparação, sem squash, cherry-pick ou rebase.
+Após autorização explícita do responsável, conferir se a `main` ainda corresponde à base `001042f` e se a branch integrada mantém o SHA revisado. Havendo nova alteração, incorporá-la por merge nessa branch e verificar o delta antes de liberar a integração. Recomenda-se merge do PR de integração com commit de merge, preservando os commits originais e os merges desta preparação, sem squash, cherry-pick ou rebase.
 
-Os PRs #106 e #108 continuam Draft. O PR de integração também deve aguardar autorização para ficar pronto e ser integrado. Após a autorização e execução, conferir a ancestralidade na `main` e reconciliar o estado dos PRs dependentes com a integração comprovada.
+Os PRs #106 e #108 estão integrados nas respectivas bases. O PR de integração deve aguardar autorização para ficar pronto e ser integrado. Após a autorização e execução, conferir a ancestralidade na `main` e reconciliar o estado dos PRs dependentes com a integração comprovada.
 
 Depois da integração definitiva, priorizar estabilização, ensaio da demonstração, revisão dos requisitos acadêmicos e preparação da apresentação. Metas mantidas de congelamento em 21/11 e entrega em 26/11.
-
