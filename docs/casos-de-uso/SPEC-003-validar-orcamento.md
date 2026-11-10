@@ -461,6 +461,8 @@ A utilização do percentual fixo não comprova implementação da configuraçã
 
 ### OPEN-003-05 — Detalhamento e revisão do fluxo manual
 
+Atualização de 09/11/2026. OPEN-009-01, OPEN-009-02 e OPEN-009-03 foram aprovadas pelo responsável. A [SPEC-009](SPEC-009-revisao-liberacao-manual.md) resolve os pontos abaixo no recorte manual e prevalece sobre suas marcações históricas de pendência.
+
 As regras, a arquitetura, o UC-02, o mapa e o modelo de domínio foram atualizados nesta branch para contemplar a reserva e a separação entre aprovação técnica e autorização financeira.
 
 O estado AGUARDANDO_AUTORIZACAO_FINANCEIRA foi incluído na proposta documental da seção 3.3 de spec.md. O histórico da OPEN-ARQ-01 foi preservado na arquitetura.

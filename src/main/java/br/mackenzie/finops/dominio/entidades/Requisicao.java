@@ -227,17 +227,8 @@ public class Requisicao {
             String status,
             ResultadoValidacao motivoRevisao
     ) {
-        boolean inicial = "INICIAL".equals(status);
-        boolean liberada = "Provisionamento Liberado".equals(status);
-        boolean revisao = "Revisão Pendente".equals(status);
-
-        if (!inicial && !liberada && !revisao) {
-            throw new IllegalArgumentException(
-                    "O estado informado não é permitido na reconstituição."
-            );
-        }
-
-        if (revisao) {
+        EstadoRequisicao estado = EstadoRequisicao.deStatus(status);
+        if (estado == EstadoRequisicao.REVISAO_PENDENTE) {
             if (motivoRevisao
                     != ResultadoValidacao.REVISAO_POR_SALDO_INSUFICIENTE
                     && motivoRevisao
@@ -326,29 +317,90 @@ public class Requisicao {
                 );
             }
 
-            BigDecimal custo = calcularTotalProjetado();
-            BigDecimal saldo = departamento.getSaldoDisponivel();
-            BigDecimal reserva = departamento.calcularReserva();
-            BigDecimal saldoProjetado = saldo.subtract(custo);
-
+            ResultadoValidacao condicao = avaliarCondicaoFinanceira();
             status = "Em Analise";
-
-            if (custo.compareTo(saldo) > 0) {
-                return enviarParaRevisao(
-                        ResultadoValidacao.REVISAO_POR_SALDO_INSUFICIENTE
-                );
+            if (condicao != ResultadoValidacao.LIBERADA) {
+                return enviarParaRevisao(condicao);
             }
-
-            if (saldoProjetado.compareTo(reserva) <= 0) {
-                return enviarParaRevisao(
-                        ResultadoValidacao.REVISAO_POR_RESERVA
-                );
-            }
-
-            departamento.descontarSaldo(custo);
-            status = "Provisionamento Liberado";
+            liberarComDebito();
             return ResultadoValidacao.LIBERADA;
         }
+    }
+
+    public ResultadoIntervencaoManual revisarTecnicamente(DecisaoManual decisao) {
+        synchronized (departamento) {
+            if (decisao == null || !decisao.tecnica()) {
+                throw new IllegalArgumentException("Decisão técnica inválida.");
+            }
+            if (!"Revisão Pendente".equals(status)) {
+                return ResultadoIntervencaoManual.ESTADO_NAO_PERMITIDO;
+            }
+            if (decisao == DecisaoManual.REJEITAR) {
+                status = EstadoRequisicao.REJEITADO.statusDominio();
+                motivoRevisao = null;
+                return ResultadoIntervencaoManual.REJEITADA;
+            }
+            status = switch (avaliarCondicaoFinanceira()) {
+                case REVISAO_POR_SALDO_INSUFICIENTE -> EstadoRequisicao.AGUARDANDO_AJUSTE_ORCAMENTARIO.statusDominio();
+                case REVISAO_POR_RESERVA -> EstadoRequisicao.AGUARDANDO_AUTORIZACAO_FINANCEIRA.statusDominio();
+                case LIBERADA -> EstadoRequisicao.AGUARDANDO_LIBERACAO_FINANCEIRA.statusDominio();
+                default -> throw new IllegalStateException("Avaliação financeira inconsistente.");
+            };
+            motivoRevisao = null;
+            return ResultadoIntervencaoManual.APROVADA_TECNICAMENTE;
+        }
+    }
+
+    public ResultadoIntervencaoManual liberarFinanceiramente(DecisaoManual decisao) {
+        synchronized (departamento) {
+            if (decisao == null || decisao.tecnica()) {
+                throw new IllegalArgumentException("Decisão financeira inválida.");
+            }
+            var estado = EstadoRequisicao.deStatus(status);
+            if (estado != EstadoRequisicao.AGUARDANDO_AJUSTE_ORCAMENTARIO
+                    && estado != EstadoRequisicao.AGUARDANDO_AUTORIZACAO_FINANCEIRA
+                    && estado != EstadoRequisicao.AGUARDANDO_LIBERACAO_FINANCEIRA) {
+                return ResultadoIntervencaoManual.ESTADO_NAO_PERMITIDO;
+            }
+            var condicao = avaliarCondicaoFinanceira();
+            if (condicao == ResultadoValidacao.REVISAO_POR_SALDO_INSUFICIENTE) {
+                status = EstadoRequisicao.AGUARDANDO_AJUSTE_ORCAMENTARIO.statusDominio();
+                return ResultadoIntervencaoManual.AGUARDA_AJUSTE;
+            }
+            if (condicao == ResultadoValidacao.REVISAO_POR_RESERVA) {
+                if (decisao == DecisaoManual.AUTORIZAR_RESERVA) {
+                    liberarComDebito();
+                    return ResultadoIntervencaoManual.LIBERADA_COM_RESERVA;
+                }
+                status = EstadoRequisicao.AGUARDANDO_AUTORIZACAO_FINANCEIRA.statusDominio();
+                return decisao == DecisaoManual.NEGAR_RESERVA
+                        ? ResultadoIntervencaoManual.RESERVA_NEGADA : ResultadoIntervencaoManual.AGUARDA_AUTORIZACAO;
+            }
+            if (decisao == DecisaoManual.LIBERAR_SEM_RESERVA) {
+                liberarComDebito();
+                return ResultadoIntervencaoManual.LIBERADA;
+            }
+            status = EstadoRequisicao.AGUARDANDO_LIBERACAO_FINANCEIRA.statusDominio();
+            return ResultadoIntervencaoManual.RESERVA_DISPENSADA;
+        }
+    }
+
+    private ResultadoValidacao avaliarCondicaoFinanceira() {
+        BigDecimal custo = calcularTotalProjetado();
+        BigDecimal saldo = departamento.getSaldoDisponivel();
+        if (custo.compareTo(saldo) > 0) {
+            return ResultadoValidacao.REVISAO_POR_SALDO_INSUFICIENTE;
+        }
+        if (saldo.subtract(custo).compareTo(departamento.calcularReserva()) <= 0) {
+            return ResultadoValidacao.REVISAO_POR_RESERVA;
+        }
+        return ResultadoValidacao.LIBERADA;
+    }
+
+    private void liberarComDebito() {
+        departamento.descontarSaldo(custoTotalProjetado);
+        status = "Provisionamento Liberado";
+        motivoRevisao = null;
     }
 
     // Chamado somente dentro da operação coordenada.

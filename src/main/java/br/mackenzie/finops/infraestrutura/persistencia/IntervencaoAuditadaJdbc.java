@@ -9,6 +9,7 @@ import br.mackenzie.finops.aplicacao.excecoes.ServicoIndisponivelException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Base interna da SPEC-007. O adaptador de cada intervenção deve delegar aqui.
@@ -42,15 +43,41 @@ final class IntervencaoAuditadaJdbc {
     record Resultado(EventoIntervencao evento, int statusHttp, boolean falhaNoFechamento) {}
 
     Resultado executar(ComandoIntervencao comando, Acao acao) {
+        return executar(comando.responsavelId(), comando.operacaoId(), conexao -> comando, acao);
+    }
+
+    Resultado executarParaRequisicao(UUID usuario, UUID operacao, UUID requisicao, String acao,
+                                     String justificativa, Map<String, String> parametros, Acao decisao) {
+        return executar(usuario, operacao, conexao -> {
+            // Descoberta após autorização, sem inverter os bloqueios dos agregados.
+            try (var consulta = conexao.prepareStatement("SELECT departamento_id FROM requisicao WHERE id = ?")) {
+                consulta.setString(1, requisicao.toString());
+                try (var linha = consulta.executeQuery()) {
+                    if (!linha.next()) {
+                        throw new RequisicaoNaoEncontradaException();
+                    }
+                    return new ComandoIntervencao(operacao, usuario, acao, UUID.fromString(linha.getString(1)),
+                            requisicao, justificativa, parametros);
+                }
+            }
+        }, decisao);
+    }
+
+    @FunctionalInterface
+    private interface FabricaComando {
+        ComandoIntervencao criar(Connection conexao) throws SQLException;
+    }
+
+    private Resultado executar(UUID usuario, UUID operacao, FabricaComando comando, Acao acao) {
         try {
-            return tentar(comando, acao, false);
+            return tentar(usuario, operacao, comando, acao, false);
         } catch (ColisaoConcorrente colisao) {
             // Apenas uma reconciliação de leitura. Nunca repetir a ação automaticamente.
-            return tentar(comando, acao, true);
+            return tentar(usuario, operacao, comando, acao, true);
         }
     }
 
-    private Resultado tentar(ComandoIntervencao comando, Acao acao, boolean reconciliar) {
+    private Resultado tentar(UUID usuario, UUID operacao, FabricaComando fabrica, Acao acao, boolean reconciliar) {
         Connection conexao = null;
         RegistroIntervencaoJdbc.Recibo recibo = null;
         RuntimeException falha = null;
@@ -60,7 +87,8 @@ final class IntervencaoAuditadaJdbc {
             conexao = fornecedor.abrir();
             conexao.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             conexao.setAutoCommit(false);
-            AutorizacaoIntervencaoJdbc.verificar(conexao, comando.responsavelId());
+            AutorizacaoIntervencaoJdbc.verificar(conexao, usuario);
+            var comando = fabrica.criar(conexao);
             bloquearAlvos(conexao, comando);
             recibo = RegistroIntervencaoJdbc.buscar(conexao, comando.operacaoId()).orElse(null);
             if (recibo != null) {
@@ -70,7 +98,7 @@ final class IntervencaoAuditadaJdbc {
                 conexao.rollback();
             } else {
                 if (reconciliar) {
-                    throw new ConfirmacaoIntervencaoDesconhecidaException(comando.operacaoId());
+                    throw new ConfirmacaoIntervencaoDesconhecidaException(operacao);
                 }
                 var decisao = acao.executar(conexao);
                 try {
@@ -84,7 +112,7 @@ final class IntervencaoAuditadaJdbc {
                 try {
                     conexao.commit();
                 } catch (SQLException | RuntimeException commit) {
-                    throw new ConfirmacaoIntervencaoDesconhecidaException(comando.operacaoId());
+                    throw new ConfirmacaoIntervencaoDesconhecidaException(operacao);
                 }
             }
             encerrada = true;
