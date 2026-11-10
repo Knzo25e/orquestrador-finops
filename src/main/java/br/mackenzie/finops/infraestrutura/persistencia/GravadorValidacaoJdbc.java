@@ -105,7 +105,7 @@ final class GravadorValidacaoJdbc {
         } catch (SQLException excecao) {
             throw new FalhaPersistenciaException(
                     "Falha ao gravar o resultado da validação. "
-                            + "Execute rollback da transação."
+                            + "Execute rollback da transação.", excecao
             );
         }
     }

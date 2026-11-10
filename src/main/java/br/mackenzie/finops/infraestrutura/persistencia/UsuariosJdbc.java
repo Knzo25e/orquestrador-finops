@@ -1,5 +1,6 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
+import br.mackenzie.finops.aplicacao.excecoes.ServicoIndisponivelException;
 import br.mackenzie.finops.aplicacao.seguranca.ContextoIdentidade;
 import br.mackenzie.finops.aplicacao.seguranca.PerfilUsuario;
 
@@ -38,6 +39,9 @@ public final class UsuariosJdbc {
         try (var conexao = fabrica.abrir()) {
             return consultarIdentidade(conexao, usuarioId, false);
         } catch (SQLException falha) {
+            if (FalhaPersistenciaException.indisponibilidade(falha)) {
+                throw new ServicoIndisponivelException();
+            }
             throw new FalhaPersistenciaException("Falha ao consultar identidade.");
         }
     }
