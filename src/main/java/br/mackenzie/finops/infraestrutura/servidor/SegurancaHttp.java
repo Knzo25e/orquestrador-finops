@@ -7,6 +7,7 @@ import java.io.IOException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.config.Customizer;
@@ -50,13 +51,17 @@ class SegurancaHttp {
         return http
                 .authorizeHttpRequests(regras -> regras
                         .requestMatchers("/login").permitAll()
-                        .requestMatchers("/", "/api/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/portal-assets/**").permitAll()
+                        .requestMatchers("/", "/portal", "/portal/desenvolvedor", "/portal/arquiteto", "/api/**").authenticated()
                         .anyRequest().denyAll())
-                .formLogin(login -> login.defaultSuccessUrl("/api/v1/catalogo/recursos", true))
+                .formLogin(login -> login.loginPage("/login").loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/portal", true).permitAll())
                 .logout(logout -> logout.deleteCookies("JSESSIONID").logoutSuccessUrl("/login?logout"))
                 .sessionManagement(sessao -> sessao.sessionFixation().changeSessionId())
                 .requestCache(cache -> cache.disable())
                 .csrf(Customizer.withDefaults())
+                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
+                        "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")))
                 .exceptionHandling(erros -> erros
                         .defaultAuthenticationEntryPointFor(
                                 (req, resp, falha) -> responder(resp, "SESSAO_NECESSARIA"), api)

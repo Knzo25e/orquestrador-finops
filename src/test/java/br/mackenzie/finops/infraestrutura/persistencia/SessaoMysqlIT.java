@@ -55,6 +55,7 @@ class SessaoMysqlIT {
     private static Path chaveTls;
     private static SSLContext tlsCliente;
     private static final AtomicReference<Boolean> PERDER_CONFIRMACAO = new AtomicReference<>();
+    private static final AtomicReference<SQLException> FALHAR_CONEXAO = new AtomicReference<>();
 
     @TestConfiguration(proxyBeanMethods = false)
     static class BancoRuntime {
@@ -65,6 +66,8 @@ class SessaoMysqlIT {
                     System.getenv("FINOPS_RUNTIME_DB_USER"), System.getenv("FINOPS_RUNTIME_DB_PASSWORD")));
             var controlada = mock(FabricaConexoes.class, delegatesTo(fabrica));
             doAnswer(chamada -> {
+                var falha = FALHAR_CONEXAO.getAndSet(null);
+                if (falha != null) throw falha;
                 var real = fabrica.abrir();
                 Boolean confirmar = PERDER_CONFIRMACAO.getAndSet(null);
                 if (confirmar == null) {
@@ -170,6 +173,127 @@ class SessaoMysqlIT {
             assertEquals(302, dev.post("/logout", "application/x-www-form-urlencoded", "", dev.csrf()).statusCode());
             erro(dev.get(catalogo), "SESSAO_NECESSARIA");
         }
+    }
+
+    @Test
+    void portalServeLoginEAbrePainelPeloPerfilVigente() throws Exception {
+        try (var c = new CenarioUsuariosMysql(); var anonimo = new Navegador(); var dev = new Navegador();
+             var arq = new Navegador()) {
+            assertEquals(302, anonimo.get("/portal/arquiteto").statusCode());
+            assertEquals(200, anonimo.get("/portal-assets/portal.css").statusCode());
+            assertEquals(200, anonimo.get("/portal-assets/portal.js").statusCode());
+            var login = anonimo.get("/login?error");
+            assertTrue(login.body().contains("Usuário ou senha inválidos."));
+            assertTrue(login.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+            assertTrue(login.headers().firstValue("Content-Security-Policy").orElseThrow()
+                    .contains("frame-ancestors 'none'"));
+            assertFalse(login.body().contains("{{csrf}}"));
+
+            entrar(dev, c.desenvolvedor, c.senha);
+            entrar(arq, c.arquiteto, c.senha);
+            assertDestino(dev.get("/"), "/portal/desenvolvedor");
+            assertDestino(arq.get("/portal"), "/portal/arquiteto");
+            assertDestino(dev.get("/portal/arquiteto"), "/portal/desenvolvedor");
+            assertDestino(arq.get("/portal/desenvolvedor"), "/portal/arquiteto");
+            var painelDev = dev.get("/portal/desenvolvedor");
+            assertEquals(200, painelDev.statusCode(), painelDev.body());
+            assertTrue(painelDev.body().contains("Minhas requisições"));
+            assertTrue(painelDev.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+            assertTrue(arq.get("/portal/arquiteto").body().contains("Orçamento departamental"));
+        }
+    }
+
+    @Test
+    void leiturasDoPortalRevalidamIdentidadeEPaginamDepartamentosPorUuid() throws Exception {
+        try (var c = new CenarioUsuariosMysql(); var anonimo = new Navegador(); var dev = new Navegador();
+             var arq = new Navegador()) {
+            String sessao = "/api/v1/sessao";
+            String departamentos = "/api/v1/departamentos";
+            erro(anonimo.get(sessao), "SESSAO_NECESSARIA");
+            erro(anonimo.get(departamentos), "SESSAO_NECESSARIA");
+            entrar(dev, c.desenvolvedor, c.senha);
+            entrar(arq, c.arquiteto, c.senha);
+            erro(dev.get(departamentos), "ACESSO_NEGADO");
+
+            var identidade = lerSemCache(dev.get(sessao));
+            assertEquals(3, identidade.size());
+            assertEquals(c.autor.toString(), identidade.get("usuarioId").stringValue());
+            assertEquals("DESENVOLVEDOR", identidade.get("perfil").stringValue());
+            assertEquals(c.departamento.toString(), identidade.get("departamentoId").stringValue());
+            assertTrue(lerSemCache(arq.get(sessao)).get("departamentoId").isNull());
+
+            try (var conexao = c.abrir()) {
+                CenarioUsuariosMysql.executar(conexao,
+                        "UPDATE departamento SET teto_mensal = ?, saldo_disponivel = ? WHERE id = ?",
+                        "99999999999999999.99", "9007199254740993.01", c.departamento.toString());
+            }
+            var esperados = List.of(c.departamento.toString(), c.outroDepartamento.toString()).stream()
+                    .sorted().toList();
+            var pagina = lerSemCache(arq.get(departamentos + "?limite=1"));
+            assertEquals(1, pagina.get("departamentos").size());
+            var cursor = pagina.get("proximoCursor").stringValue();
+            assertEquals(esperados.getFirst(), cursor);
+            assertEquals(cursor, pagina.get("departamentos").get(0).get("id").stringValue());
+            var seguinte = lerSemCache(arq.get(departamentos + "?limite=1&apos=" + cursor));
+            assertEquals(esperados.getLast(), seguinte.get("departamentos").get(0).get("id").stringValue());
+            assertTrue(seguinte.get("proximoCursor").isNull());
+            var exato = (cursor.equals(c.departamento.toString()) ? pagina : seguinte)
+                    .get("departamentos").get(0);
+            assertEquals(4, exato.size());
+            assertEquals("99999999999999999.99", exato.get("tetoMensal").stringValue());
+            assertEquals("9007199254740993.01", exato.get("saldoDisponivel").stringValue());
+
+            for (String entrada : List.of("?limite=0", "?limite=101", "?limite=1&limite=2",
+                    "?apos=1-1-1-1-1", "?apos=", "?perfil=ARQUITETO_CLOUD")) {
+                erro(arq.get(departamentos + entrada), 400, "ENTRADA_INVALIDA");
+            }
+            try (var conexao = c.abrir()) {
+                CenarioUsuariosMysql.executar(conexao,
+                        "UPDATE usuario SET perfil = 'DESENVOLVEDOR', departamento_id = ? WHERE login = ?",
+                        c.outroDepartamento.toString(), c.arquiteto);
+                CenarioUsuariosMysql.executar(conexao, "UPDATE usuario SET ativo = FALSE WHERE login = ?",
+                        c.desenvolvedor);
+            }
+            erro(dev.get(sessao), "ACESSO_NEGADO");
+            var contaRevogada = dev.get("/portal/desenvolvedor");
+            assertEquals(403, contaRevogada.statusCode());
+            assertTrue(contaRevogada.body().contains("action=\"/logout\""));
+            var csrf = CAMPO_CSRF.matcher(contaRevogada.body());
+            assertTrue(csrf.find());
+            assertEquals(302, dev.post("/logout", "application/x-www-form-urlencoded",
+                    "_csrf=" + csrf.group(1), null).statusCode());
+            erro(dev.get(sessao), "SESSAO_NECESSARIA");
+            assertEquals("DESENVOLVEDOR", lerSemCache(arq.get(sessao)).get("perfil").stringValue());
+            assertDestino(arq.get("/portal/arquiteto"), "/portal/desenvolvedor");
+            erro(arq.get(departamentos + "?limite=1&apos=" + cursor), "ACESSO_NEGADO");
+        }
+    }
+
+    @Test
+    void leiturasDoPortalDistinguemFalhasDeBancoDeNegativaDeAcesso() throws Exception {
+        try (var c = new CenarioUsuariosMysql(); var arq = new Navegador()) {
+            entrar(arq, c.arquiteto, c.senha);
+            FALHAR_CONEXAO.set(new SQLException("Detalhe interno simulado."));
+            var interna = arq.get("/api/v1/departamentos");
+            erro(interna, 500, "FALHA_INTERNA");
+            assertFalse(interna.body().contains("Detalhe interno"));
+            assertTrue(interna.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+            FALHAR_CONEXAO.set(new java.sql.SQLTransientConnectionException("Falha transitória simulada."));
+            erro(arq.get("/api/v1/sessao"), 503, "SERVICO_INDISPONIVEL");
+        } finally {
+            FALHAR_CONEXAO.set(null);
+        }
+    }
+
+    private static JsonNode lerSemCache(HttpResponse<String> resposta) {
+        assertEquals(200, resposta.statusCode(), resposta.body());
+        assertTrue(resposta.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+        return JSON.readTree(resposta.body());
+    }
+
+    private static void assertDestino(HttpResponse<String> resposta, String caminho) {
+        assertEquals(303, resposta.statusCode(), resposta.body());
+        assertEquals(caminho, resposta.headers().firstValue("Location").orElseThrow());
     }
 
     @Test
@@ -652,7 +776,7 @@ class SessaoMysqlIT {
         var resposta = navegador.post("/login", "application/x-www-form-urlencoded",
                 "username=" + login + "&password=" + senha + "&_csrf=" + campo.group(1), null);
         assertEquals(302, resposta.statusCode());
-        assertTrue(resposta.headers().firstValue("Location").orElseThrow().endsWith("/api/v1/catalogo/recursos"));
+        assertTrue(resposta.headers().firstValue("Location").orElseThrow().endsWith("/portal"));
         assertNotEquals(idAntes, navegador.cookies.getCookieStore().getCookies().getFirst().getValue());
     }
 

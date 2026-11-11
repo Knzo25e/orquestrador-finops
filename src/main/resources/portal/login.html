@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar | Orquestrador FinOps</title>
+  <link rel="stylesheet" href="/portal-assets/portal.css">
+</head>
+<body class="login-page">
+  <main class="login-layout">
+    <section class="login-intro" aria-labelledby="intro-title">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">F</span> Orquestrador FinOps</div>
+      <div class="intro-content">
+        <h1 id="intro-title">Governança <br>de nuvem</h1>
+        <p>Solicitações de infraestrutura, decisões de orçamento e histórico em um só lugar.</p>
+      </div>
+      <p class="login-footer">Universidade Presbiteriana Mackenzie</p>
+    </section>
+    <section class="login-form" aria-labelledby="login-title">
+      <div class="form-content">
+        <h2 id="login-title">Entrar no portal</h2>
+        <p class="muted">Use sua conta do Orquestrador FinOps.</p>
+        <p class="notice" role="status" {{visibilidadeAviso}}>{{aviso}}</p>
+        <form method="post" action="/login">
+          <input type="hidden" name="{{nomeCsrf}}" value="{{csrf}}">
+          <label for="username">Usuário</label>
+          <input id="username" name="username" autocomplete="username" required>
+          <label for="password">Senha</label>
+          <input id="password" type="password" name="password" autocomplete="current-password" required>
+          <button class="button primary" type="submit">Entrar</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

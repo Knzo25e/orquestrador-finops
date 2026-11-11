@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquiteto Cloud | Orquestrador FinOps</title>
+  <link rel="stylesheet" href="/portal-assets/portal.css">
+  <script type="module" src="/portal-assets/portal.js"></script>
+</head>
+<body data-perfil="ARQUITETO_CLOUD">
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <a class="brand" href="/portal"><span class="brand-mark" aria-hidden="true">F</span> Orquestrador FinOps</a>
+      <nav aria-label="Painel do Arquiteto Cloud">
+        <a href="#orcamento">Orçamento</a>
+        <a href="#pedidos">Requisições</a>
+      </nav>
+    </aside>
+    <main class="dashboard-main" id="conteudo">
+      <header class="dashboard-header">
+        <div><h1>Arquiteto Cloud</h1><p class="muted">Consulte orçamentos e requisições por departamento.</p></div>
+        <form action="/logout" method="post" id="logout"><button class="button secondary" type="submit" disabled>Sair</button></form>
+      </header>
+      <p id="aviso" class="notice" role="status" hidden></p>
+      <section class="surface" id="orcamento" aria-labelledby="titulo-orcamento">
+        <h2 id="titulo-orcamento">Orçamento departamental</h2>
+        <p class="muted" id="situacao-departamentos" role="status">Carregando departamentos…</p>
+        <div class="department-picker" id="seletor" hidden>
+          <label for="departamento">Departamento</label>
+          <div class="picker-actions">
+            <select id="departamento"></select>
+            <button id="mais-departamentos" class="button secondary" type="button" hidden>Mais departamentos</button>
+          </div>
+        </div>
+        <dl class="metrics" id="valores" hidden>
+          <div><dt>Teto mensal</dt><dd id="teto"></dd></div>
+          <div><dt>Saldo disponível</dt><dd id="saldo"></dd></div>
+        </dl>
+      </section>
+      <section class="surface" id="pedidos" aria-labelledby="titulo-pedidos">
+        <h2 id="titulo-pedidos">Requisições do departamento</h2>
+        <p class="muted" id="situacao-pedidos" role="status">Selecione um departamento.</p>
+        <div class="table-wrap" hidden>
+          <table aria-labelledby="titulo-pedidos">
+            <thead><tr><th scope="col">Requisição</th><th scope="col">Estado</th><th scope="col">Motivo</th><th scope="col">Custo projetado</th></tr></thead>
+            <tbody id="requisicoes"></tbody>
+          </table>
+        </div>
+        <button id="mais-pedidos" class="button secondary" type="button" hidden>Mais requisições</button>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
