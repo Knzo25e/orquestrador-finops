@@ -15,6 +15,7 @@
       <nav aria-label="Painel do Arquiteto Cloud">
         <a href="#orcamento">Orçamento</a>
         <a href="#pedidos">Requisições</a>
+        <a href="#auditoria">Auditoria</a>
       </nav>
     </aside>
     <main class="dashboard-main" id="conteudo">
@@ -23,6 +24,17 @@
         <form action="/logout" method="post" id="logout"><button class="button secondary" type="submit" disabled>Sair</button></form>
       </header>
       <p id="aviso" class="notice" role="status" hidden></p>
+      <section id="retorno-operacao" class="surface operation" aria-labelledby="titulo-operacao" hidden>
+        <h2 id="titulo-operacao">Resultado da operação</h2>
+        <p id="mensagem-operacao" role="status"></p>
+        <p class="muted" id="id-operacao"></p>
+        <div class="actions">
+          <button id="reconciliar" class="button primary" type="button" hidden>Reenviar a mesma operação</button>
+          <button id="repetir" class="button secondary" type="button" hidden>Repetir comando registrado</button>
+          <button id="consultar-operacao" class="button secondary" type="button" hidden>Consultar situação atual</button>
+          <a id="renovar-sessao" class="button secondary" href="/login" target="_blank" rel="noopener" hidden>Entrar em outra aba</a>
+        </div>
+      </section>
       <section class="surface" id="orcamento" aria-labelledby="titulo-orcamento">
         <h2 id="titulo-orcamento">Orçamento departamental</h2>
         <p class="muted" id="situacao-departamentos" role="status">Carregando departamentos…</p>
@@ -37,6 +49,17 @@
           <div><dt>Teto mensal</dt><dd id="teto"></dd></div>
           <div><dt>Saldo disponível</dt><dd id="saldo"></dd></div>
         </dl>
+        <form id="ajustar" class="operation-form" hidden>
+          <fieldset data-mutacao>
+            <legend>Ajustar teto mensal</legend>
+            <p class="muted">O ajuste preserva os compromissos existentes. O valor será revalidado pelo servidor.</p>
+            <label for="novo-teto">Novo teto em reais</label>
+            <input id="novo-teto" name="novoTeto" inputmode="decimal" placeholder="2500,00" maxlength="20" required>
+            <label for="justificativa-ajuste">Justificativa do ajuste</label>
+            <textarea id="justificativa-ajuste" name="justificativa" maxlength="500" rows="2" required></textarea>
+            <button class="button primary" type="submit">Confirmar ajuste de teto</button>
+          </fieldset>
+        </form>
       </section>
       <section class="surface" id="pedidos" aria-labelledby="titulo-pedidos">
         <h2 id="titulo-pedidos">Requisições do departamento</h2>
@@ -47,7 +70,51 @@
             <tbody id="requisicoes"></tbody>
           </table>
         </div>
+        <button id="atualizar-pedidos" class="button secondary" type="button">Atualizar requisições</button>
         <button id="mais-pedidos" class="button secondary" type="button" hidden>Mais requisições</button>
+      </section>
+      <section id="detalhe" class="surface" aria-labelledby="titulo-detalhe" hidden tabindex="-1">
+        <div class="section-heading">
+          <h2 id="titulo-detalhe">Detalhe da requisição</h2>
+          <button id="fechar-detalhe" class="button secondary" type="button">Fechar detalhe</button>
+        </div>
+        <p id="situacao-detalhe" role="status" class="muted"></p>
+        <div id="dados-detalhe" hidden>
+          <p class="order-id"><code id="id-detalhe"></code></p>
+          <dl class="metrics">
+            <div><dt>Estado atual</dt><dd id="estado-detalhe"></dd></div>
+            <div><dt>Motivo de revisão</dt><dd id="motivo-detalhe"></dd></div>
+            <div><dt>Custo mensal registrado</dt><dd id="custo-detalhe"></dd></div>
+          </dl>
+          <div class="table-wrap">
+            <table aria-label="Itens e preços históricos">
+              <thead><tr><th scope="col">Recurso</th><th scope="col">Quantidade</th><th scope="col">Preço registrado</th><th scope="col">Subtotal</th></tr></thead>
+              <tbody id="itens-detalhe"></tbody>
+            </table>
+          </div>
+        </div>
+        <form id="intervir" class="operation-form" hidden>
+          <fieldset data-mutacao>
+            <legend id="legenda-intervencao"></legend>
+            <p class="muted" id="orientacao-intervencao"></p>
+            <label for="decisao">Decisão</label>
+            <select id="decisao" name="decisao" required></select>
+            <label for="justificativa-intervencao">Justificativa da decisão</label>
+            <textarea id="justificativa-intervencao" name="justificativa" maxlength="500" rows="2" required></textarea>
+            <button class="button primary" type="submit">Confirmar decisão</button>
+          </fieldset>
+        </form>
+      </section>
+      <section class="surface" id="auditoria" aria-labelledby="titulo-auditoria">
+        <h2 id="titulo-auditoria">Histórico de auditoria</h2>
+        <p class="muted" id="situacao-auditoria" role="status">Selecione um departamento.</p>
+        <div class="actions">
+          <button id="filtrar-auditoria" class="button secondary" type="button" hidden>Filtrar pela requisição aberta</button>
+          <button id="limpar-auditoria" class="button secondary" type="button" hidden>Mostrar todo o departamento</button>
+          <button id="atualizar-auditoria" class="button secondary" type="button" hidden>Atualizar histórico</button>
+        </div>
+        <div class="event-list" id="eventos"></div>
+        <button id="mais-eventos" class="button secondary" type="button" hidden>Mais eventos</button>
       </section>
     </main>
   </div>
