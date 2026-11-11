@@ -6,8 +6,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
 
-final class AutorizacaoIntervencaoJdbc {
-    private AutorizacaoIntervencaoJdbc() {}
+final class AutorizacaoArquitetoJdbc {
+    private AutorizacaoArquitetoJdbc() {}
 
     static void verificar(Connection conexao, UUID usuario) throws SQLException {
         if (usuario == null || !new PoliticaAutorizacao().podeAcessarIntervencoes(

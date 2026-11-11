@@ -35,7 +35,7 @@ public final class ConsultaIntervencoesJdbc implements ConsultaIntervencoesPersi
             conexao.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             conexao.setAutoCommit(false);
             try {
-                AutorizacaoIntervencaoJdbc.verificar(conexao, usuario);
+                AutorizacaoArquitetoJdbc.verificar(conexao, usuario);
                 try (var consulta = conexao.prepareStatement("SELECT id FROM departamento WHERE id = ?")) {
                     consulta.setString(1, departamento.toString());
                     try (var linha = consulta.executeQuery()) {

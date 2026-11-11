@@ -87,7 +87,7 @@ final class IntervencaoAuditadaJdbc {
             conexao = fornecedor.abrir();
             conexao.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             conexao.setAutoCommit(false);
-            AutorizacaoIntervencaoJdbc.verificar(conexao, usuario);
+            AutorizacaoArquitetoJdbc.verificar(conexao, usuario);
             var comando = fabrica.criar(conexao);
             bloquearAlvos(conexao, comando);
             recibo = RegistroIntervencaoJdbc.buscar(conexao, comando.operacaoId()).orElse(null);
