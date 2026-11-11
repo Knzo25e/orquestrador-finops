@@ -10,6 +10,10 @@ import java.util.UUID;
  */
 public final class PoliticaAutorizacao {
 
+    public boolean podeAcessarIntervencoes(ContextoIdentidade identidade) {
+        return identidadeAtiva(identidade) && identidade.perfil() == PerfilUsuario.ARQUITETO_CLOUD;
+    }
+
     public boolean podeConsultarCatalogo(ContextoIdentidade identidade) {
         return identidadeAtiva(identidade);
     }
@@ -18,10 +22,19 @@ public final class PoliticaAutorizacao {
             ContextoIdentidade identidade,
             UUID departamentoSolicitado
     ) {
+        return desenvolvedorAtivoComVinculo(identidade)
+                && identidade.departamentoId().equals(departamentoSolicitado);
+    }
+
+    /** Permissão geral. A submissão ainda exige autoria e departamento do pedido. */
+    public boolean podeSubmeterRequisicao(ContextoIdentidade identidade) {
+        return desenvolvedorAtivoComVinculo(identidade);
+    }
+
+    private boolean desenvolvedorAtivoComVinculo(ContextoIdentidade identidade) {
         return identidadeAtiva(identidade)
                 && identidade.perfil() == PerfilUsuario.DESENVOLVEDOR
-                && identidade.departamentoId() != null
-                && identidade.departamentoId().equals(departamentoSolicitado);
+                && identidade.departamentoId() != null;
     }
 
     /**

@@ -1,6 +1,10 @@
 package br.mackenzie.finops.infraestrutura.http;
 
 import br.mackenzie.finops.aplicacao.resultados.ResultadoCriacaoRequisicao;
+import br.mackenzie.finops.aplicacao.resultados.FotografiaRequisicao;
+import br.mackenzie.finops.dominio.entidades.EstadoRequisicao;
+import br.mackenzie.finops.dominio.entidades.Requisicao;
+import br.mackenzie.finops.dominio.entidades.ResultadoValidacao;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,50 +15,39 @@ public record RespostaCriacaoHttp(
         List<Aviso> avisos
 ) {
     static RespostaCriacaoHttp de(ResultadoCriacaoRequisicao resultado) {
-        var requisicao = resultado.requisicao();
+        return new RespostaCriacaoHttp(resultado.situacao().name(), pedido(resultado.requisicao()),
+                avisos(resultado.falhaNoFechamento()));
+    }
 
-        List<Item> itens = requisicao.getItens().stream()
+    static Pedido pedido(Requisicao requisicao) {
+        var fotografia = FotografiaRequisicao.de(requisicao);
+        List<Item> itens = fotografia.itens().stream()
                 .map(item -> new Item(
-                        item.getRecurso().getId(),
-                        item.getQuantidade(),
-                        item.getPrecoUnitario().toPlainString(),
-                        item.getCustoSubtotal().toPlainString()
+                        item.recursoId(), item.quantidade(), item.precoUnitario(), item.subtotal()
                 ))
                 .toList();
 
-        String estadoPublico = switch (requisicao.getStatus()) {
-            case "INICIAL" -> "INICIAL";
-            case "Provisionamento Liberado" -> "PROVISIONAMENTO_LIBERADO";
-            case "Revisão Pendente" -> "REVISAO_PENDENTE";
-            default -> throw new IllegalStateException(
-                    "Estado sem representação no contrato HTTP."
-            );
-        };
+        return new Pedido(fotografia.id(), fotografia.estado(), fotografia.motivoRevisao(), fotografia.custoTotalProjetado(), itens);
+    }
 
-        var motivo = requisicao.getMotivoRevisao();
-        String motivoPublico = motivo == null ? null : switch (motivo) {
-            case REVISAO_POR_SALDO_INSUFICIENTE -> "SALDO_INSUFICIENTE";
-            case REVISAO_POR_RESERVA -> "RESERVA";
-            default -> throw new IllegalStateException(
-                    "Motivo sem representação no contrato HTTP."
-            );
-        };
+    static String estadoPublico(String estado) {
+        return EstadoRequisicao.deStatus(estado).name();
 
-        var pedido = new Pedido(
-                requisicao.getId(),
-                estadoPublico,
-                motivoPublico,
-                requisicao.getCustoTotalProjetado().toPlainString(),
-                itens
-        );
-        List<Aviso> avisos = resultado.falhaNoFechamento()
+    }
+
+    static String motivoPublico(ResultadoValidacao motivo) {
+        return FotografiaRequisicao.motivoPublico(motivo);
+
+    }
+
+    static List<Aviso> avisos(boolean falhaNoFechamento) {
+        return falhaNoFechamento
                 ? List.of(new Aviso(
                         "FALHA_NO_FECHAMENTO",
                         "A operação foi concluída, mas houve uma falha ao encerrar seus recursos."
                 ))
                 : List.of();
 
-        return new RespostaCriacaoHttp(resultado.situacao().name(), pedido, avisos);
     }
 
     public record Pedido(

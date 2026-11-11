@@ -10,7 +10,7 @@ public class Departamento {
 
     private final UUID id;
     private final String nome;
-    private final BigDecimal orcamentoMensal;
+    private BigDecimal orcamentoMensal;
     private BigDecimal saldoDisponivel;
 
     public Departamento(UUID id, String nome, BigDecimal orcamentoMensal) {
@@ -97,10 +97,34 @@ public class Departamento {
         this.saldoDisponivel = this.saldoDisponivel.subtract(valorValidado);
     }
 
-    public BigDecimal calcularReserva() {
+    public synchronized ResultadoAjusteOrcamentario ajustarTeto(BigDecimal novoTeto) {
+        BigDecimal tetoValidado = validarValorMonetario(novoTeto, "O novo teto");
+        BigDecimal tetoAnterior = this.orcamentoMensal;
+        BigDecimal saldoAnterior = this.saldoDisponivel;
+        BigDecimal comprometido = tetoAnterior.subtract(saldoAnterior);
+
+        ResultadoAjusteOrcamentario.Situacao situacao;
+        if (tetoValidado.compareTo(comprometido) < 0) {
+            situacao = ResultadoAjusteOrcamentario.Situacao.TETO_ABAIXO_DO_COMPROMETIDO;
+        } else if (tetoValidado.compareTo(tetoAnterior) == 0) {
+            situacao = ResultadoAjusteOrcamentario.Situacao.TETO_INALTERADO;
+        } else {
+            this.orcamentoMensal = tetoValidado;
+            this.saldoDisponivel = tetoValidado.subtract(comprometido);
+            situacao = ResultadoAjusteOrcamentario.Situacao.TETO_AJUSTADO;
+        }
+        return new ResultadoAjusteOrcamentario(situacao, tetoAnterior, this.orcamentoMensal,
+                saldoAnterior, this.saldoDisponivel, comprometido);
+    }
+
+    public synchronized BigDecimal calcularReserva() {
         return this.orcamentoMensal
                 .multiply(PERCENTUAL_RESERVA)
                 .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal getPercentualReserva() {
+        return PERCENTUAL_RESERVA;
     }
 
     private static BigDecimal validarValorMonetario(
@@ -137,7 +161,7 @@ public class Departamento {
         return nome;
     }
 
-    public BigDecimal getOrcamentoMensal() {
+    public synchronized BigDecimal getOrcamentoMensal() {
         return orcamentoMensal;
     }
 

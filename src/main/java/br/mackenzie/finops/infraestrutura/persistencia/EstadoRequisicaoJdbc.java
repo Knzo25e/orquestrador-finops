@@ -32,6 +32,8 @@ final class EstadoRequisicaoJdbc {
                     semMotivo("Provisionamento Liberado", motivo);
 
             case "REVISAO_PENDENTE" -> recuperarRevisao(motivo);
+            case "AGUARDANDO_AJUSTE_ORCAMENTARIO", "AGUARDANDO_AUTORIZACAO_FINANCEIRA",
+                    "AGUARDANDO_LIBERACAO_FINANCEIRA", "REJEITADO" -> semMotivo(estado, motivo);
 
             default -> throw inconsistencia();
         };

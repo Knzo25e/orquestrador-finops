@@ -1,6 +1,8 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
+import br.mackenzie.finops.aplicacao.excecoes.ServicoIndisponivelException;
 import br.mackenzie.finops.aplicacao.portas.ConsultaRequisicaoPersistente;
+import br.mackenzie.finops.aplicacao.resultados.ResumoRequisicao;
 import br.mackenzie.finops.dominio.entidades.Requisicao;
 
 import java.sql.Connection;
@@ -92,6 +94,15 @@ public final class ConsultaRequisicaoJdbc
         );
     }
 
+    @Override
+    public List<ResumoRequisicao> listarResumos(UUID departamentoId, UUID autorId, UUID apos, int limite) {
+        validarDepartamento(departamentoId);
+        if (limite < 1 || limite > 101) {
+            throw new IllegalArgumentException("Limite de leitura inválido.");
+        }
+        return consultar(repositorio -> repositorio.listarResumos(departamentoId, autorId, apos, limite));
+    }
+
     private <T> T consultar(
             Function<RequisicaoRepositoryJdbc, T> operacao
     ) {
@@ -112,7 +123,13 @@ public final class ConsultaRequisicaoJdbc
             return operacao.apply(
                     new RequisicaoRepositoryJdbc(conexao)
             );
-        } catch (SQLException excecao) {
+        } catch (SQLException | FalhaPersistenciaException excecao) {
+            if (FalhaPersistenciaException.indisponibilidade(excecao)) {
+                throw new ServicoIndisponivelException();
+            }
+            if (excecao instanceof FalhaPersistenciaException falha) {
+                throw falha;
+            }
             throw new FalhaPersistenciaException(
                     "Falha ao abrir, configurar ou fechar "
                             + "a conexão de consulta."

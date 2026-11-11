@@ -1,5 +1,7 @@
 package br.mackenzie.finops.infraestrutura.persistencia;
 
+import br.mackenzie.finops.aplicacao.excecoes.RequisicaoNaoEncontradaException;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,6 +53,32 @@ final class BloqueadorValidacaoJdbc {
             throw new FalhaPersistenciaException(
                     "Falha ao adquirir os bloqueios da validação."
             );
+        }
+    }
+
+    UUID bloquearNoEscopo(UUID requisicaoId, UUID departamentoId, UUID autorId) throws SQLException {
+        conferirConfiguracao();
+        String escopo = """
+                SELECT id FROM requisicao
+                WHERE id = ? AND departamento_id = ? AND desenvolvedor_id = ?
+                """;
+        conferirEscopo(escopo, requisicaoId, departamentoId, autorId);
+        bloquearDepartamento(departamentoId);
+        conferirEscopo(escopo + " FOR UPDATE", requisicaoId, departamentoId, autorId);
+        return departamentoId;
+    }
+
+    private void conferirEscopo(String sql, UUID requisicaoId, UUID departamentoId, UUID autorId)
+            throws SQLException {
+        try (var comando = conexao.prepareStatement(sql)) {
+            comando.setString(1, requisicaoId.toString());
+            comando.setString(2, departamentoId.toString());
+            comando.setString(3, autorId.toString());
+            try (var linha = comando.executeQuery()) {
+                if (!linha.next()) {
+                    throw new RequisicaoNaoEncontradaException();
+                }
+            }
         }
     }
 
