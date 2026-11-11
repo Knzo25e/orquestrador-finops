@@ -15,6 +15,7 @@ O projeto usa Java 25, Maven Wrapper (Maven 3.10.0), Spring Boot 4.1.2 com Sprin
 
 - O documento oficial do professor exige dois perfis distintos, persistência, um fluxo não trivial e regras de negócio explícitas. A obrigatoriedade de login institucional, portal visual completo ou integração real com a AWS depende de confirmação explícita.
 - A exclusão de RF-03, RF-04 ou RF-05 do escopo aprovado exige autorização explícita do responsável pelo projeto. Os cenários aprovados para a demonstração estão no [plano técnico](docs/plan.md#recorte-aprovado-para-26112026).
+- O orçamento de hospedagem, infraestrutura, domínio e serviços externos é **R$ 0**. Preserve a demonstração local gratuita e utilize apenas alternativas sem custo. A abertura de contas pagas, o cadastro de cartões e a ativação de cobranças estão fora da autorização do projeto.
 - O prazo final é **26/11/2026**. A meta interna proposta é congelar novas funcionalidades em **21/11/2026** e reservar os dias finais para integração, testes, correções, documentação e apresentação. Revise a meta se o cronograma mostrar que ela é inviável.
 
 ## Arquitetura e desenvolvimento

@@ -39,7 +39,7 @@ $jar = 'target/orquestrador-finops-0.1.0-SNAPSHOT.jar'
 
 Execute o cadastro uma vez em terminal interativo. O comando pede as senhas de `desenvolvedor` e `arquiteto` sem eco, usa o codificador do Spring Security e grava as duas contas na mesma transação. Use senhas distintas com pelo menos 12 caracteres e até 72 bytes UTF-8. Para iniciar o servidor, use a conta de banco com os privilégios de execução.
 
-Abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login) com o certificado do exemplo. O login abre o painel do perfil vigente. O painel do Desenvolvedor exibe catálogo e requisições. O painel do Arquiteto exibe teto e saldo por departamento e a lista filtrada de requisições. O Desenvolvedor ativo com departamento cria em `INICIAL` e submete e consulta pedidos próprios do departamento atual. O Arquiteto consulta pedidos por UUID ou lista por departamento, incluindo registros legados.
+Abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login) com o certificado do exemplo. O login abre o painel do perfil vigente. O painel do Desenvolvedor permite consultar o catálogo, criar, submeter e acompanhar requisições. O painel do Arquiteto reúne orçamento, revisão, decisões financeiras e histórico de auditoria. O Desenvolvedor ativo com departamento cria em `INICIAL` e submete e consulta pedidos próprios do departamento atual. O Arquiteto consulta pedidos por UUID ou lista por departamento, incluindo registros legados.
 
 No console do navegador, na mesma origem e autenticado como Desenvolvedor, execute o fluxo com o recurso do exemplo. Guarde o UUID e a sequência de itens ao repetir a criação.
 
@@ -139,25 +139,45 @@ console.log(liberacaoManual.status, await liberacaoManual.json());
 
 Use `REJEITAR` na revisão para rejeição justificada. Na etapa financeira, `NEGAR_RESERVA` preserva a pendência. Se faltar saldo, ajuste o teto em outra operação. Quando a reserva for dispensada, use um comando novo com `LIBERAR_SEM_RESERVA`. A aprovação técnica preserva o saldo. O histórico por departamento e pedido permite conferir todas as decisões. [Roteiro demonstrado, testes e limites](evidencias/issue-107/fluxo-manual.md).
 
-## Perfil de implantação e alternativa local
+## Demonstração no notebook, sem custo
 
-O perfil `railway` usa a porta `PORT` e escuta HTTP atrás do proxy HTTPS. O Tomcat usa redirecionamentos relativos e ignora `Forwarded` e `X-Forwarded-*`. O navegador acessa somente a URL HTTPS do proxy e o cookie continua `Secure`, `HttpOnly` e `SameSite=Lax`. Para reproduzir o perfil atrás de um proxy HTTPS no notebook, configure o JDBC e execute o JAR em loopback.
+Execute o JAR com HTTPS e MySQL locais conforme o início deste guia. Conecte o notebook ao projetor e abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login) com o certificado local confiável. Prepare dois perfis independentes do navegador para alternar entre Desenvolvedor e Arquiteto Cloud.
+
+Use a base fictícia do exemplo, com teto e saldo iniciais de R$ 1.000,00 e recurso de R$ 12,50. O roteiro a seguir usa apenas a interface do portal.
+
+| Etapa | Ação no portal e resultado |
+|---|---|
+| Desenvolvedor | Consulte o catálogo. Em **Nova requisição**, salve A com 72 unidades, B com 96 e C com 80. Confira os estados iniciais no detalhe e submeta cada pedido. A e C vão à revisão pela reserva. B vai à revisão por insuficiência de saldo. |
+| Arquiteto | Selecione Engenharia. Aprove tecnicamente A e B e rejeite C, sempre com justificativa. Confira que o saldo continua em R$ 1.000,00. |
+| Reserva | Em A, negue a reserva. Tente liberar sem reserva e confira a pendência. Depois autorize o uso da reserva. O saldo passa a R$ 100,00. Use **Repetir comando registrado** para recuperar o recibo com o mesmo UUID e confirmar que o saldo ficou igual. |
+| Ajuste | Tente ajustar o teto para R$ 800,00 para mostrar a recusa auditada. Ajuste para R$ 2.500,00. Os R$ 900,00 comprometidos são preservados, e o saldo passa a R$ 1.600,00. |
+| Liberação | Em B, escolha autorizar reserva para reavaliar a situação. O resultado indica reserva dispensada. Em seguida registre **Liberar sem uso da reserva**. O saldo final é de R$ 400,00. |
+| Auditoria | Abra o histórico. O roteiro completo gera dez eventos, incluindo a decisão recusada de ajuste. Abra um evento para mostrar responsável, UTC, justificativa e fotografia financeira. Filtre pelo pedido aberto e volte ao histórico do departamento. |
+| Desenvolvedor | Volte ao primeiro perfil e clique em **Atualizar requisições** para acompanhar as decisões finais. |
+
+Quando uma resposta se perder, use **Consultar situação atual** e depois, se necessário, **Reenviar a mesma operação**. O portal conserva o UUID e o corpo original na aba. Para renovar a sessão sem perder a pendência, use **Entrar em outra aba** e retorne com a mesma conta, perfil e vínculo. Ao fechar ou recarregar a aba, os dados em memória se perdem. Consulte o pedido e o histórico pelo identificador antes de tomar outra decisão. Uma consulta sem resultado ainda não comprova rollback.
+
+## Acesso opcional pelo computador da faculdade
+
+O orçamento aprovado é **R$ 0**. A apresentação principal usa o notebook da equipe. O [Cloudflare Quick Tunnel](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) é uma opção gratuita e temporária para usar o navegador de outro computador. A URL muda a cada execução, o serviço não tem garantia de disponibilidade e a conexão depende da rede do notebook e da faculdade.
+
+Após preparar o notebook, faça um ensaio antes de usar o túnel na apresentação. Use apenas o banco fictício e as contas de demonstração. Mantenha o Spring Boot e o MySQL em loopback, com a conta de execução restrita. Exponha somente a porta HTTPS da aplicação. Use o nome coberto pelo certificado e passe a CA confiável de origem ao conector. Para uma versão do cloudflared que suporte a restrição por e-mail, prefira o acesso por PIN aos participantes do ensaio. [Parâmetros TLS da origem](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/origin-parameters/) · [Download oficial do cloudflared](https://developers.cloudflare.com/tunnel/downloads/)
+
+No notebook, configure `$caOrigem` com o caminho do PEM da CA que assinou o certificado do Spring. Para o certificado autoassinado do guia, exporte o certificado público com `keytool -exportcert -rfc -alias finops -keystore $chave -storepass:env FINOPS_TLS_PASSWORD -file $caOrigem` e confirme no ensaio que ele é aceito como âncora de confiança. Configure `$emailParticipante` com o endereço autorizado para receber o PIN. Com o aplicativo em execução, o comando previsto é:
 
 ```powershell
-$env:PORT = '8080'
-& "$env:JAVA_HOME\bin\java.exe" -jar $jar --spring.profiles.active=railway --server.address=127.0.0.1
+.\cloudflared.exe tunnel --url https://127.0.0.1:8443 --origin-server-name localhost `
+    --origin-ca-pool $caOrigem --allowed-mail $emailParticipante
 ```
 
-A alternativa para a apresentação é iniciar o JAR **sem o perfil railway**, com o PKCS12 local e o banco de demonstração do guia acima. Teste a confiança do certificado e os dois logins no navegador do notebook antes da apresentação.
+No computador da faculdade, abra no navegador a URL HTTPS temporária que o comando imprimir. Confirme a validade do certificado público e ensaie login, redirecionamentos, cookie Secure, CSRF, logout e uma ação de cada perfil. Encerre o túnel ao terminar. Se o conector não validar o certificado de origem ou a rede não der acesso estável, use o notebook e o projetor. Mantenha a validação TLS ativa em todos os trechos. A compatibilidade do portal foi exercitada atrás de um proxy TLS local. O acesso real por Quick Tunnel ainda está pendente.
 
-Para publicar após aprovação de orçamento, prepare um serviço de aplicação com Java 25 e uma instância, domínio HTTPS no proxy, porta interna `PORT` e um serviço MySQL privado com volume. A [documentação do template de alta disponibilidade do Railway](https://github.com/railwayapp-templates/mysql-ha#conversion-notes) descreve o template standalone com MySQL 9.4. Para a demonstração, a opção proposta é fixar a [imagem oficial MySQL 8.0.44](https://hub.docker.com/_/mysql/tags?name=8.0.44), versão exercitada localmente, em volume novo. No ambiente remoto, confirme `SELECT VERSION()`, aplique V001–V005 e valide o fluxo antes de divulgar a URL. Execute migrações e cadastro com a conta de preparação. Use a conta de execução restrita no JAR.
+## Verificação do portal
 
-Mantenha o MySQL sem porta pública, exija TLS da conta de execução e configure o Connector/J com `sslMode=VERIFY_IDENTITY` e a CA confiável do certificado emitido para o DNS privado do banco. A rede privada do provedor tem criptografia própria. Valide também a identidade do banco na conexão JDBC. Forneça as credenciais por variáveis protegidas e mantenha as chaves fora do Git e da imagem. [Rede privada do Railway](https://docs.railway.com/networking/private-networking) · [Autenticação do servidor no Connector/J](https://dev.mysql.com/doc/connector-j/en/connector-j-server-authentication.html)
+Os testes da camada Java continuam no comando de regressão deste guia. Para verificar a proteção contra envio duplicado, a recuperação de operações incertas e a entrada monetária, execute:
 
-O [plano Hobby](https://docs.railway.com/pricing) parte de US$ 5/mês, com US$ 5 de uso incluído. CPU, RAM, volume e tráfego podem elevar a fatura. A proposta segue com teto de US$ 15 para a janela de demonstração, sujeito à aprovação. O [limite de uso](https://docs.railway.com/pricing/cost-control) pode interromper os serviços quando atingido. O ensaio local não provisionou infraestrutura no Railway. Versão efetiva, DNS, TLS e rede da faculdade ainda precisam de verificação no ambiente publicado.
+```powershell
+node --test scripts/testar-operacoes-portal.mjs
+```
 
-## Verificação da primeira etapa do portal
-
-- O comando de regressão deste guia aprovou 100 testes, incluindo os 97 anteriores e três testes de portal. Os novos cenários cobrem navegação por perfil, CSRF e logout após revogação, dados vigentes da sessão, autorização e paginação de departamentos, precisão monetária e distinção entre 403, 500 e 503.
-- O JAR foi exercitado no Edge em HTTPS direto e com o perfil `railway` atrás de um proxy TLS local. Foram verificados login inválido e válido, catálogo do Desenvolvedor, acesso negado aos departamentos, logout e troca de departamento pelo Arquiteto, incluindo layout de 390 px. No ensaio com proxy, os redirecionamentos permaneceram relativos sob cabeçalhos encaminhados forjados.
-- MySQL 8.0.44 com V001–V005, conta restrita e TLS com verificação de identidade do servidor foi usado pelo JAR nos dois ensaios. Os formulários de criação, submissão e intervenção pertencem às próximas etapas do portal. Os exemplos de API neste guia permanecem úteis para a regressão do backend.
+Na validação desta etapa, passaram 100 testes Java com MySQL, cinco testes JavaScript, 164 verificações JDBC, 123 de domínio e três cenários concorrentes. O ensaio no Edge com o JAR e proxy HTTPS local confirmou os dois perfis, a criação de múltiplos itens, o duplo clique, a reconciliação após perda simulada de resposta na criação e na liberação, a sessão ausente e o bloqueio do reenvio por outra conta. O saldo final foi de R$ 400,00 com dez eventos. O teste de corte real de transporte durante commit remoto e o ensaio representativo do RNF-01 permanecem pendentes.
