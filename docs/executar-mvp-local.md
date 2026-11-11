@@ -39,7 +39,7 @@ $jar = 'target/orquestrador-finops-0.1.0-SNAPSHOT.jar'
 
 Execute o cadastro uma vez em terminal interativo. O comando pede as senhas de `desenvolvedor` e `arquiteto` sem eco, usa o codificador do Spring Security e grava as duas contas na mesma transação. Use senhas distintas com pelo menos 12 caracteres e até 72 bytes UTF-8. Para iniciar o servidor, use a conta de banco com os privilégios de execução.
 
-Abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login) com o certificado do exemplo. O login leva ao catálogo. Ambos os perfis podem consultá-lo. O Desenvolvedor ativo com departamento cria em `INICIAL` e submete e consulta pedidos próprios do departamento atual. O Arquiteto consulta pedidos por UUID ou lista por departamento, incluindo registros legados.
+Abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login) com o certificado do exemplo. O login abre o painel do perfil vigente. O painel do Desenvolvedor exibe catálogo e requisições. O painel do Arquiteto exibe teto e saldo por departamento e a lista filtrada de requisições. O Desenvolvedor ativo com departamento cria em `INICIAL` e submete e consulta pedidos próprios do departamento atual. O Arquiteto consulta pedidos por UUID ou lista por departamento, incluindo registros legados.
 
 No console do navegador, na mesma origem e autenticado como Desenvolvedor, execute o fluxo com o recurso do exemplo. Guarde o UUID e a sequência de itens ao repetir a criação.
 
@@ -138,3 +138,26 @@ console.log(liberacaoManual.status, await liberacaoManual.json());
 ```
 
 Use `REJEITAR` na revisão para rejeição justificada. Na etapa financeira, `NEGAR_RESERVA` preserva a pendência. Se faltar saldo, ajuste o teto em outra operação. Quando a reserva for dispensada, use um comando novo com `LIBERAR_SEM_RESERVA`. A aprovação técnica preserva o saldo. O histórico por departamento e pedido permite conferir todas as decisões. [Roteiro demonstrado, testes e limites](evidencias/issue-107/fluxo-manual.md).
+
+## Perfil de implantação e alternativa local
+
+O perfil `railway` usa a porta `PORT` e escuta HTTP atrás do proxy HTTPS. O Tomcat usa redirecionamentos relativos e ignora `Forwarded` e `X-Forwarded-*`. O navegador acessa somente a URL HTTPS do proxy e o cookie continua `Secure`, `HttpOnly` e `SameSite=Lax`. Para reproduzir o perfil atrás de um proxy HTTPS no notebook, configure o JDBC e execute o JAR em loopback.
+
+```powershell
+$env:PORT = '8080'
+& "$env:JAVA_HOME\bin\java.exe" -jar $jar --spring.profiles.active=railway --server.address=127.0.0.1
+```
+
+A alternativa para a apresentação é iniciar o JAR **sem o perfil railway**, com o PKCS12 local e o banco de demonstração do guia acima. Teste a confiança do certificado e os dois logins no navegador do notebook antes da apresentação.
+
+Para publicar após aprovação de orçamento, prepare um serviço de aplicação com Java 25 e uma instância, domínio HTTPS no proxy, porta interna `PORT` e um serviço MySQL privado com volume. A [documentação do template de alta disponibilidade do Railway](https://github.com/railwayapp-templates/mysql-ha#conversion-notes) descreve o template standalone com MySQL 9.4. Para a demonstração, a opção proposta é fixar a [imagem oficial MySQL 8.0.44](https://hub.docker.com/_/mysql/tags?name=8.0.44), versão exercitada localmente, em volume novo. No ambiente remoto, confirme `SELECT VERSION()`, aplique V001–V005 e valide o fluxo antes de divulgar a URL. Execute migrações e cadastro com a conta de preparação. Use a conta de execução restrita no JAR.
+
+Mantenha o MySQL sem porta pública, exija TLS da conta de execução e configure o Connector/J com `sslMode=VERIFY_IDENTITY` e a CA confiável do certificado emitido para o DNS privado do banco. A rede privada do provedor tem criptografia própria. Valide também a identidade do banco na conexão JDBC. Forneça as credenciais por variáveis protegidas e mantenha as chaves fora do Git e da imagem. [Rede privada do Railway](https://docs.railway.com/networking/private-networking) · [Autenticação do servidor no Connector/J](https://dev.mysql.com/doc/connector-j/en/connector-j-server-authentication.html)
+
+O [plano Hobby](https://docs.railway.com/pricing) parte de US$ 5/mês, com US$ 5 de uso incluído. CPU, RAM, volume e tráfego podem elevar a fatura. A proposta segue com teto de US$ 15 para a janela de demonstração, sujeito à aprovação. O [limite de uso](https://docs.railway.com/pricing/cost-control) pode interromper os serviços quando atingido. O ensaio local não provisionou infraestrutura no Railway. Versão efetiva, DNS, TLS e rede da faculdade ainda precisam de verificação no ambiente publicado.
+
+## Verificação da primeira etapa do portal
+
+- O comando de regressão deste guia aprovou 100 testes, incluindo os 97 anteriores e três testes de portal. Os novos cenários cobrem navegação por perfil, CSRF e logout após revogação, dados vigentes da sessão, autorização e paginação de departamentos, precisão monetária e distinção entre 403, 500 e 503.
+- O JAR foi exercitado no Edge em HTTPS direto e com o perfil `railway` atrás de um proxy TLS local. Foram verificados login inválido e válido, catálogo do Desenvolvedor, acesso negado aos departamentos, logout e troca de departamento pelo Arquiteto, incluindo layout de 390 px. No ensaio com proxy, os redirecionamentos permaneceram relativos sob cabeçalhos encaminhados forjados.
+- MySQL 8.0.44 com V001–V005, conta restrita e TLS com verificação de identidade do servidor foi usado pelo JAR nos dois ensaios. Os formulários de criação, submissão e intervenção pertencem às próximas etapas do portal. Os exemplos de API neste guia permanecem úteis para a regressão do backend.
