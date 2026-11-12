@@ -45,6 +45,26 @@ final class ContasDemonstracao {
         System.out.println("Contas desenvolvedor e arquiteto cadastradas.");
     }
 
+    static void verificarConexao(String[] args) {
+        if (args.length != 2) {
+            throw new IllegalArgumentException("Use verificar-conexao-apresentacao <UUID da instância>.");
+        }
+        UUID instancia = UUID.fromString(args[1]);
+        var fabrica = new FabricaConexoes(ConfiguracaoBanco.carregarDoAmbiente());
+        try (var conexao = fabrica.abrir();
+             var consulta = conexao.createStatement();
+             var resultado = consulta.executeQuery("SELECT @@server_uuid, DATABASE()")) {
+            if (!resultado.next() || !instancia.toString().equalsIgnoreCase(resultado.getString(1))
+                    || resultado.getString(2) != null) {
+                throw new IllegalStateException("A conexão JDBC não confirmou a mesma instância sem banco selecionado.");
+            }
+        } catch (SQLException falha) {
+            throw new IllegalStateException(
+                    "Conexão JDBC recusada. Confira a credencial administrativa, o certificado e o PKCS12."
+            );
+        }
+    }
+
     private static String lerHash(String login) {
         var console = System.console();
         if (console == null || !console.isTerminal()) {

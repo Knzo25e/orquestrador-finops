@@ -30,8 +30,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 $jar = Join-Path $repo 'target/orquestrador-finops-0.1.0-SNAPSHOT.jar'
 if (-not $env:JAVA_HOME) { throw 'Configure JAVA_HOME com o JDK 25.' }
 $java = Join-Path $env:JAVA_HOME 'bin/java.exe'
-$keytool = Join-Path $env:JAVA_HOME 'bin/keytool.exe'
-foreach ($arquivo in $Mysql, $java, $keytool, $jar) {
+foreach ($arquivo in $Mysql, $java, $jar) {
     if (-not (Test-Path -LiteralPath $arquivo -PathType Leaf)) { throw "Arquivo necessário ausente: $arquivo" }
 }
 $Mysql = (Resolve-Path -LiteralPath $Mysql).ProviderPath
@@ -83,27 +82,30 @@ function New-CredencialMysql([string]$Usuario) {
 $dep = '10000000-0000-4000-8000-000000000001'
 $original = '10000000-0000-4000-8000-000000000002'
 $app = 'finops_apresentacao_app'
-$cadastro = 'finops_apresentacao_cadastro'
+$cadastroLegado = 'finops_apresentacao_cadastro'
 $variaveis = @{}
-foreach ($nome in 'MYSQL_PWD', 'FINOPS_DB_URL', 'FINOPS_DB_USER', 'FINOPS_DB_PASSWORD', 'FINOPS_PREPARO_TRUST_PASSWORD') {
+foreach ($nome in 'MYSQL_PWD', 'FINOPS_DB_URL', 'FINOPS_DB_USER', 'FINOPS_DB_PASSWORD') {
     $variaveis[$nome] = [Environment]::GetEnvironmentVariable($nome, 'Process')
 }
 $criada = $false
 Push-Location -LiteralPath $repo
 try {
     $env:MYSQL_PWD = $CredencialAdministrativa.GetNetworkCredential().Password
-    $identidade = @(Invoke-Sql 'identificar a instância' 'SELECT @@port, @@datadir, VERSION(), DATABASE()')
+    $identidade = @(Invoke-Sql 'identificar a instância' 'SELECT @@port, @@datadir, VERSION(), DATABASE(), @@server_uuid')
     if ($identidade.Count -ne 1) { throw 'Não foi possível identificar a instância.' }
     $campos = $identidade[0].Split([char]9)
-    if ($campos.Count -ne 4 -or $campos[0] -cne "$porta" -or $campos[2] -notmatch '^8\.\d+\.\d+' -or
-        $campos[3] -cne 'NULL' -or
+    if ($campos.Count -ne 5 -or $campos[0] -cne "$porta" -or $campos[3] -cne 'NULL' -or
         [IO.Path]::GetFullPath($campos[1]).TrimEnd('\','/') -ine $dados.TrimEnd('\','/')) {
-        throw 'Instância, diretório de dados ou versão do MySQL inesperados.'
+        throw 'Instância ou diretório de dados do MySQL inesperados.'
     }
+    if ($campos[2] -notmatch '^8\.0\.([0-9]{1,3})(?:-(?:commercial|debug)(?:-log)?|-log)?$' -or [int]$Matches[1] -lt 18) {
+        throw 'Use MySQL 8.0.18 ou posterior na série 8.0. Nenhuma base foi criada.'
+    }
+    $idInstancia = [guid]::ParseExact($campos[4], 'D').ToString()
     if ((Invoke-Sql 'verificar base existente' "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '$base'") -cne '0') {
         throw "$base já existe. A preparação não foi executada e não serve para reiniciar ensaios."
     }
-    if ((Invoke-Sql 'verificar contas técnicas existentes' "SELECT COUNT(*) FROM mysql.user WHERE User IN ('$app','$cadastro')") -cne '0' -or
+    if ((Invoke-Sql 'verificar contas técnicas existentes' "SELECT COUNT(*) FROM mysql.user WHERE User IN ('$app','$cadastroLegado')") -cne '0' -or
         (Test-Path -LiteralPath $saida)) {
         throw 'Já existe conta técnica ou arquivo de credencial de apresentação. Pare e confira.'
     }
@@ -114,12 +116,21 @@ try {
         $SenhaRepositorioConfianca = Read-Host 'Senha do repositório local de confiança do MySQL (PKCS12)' -AsSecureString
     }
     if (-not $SenhaRepositorioConfianca -or $SenhaRepositorioConfianca.Length -eq 0) { throw 'Senha do PKCS12 não informada.' }
-    $env:FINOPS_PREPARO_TRUST_PASSWORD = [Net.NetworkCredential]::new('', $SenhaRepositorioConfianca).Password
+    $arquivoConfianca = [uri]::EscapeDataString(([uri]$confianca).AbsoluteUri)
+    $senhaConfianca = [uri]::EscapeDataString([Net.NetworkCredential]::new('', $SenhaRepositorioConfianca).Password)
+    $opcoesJdbc = "sslMode=VERIFY_IDENTITY&fallbackToSystemTrustStore=false&connectTimeout=5000&socketTimeout=10000&trustCertificateKeyStoreType=PKCS12&trustCertificateKeyStoreUrl=$arquivoConfianca&trustCertificateKeyStorePassword=$senhaConfianca"
+    $env:FINOPS_DB_URL = "jdbc:mysql://127.0.0.1:$porta/?$opcoesJdbc"
+    $env:FINOPS_DB_USER = $CredencialAdministrativa.UserName
+    $env:FINOPS_DB_PASSWORD = $env:MYSQL_PWD
+    $env:MYSQL_PWD = $null
     try {
-        & $keytool -list -keystore $confianca -storetype PKCS12 -storepass:env FINOPS_PREPARO_TRUST_PASSWORD 2>$null | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw 'Não foi possível abrir o PKCS12 de confiança. Nenhuma base foi criada.' }
+        & $java -jar $jar verificar-conexao-apresentacao $idInstancia
+        if ($LASTEXITCODE -ne 0) { throw 'A validação JDBC falhou. Nenhuma base foi criada.' }
     } finally {
-        $env:FINOPS_PREPARO_TRUST_PASSWORD = $null
+        $env:FINOPS_DB_URL = $null
+        $env:FINOPS_DB_USER = $null
+        $env:FINOPS_DB_PASSWORD = $null
+        $env:MYSQL_PWD = $CredencialAdministrativa.GetNetworkCredential().Password
     }
     Write-Host "Instância confirmada: 127.0.0.1:$porta; criando somente $base."
     Invoke-Sql 'criar base exclusiva' "CREATE DATABASE $base CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci" | Out-Null
@@ -138,7 +149,6 @@ try {
     Invoke-Sql 'carregar catálogo aprovado' "SOURCE $carga" -NaBase | Out-Null
 
     $execucao = New-CredencialMysql $app
-    $provisionador = New-CredencialMysql $cadastro
     $destino = "'$app'@'127.0.0.1'"
     $permissoes = @(
         "GRANT SELECT ON $base.usuario TO $destino",
@@ -146,25 +156,23 @@ try {
         "GRANT SELECT, UPDATE (teto_mensal,saldo_disponivel) ON $base.departamento TO $destino",
         "GRANT SELECT, INSERT, UPDATE (estado,motivo_revisao) ON $base.requisicao TO $destino",
         "GRANT SELECT, INSERT ON $base.item_requisicao TO $destino",
-        "GRANT SELECT, INSERT ON $base.intervencao TO $destino",
-        "GRANT INSERT ON $base.usuario TO '$cadastro'@'127.0.0.1'"
+        "GRANT SELECT, INSERT ON $base.intervencao TO $destino"
     )
     Invoke-Sql 'conceder permissões restritas' ($permissoes -join '; ') | Out-Null
 
-    $arquivoConfianca = [uri]::EscapeDataString(([uri]$confianca).AbsoluteUri)
-    $senhaConfianca = [uri]::EscapeDataString([Net.NetworkCredential]::new('', $SenhaRepositorioConfianca).Password)
-    $env:FINOPS_DB_URL = "jdbc:mysql://127.0.0.1:$porta/$($base)?sslMode=VERIFY_IDENTITY&fallbackToSystemTrustStore=false&trustCertificateKeyStoreType=PKCS12&trustCertificateKeyStoreUrl=$arquivoConfianca&trustCertificateKeyStorePassword=$senhaConfianca"
-    $env:FINOPS_DB_USER = $cadastro
-    $env:FINOPS_DB_PASSWORD = $provisionador.GetNetworkCredential().Password
+    $env:FINOPS_DB_URL = "jdbc:mysql://127.0.0.1:$porta/$($base)?$opcoesJdbc"
+    $env:FINOPS_DB_USER = $CredencialAdministrativa.UserName
+    $env:FINOPS_DB_PASSWORD = $env:MYSQL_PWD
     $env:MYSQL_PWD = $null
     Write-Host 'Escolha duas senhas diferentes (12 caracteres no mínimo e até 72 bytes UTF-8). O terminal não as exibe.'
     try {
         & $java -jar $jar cadastrar-demonstracao $dep
         if ($LASTEXITCODE -ne 0) { throw "Cadastro interativo falhou (código $LASTEXITCODE)." }
     } finally {
+        $env:FINOPS_DB_URL = $null
+        $env:FINOPS_DB_USER = $null
         $env:FINOPS_DB_PASSWORD = $null
         $env:MYSQL_PWD = $CredencialAdministrativa.GetNetworkCredential().Password
-        Invoke-Sql 'bloquear a conta técnica de cadastro' "ALTER USER '$cadastro'@'127.0.0.1' ACCOUNT LOCK" | Out-Null
     }
 
     $custos = @('42.22','84.43','168.86','77.74','161.87','12.79','63.95','44.48')
