@@ -26,6 +26,10 @@ public class FinopsServidor {
             ContasDemonstracao.executar(args);
             return;
         }
+        if (args.length > 0 && "verificar-conexao-apresentacao".equals(args[0])) {
+            ContasDemonstracao.verificarConexao(args);
+            return;
+        }
         SpringApplication.run(FinopsServidor.class, args);
     }
 }
