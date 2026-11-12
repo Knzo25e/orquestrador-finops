@@ -28,6 +28,41 @@ Sessão e identidade na [Issue #96](https://github.com/Knzo25e/orquestrador-fino
 
    Para o certificado local, configure a confiança no cliente usado na demonstração. O servidor escuta em loopback por padrão. Mantenha o PKCS12, as senhas e os dados de sessão fora do Git.
 
+## Carregar o catálogo simulado (opcional)
+
+Após aplicar V001–V005 e cadastrar o recurso original do exemplo, execute a [carga do catálogo](../scripts/sql/carregar-catalogo-demo.sql) na base de demonstração. Use uma conta de preparação que já tenha leitura e inserção em `recurso_catalogo`. No PowerShell, a partir da raiz do repositório, ajuste host, porta, usuário e banco para sua instalação. Informe a senha no prompt do MySQL.
+
+```powershell
+& 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' `
+    --host=127.0.0.1 --port=3306 --user=usuario_de_preparacao --password `
+    --database=finops_dev --default-character-set=utf8mb4 `
+    --execute='SOURCE scripts/sql/carregar-catalogo-demo.sql'
+```
+
+Uma base que tinha apenas o recurso de **R$ 12,50** passa a exibir nove itens. Reexecutar a carga com os mesmos dados deixa o catálogo igual. Se um UUID da carga já estiver ocupado por um item com nome ou preço divergente, o MySQL informa conflito e reverte todas as inserções da execução. Confira o registro conflitante antes de tentar novamente. O UUID do recurso original `10000000-0000-4000-8000-000000000002` fica fora da carga. As requisições existentes continuam usando seus preços unitários gravados.
+
+### Referências dos custos mensais simulados
+
+Estimativas fixas para a demonstração acadêmica, consultadas em **12/11/2026** para **US East (N. Virginia), `us-east-1`**. Instâncias sob demanda com **730 horas por mês** e capacidade de armazenamento mantida por um mês. Usei a **PTAX de venda de 11/11/2026, R$ 5,5606 por US$ 1**, com arredondamento do resultado em reais para centavos. [Período do AWS Pricing Calculator](https://docs.aws.amazon.com/pricing-calculator/latest/userguide/migrate-SMC.html) · [Série PTAX de venda do Banco Central](https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados?formato=json&dataInicial=11%2F11%2F2026&dataFinal=11%2F11%2F2026)
+
+| Recurso | Premissas de cálculo | US$/mês | R$/mês |
+|---|---|---:|---:|
+| EC2 `t3.micro` | Linux, 2 vCPU, 1 GiB, US$ 0,0104/h | 7,592 | 42,22 |
+| EC2 `t3.small` | Linux, 2 vCPU, 2 GiB, US$ 0,0208/h | 15,184 | 84,43 |
+| EC2 `t3.medium` | Linux, 2 vCPU, 4 GiB, US$ 0,0416/h | 30,368 | 168,86 |
+| RDS `db.t4g.micro` | MySQL 8.4 Single-AZ, 2 vCPU, 1 GiB RAM, US$ 0,016/h + 20 GiB gp3 | 13,980 | 77,74 |
+| RDS `db.t4g.small` | MySQL 8.4 Single-AZ, 2 vCPU, 2 GiB RAM, US$ 0,032/h + 50 GiB gp3 | 29,110 | 161,87 |
+| S3 Standard · 100 GB | US$ 0,023/GB-mês | 2,300 | 12,79 |
+| S3 Standard · 500 GB | US$ 0,023/GB-mês | 11,500 | 63,95 |
+| EBS gp3 · 100 GiB | US$ 0,08/GiB-mês, 3.000 IOPS e 125 MiB/s incluídos | 8,000 | 44,48 |
+
+O gp3 do RDS foi calculado a US$ 0,115 por unidade de armazenamento/mês. As referências consideram somente a instância para EC2 e somente o armazenamento para S3. Ficam fora impostos, tráfego, operações S3, créditos excedentes de CPU, backups cobrados à parte e descontos. O FinOps lê os valores em reais do MySQL local. A carga e a operação do portal dispensam conexão com a AWS. O orçamento real do projeto permanece **R$ 0**.
+
+- [Tarifas EC2 Linux sob demanda](https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US%20East%20%28N.%20Virginia%29/Linux/index.json)
+- [Lista regional do RDS](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/20261029070635/us-east-1/index.json), SKUs `U4AUM7WC9VCSGAY9`, `T3Q9GS9SNACZAUSP` e `H4R2WBBMX6VRJG4S`
+- [Lista regional do S3](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/20261109154310/us-east-1/index.json), SKU `WP9ANXZGBYYSGJEA`, primeira faixa de armazenamento
+- [Preço e configuração do EBS gp3](https://aws.amazon.com/blogs/storage/migrate-your-amazon-ebs-volumes-from-gp2-to-gp3-and-save-up-to-20-on-costs/)
+
 ## Empacotar, cadastrar as contas e iniciar
 
 ```powershell
