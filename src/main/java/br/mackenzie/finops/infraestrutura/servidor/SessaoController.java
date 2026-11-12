@@ -8,11 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 class SessaoController {
-    @GetMapping("/")
-    ResponseEntity<Void> inicio() {
-        return ResponseEntity.status(303).header("Location", "/api/v1/catalogo/recursos").build();
-    }
-
     @GetMapping("/api/v1/csrf")
     ResponseEntity<TokenCsrf> csrf(CsrfToken token) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())

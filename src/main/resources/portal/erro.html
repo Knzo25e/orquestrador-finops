@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso ao portal | Orquestrador FinOps</title>
+  <link rel="stylesheet" href="/portal-assets/portal.css">
+</head>
+<body class="error-page">
+  <main class="surface error-card">
+    <h1>{{mensagem}}</h1>
+    <form method="post" action="/logout">
+      <input type="hidden" name="{{nomeCsrf}}" value="{{csrf}}">
+      <button class="button primary" type="submit">Sair</button>
+    </form>
+  </main>
+</body>
+</html>

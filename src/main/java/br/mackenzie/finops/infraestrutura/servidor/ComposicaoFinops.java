@@ -1,6 +1,8 @@
 package br.mackenzie.finops.infraestrutura.servidor;
 
 import br.mackenzie.finops.aplicacao.ConsultarRequisicaoAutorizadaUseCase;
+import br.mackenzie.finops.aplicacao.ConsultarSessaoUseCase;
+import br.mackenzie.finops.aplicacao.ListarDepartamentosUseCase;
 import br.mackenzie.finops.aplicacao.AjustarTetoUseCase;
 import br.mackenzie.finops.aplicacao.IntervirRequisicaoUseCase;
 import br.mackenzie.finops.infraestrutura.persistencia.IntervencaoRequisicaoJdbc;
@@ -13,6 +15,7 @@ import br.mackenzie.finops.aplicacao.portas.ProvedorIdentidade;
 import br.mackenzie.finops.infraestrutura.persistencia.ConfiguracaoBanco;
 import br.mackenzie.finops.infraestrutura.persistencia.AjusteOrcamentarioJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaCatalogoJdbc;
+import br.mackenzie.finops.infraestrutura.persistencia.ConsultaDepartamentosJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaIntervencoesJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.ConsultaRequisicaoJdbc;
 import br.mackenzie.finops.infraestrutura.persistencia.CriacaoRequisicaoJdbc;
@@ -97,6 +100,17 @@ class ComposicaoFinops {
         return new CriarRequisicaoCoordenadaUseCase(
                 ComposicaoFinops::usuarioAutenticado, new CriacaoRequisicaoJdbc(fabrica)
         );
+    }
+
+    @Bean
+    ConsultarSessaoUseCase consultarSessao(ProvedorIdentidade identidade) {
+        return new ConsultarSessaoUseCase(identidade);
+    }
+
+    @Bean
+    ListarDepartamentosUseCase listarDepartamentos(FabricaConexoes fabrica) {
+        return new ListarDepartamentosUseCase(
+                ComposicaoFinops::usuarioAutenticado, new ConsultaDepartamentosJdbc(fabrica));
     }
 
     private static Optional<UUID> usuarioAutenticado() {

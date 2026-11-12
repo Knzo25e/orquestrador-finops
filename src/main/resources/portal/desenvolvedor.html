@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Desenvolvedor | Orquestrador FinOps</title>
+  <link rel="stylesheet" href="/portal-assets/portal.css">
+  <script type="module" src="/portal-assets/portal.js"></script>
+</head>
+<body data-perfil="DESENVOLVEDOR">
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <a class="brand" href="/portal"><span class="brand-mark" aria-hidden="true">F</span> Orquestrador FinOps</a>
+      <nav aria-label="Painel do Desenvolvedor">
+        <a href="#catalogo">Catálogo</a>
+        <a href="#nova">Nova requisição</a>
+        <a href="#pedidos">Minhas requisições</a>
+      </nav>
+    </aside>
+    <main class="dashboard-main" id="conteudo">
+      <header class="dashboard-header">
+        <div><h1>Desenvolvedor</h1><p class="muted">Consulte recursos e acompanhe suas requisições.</p></div>
+        <form action="/logout" method="post" id="logout"><button class="button secondary" type="submit" disabled>Sair</button></form>
+      </header>
+      <p id="aviso" class="notice" role="status" hidden></p>
+      <section id="retorno-operacao" class="surface operation" aria-labelledby="titulo-operacao" hidden>
+        <h2 id="titulo-operacao">Resultado da operação</h2>
+        <p id="mensagem-operacao" role="status"></p>
+        <p class="muted" id="id-operacao"></p>
+        <div class="actions">
+          <button id="reconciliar" class="button primary" type="button" hidden>Reenviar a mesma operação</button>
+          <button id="repetir" class="button secondary" type="button" hidden>Repetir comando registrado</button>
+          <button id="consultar-operacao" class="button secondary" type="button" hidden>Consultar situação atual</button>
+          <a id="renovar-sessao" class="button secondary" href="/login" target="_blank" rel="noopener" hidden>Entrar em outra aba</a>
+        </div>
+      </section>
+      <section class="surface" id="catalogo" aria-labelledby="titulo-catalogo">
+        <h2 id="titulo-catalogo">Catálogo de infraestrutura</h2>
+        <p class="muted" id="situacao-catalogo" role="status">Carregando catálogo…</p>
+        <div class="table-wrap" hidden>
+          <table aria-labelledby="titulo-catalogo">
+            <thead><tr><th scope="col">Recurso</th><th scope="col">Custo mensal</th></tr></thead>
+            <tbody id="recursos"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="surface" id="nova" aria-labelledby="titulo-nova">
+        <h2 id="titulo-nova">Nova requisição</h2>
+        <p class="muted" id="aviso-nova">Escolha os itens e salve a requisição. A submissão financeira é feita no detalhe.</p>
+        <form id="criar" class="operation-form" hidden>
+          <fieldset data-mutacao>
+            <legend class="sr-only">Itens da requisição</legend>
+            <div id="itens-novos" class="item-list"></div>
+            <div class="actions">
+              <button id="adicionar-item" type="button" class="button secondary">Adicionar item</button>
+              <button type="submit" class="button primary">Salvar requisição</button>
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <section class="surface" id="pedidos" aria-labelledby="titulo-pedidos">
+        <h2 id="titulo-pedidos">Minhas requisições</h2>
+        <p class="muted" id="situacao-pedidos" role="status">Carregando requisições…</p>
+        <div class="table-wrap" hidden>
+          <table aria-labelledby="titulo-pedidos">
+            <thead><tr><th scope="col">Requisição</th><th scope="col">Estado</th><th scope="col">Motivo</th><th scope="col">Custo projetado</th></tr></thead>
+            <tbody id="requisicoes"></tbody>
+          </table>
+        </div>
+        <button id="atualizar-pedidos" class="button secondary" type="button">Atualizar requisições</button>
+        <button id="mais-pedidos" class="button secondary" type="button" hidden>Mais requisições</button>
+      </section>
+      <section id="detalhe" class="surface" aria-labelledby="titulo-detalhe" hidden tabindex="-1">
+        <div class="section-heading">
+          <h2 id="titulo-detalhe">Detalhe da requisição</h2>
+          <button id="fechar-detalhe" class="button secondary" type="button">Fechar detalhe</button>
+        </div>
+        <p id="situacao-detalhe" role="status" class="muted"></p>
+        <div id="dados-detalhe" hidden>
+          <p class="order-id"><code id="id-detalhe"></code></p>
+          <dl class="metrics">
+            <div><dt>Estado atual</dt><dd id="estado-detalhe"></dd></div>
+            <div><dt>Motivo de revisão</dt><dd id="motivo-detalhe"></dd></div>
+            <div><dt>Custo mensal registrado</dt><dd id="custo-detalhe"></dd></div>
+          </dl>
+          <div class="table-wrap">
+            <table aria-label="Itens e preços históricos">
+              <thead><tr><th scope="col">Recurso</th><th scope="col">Quantidade</th><th scope="col">Preço registrado</th><th scope="col">Subtotal</th></tr></thead>
+              <tbody id="itens-detalhe"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="submissao" class="actions" hidden>
+          <button id="submeter" data-mutacao class="button primary" type="button">Submeter à validação</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
