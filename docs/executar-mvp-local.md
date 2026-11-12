@@ -63,6 +63,52 @@ O gp3 do RDS foi calculado a US$ 0,115 por unidade de armazenamento/mês. As ref
 - [Lista regional do S3](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/20261109154310/us-east-1/index.json), SKU `WP9ANXZGBYYSGJEA`, primeira faixa de armazenamento
 - [Preço e configuração do EBS gp3](https://aws.amazon.com/blogs/storage/migrate-your-amazon-ebs-volumes-from-gp2-to-gp3-and-save-up-to-20-on-costs/)
 
+## Preparar o ambiente de apresentação no Windows
+
+Use uma base exclusiva, **`finops_apresentacao`**, na instância local MySQL 8.0 da porta **33324**. O procedimento não lê, copia nem altera dados de `finops_demo`. Ele deve ser executado uma única vez, depois de confirmar a preparação da instância correta. Use o notebook da equipe: não há serviços externos, AWS ou custo de infraestrutura.
+
+1. Abra o PowerShell em um terminal interativo, na raiz do repositório. Configure `JAVA_HOME` para o JDK 25 e gere o JAR com `.\mvnw.cmd -B verify`. Inicie o MySQL local existente, se estiver parado. O script espera o diretório `%LOCALAPPDATA%\FinOps-Demonstracao\mysql-data` e, em `certificado-mysql`, a CA `ca.pem` e o repositório de confiança `confianca.p12`. O certificado do MySQL precisa ser válido para `127.0.0.1`. Use MySQL 8.0.18 ou posterior na série 8.0 para a geração de senhas técnicas.
+2. Depois de autorizado o preparo local, execute:
+
+   ```powershell
+   .\scripts\preparar-apresentacao.ps1
+   ```
+
+   Informe a credencial administrativa do MySQL e a senha do repositório de confiança PKCS12 nos prompts. O script confirma porta, diretório de dados, conexão TLS e ausência da base e das contas técnicas antes de escrever. Em seguida, aplica V001–V005, mantém o recurso original de R$ 12,50, carrega os oito recursos simulados e cadastra Engenharia com teto e saldo de R$ 1.000,00. A conta de execução só recebe as permissões necessárias dentro da base nova; a conta técnica de cadastro é bloqueada após o cadastro. Nenhuma senha técnica é impressa.
+3. Nos dois prompts do Java, escolha **senhas diferentes** para `desenvolvedor` e `arquiteto`. Use ao menos 12 caracteres e no máximo 72 bytes em UTF-8. Digite mesmo que não apareçam letras ou asteriscos. O cadastro existente valida o comprimento, mas não compara as duas senhas. Guarde-as em um gerenciador de senhas acessível à equipe autorizada. Não as copie para conversas, documentação ou histórico do terminal. O Spring Security grava apenas hashes BCrypt no MySQL.
+4. Confirme a mensagem final: nove recursos com os UUIDs e preços esperados, Engenharia com R$ 1.000,00, dois perfis ativos e zero requisições, itens históricos e intervenções. A credencial técnica de execução fica fora do Git, em `%LOCALAPPDATA%\FinOps-Demonstracao\mysql-apresentacao-execucao.xml`, protegida pelo Windows para o mesmo usuário na mesma máquina. Ela é diferente das senhas do portal.
+
+Se a base, uma das contas técnicas ou o arquivo de credencial já existir, pare. Se uma etapa falhar depois da criação, a base pode ter ficado incompleta, pois o DDL do MySQL confirma alterações separadamente. Registre a etapa e a mensagem de erro sem credenciais e solicite revisão. Não use nova execução, limpeza ou recriação como forma de recuperação.
+
+### Abrir e verificar o portal sem trocar as senhas
+
+Em uma janela do PowerShell, configure `JAVA_HOME` e o PKCS12 HTTPS da aplicação (`FINOPS_TLS_KEYSTORE` e `FINOPS_TLS_PASSWORD`) conforme a seção de HTTPS. Em seguida, conecte o JAR à base de apresentação com a credencial técnica:
+
+```powershell
+$pasta = Join-Path $env:LOCALAPPDATA 'FinOps-Demonstracao'
+$credencial = Import-Clixml (Join-Path $pasta 'mysql-apresentacao-execucao.xml')
+$confianca = [uri]::EscapeDataString(([uri](Join-Path $pasta 'certificado-mysql/confianca.p12')).AbsoluteUri)
+$senhaP12 = Read-Host 'Senha do repositório local de confiança do MySQL (PKCS12)' -AsSecureString
+$parametroP12 = [uri]::EscapeDataString([Net.NetworkCredential]::new('', $senhaP12).Password)
+try {
+    $env:FINOPS_DB_URL = "jdbc:mysql://127.0.0.1:33324/finops_apresentacao?sslMode=VERIFY_IDENTITY&fallbackToSystemTrustStore=false&trustCertificateKeyStoreType=PKCS12&trustCertificateKeyStoreUrl=$confianca&trustCertificateKeyStorePassword=$parametroP12"
+    $env:FINOPS_DB_USER = $credencial.UserName
+    $env:FINOPS_DB_PASSWORD = $credencial.GetNetworkCredential().Password
+    & "$env:JAVA_HOME\bin\java.exe" -jar 'target/orquestrador-finops-0.1.0-SNAPSHOT.jar'
+} finally {
+    Remove-Item Env:FINOPS_DB_URL, Env:FINOPS_DB_USER, Env:FINOPS_DB_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+Abra [https://127.0.0.1:8443/login](https://127.0.0.1:8443/login). Em uma janela privativa, entre como Desenvolvedor e confira o catálogo. Saia, entre como Arquiteto Cloud e confira Engenharia e o histórico vazio, antes de criar pedidos. Repita os dois logins após reiniciar o JAR e o MySQL. As sessões podem expirar ou ser encerradas, mas as mesmas senhas continuam válidas enquanto o MySQL usar o mesmo diretório de dados e as contas permanecerem ativas. No notebook da apresentação, reinicie o Windows e refaça essa verificação antes da aula.
+
+### Novo ensaio e recuperação de senha
+
+- **Reabrir o portal:** inicie o MySQL e o JAR. Os dados e as contas do ensaio anterior continuam gravados.
+- **Começar um ensaio com os dados vazios:** requer procedimento separado, backup e autorização específica. A proposta é conferir porta e base, parar o portal, limpar somente os dados do ensaio em `finops_apresentacao`, restaurar os valores iniciais de Engenharia e verificar que os UUIDs e hashes de `usuario` não mudaram. A preparação não executa essa limpeza. Preserve `finops_demo` em qualquer cenário.
+- **Senha esquecida:** não rode novamente `cadastrar-demonstracao`. A proposta para uma etapa separada é um comando administrativo local e interativo que valide a instância e substitua apenas `senha_hash` da conta escolhida em `finops_apresentacao`, usando o codificador atual do Spring Security. Com autorização, o procedimento deve encerrar as sessões existentes, verificar que a senha antiga deixa de funcionar, testar a nova senha e confirmar o acesso da outra conta sem mudança. Essa recuperação ainda não está implementada.
+
+
 ## Empacotar, cadastrar as contas e iniciar
 
 ```powershell
