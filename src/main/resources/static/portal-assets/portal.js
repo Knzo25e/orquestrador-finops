@@ -73,6 +73,33 @@ let cursorDepartamentos = null;
 let cursorAuditoria = null;
 let filtroAuditoria = null;
 
+const areas = [...document.querySelectorAll("[data-area]")];
+let acessoNegado = false;
+let origemDetalhe;
+
+function navegar(focar = false) {
+  if (acessoNegado) return;
+  const area = areas.find(no => "#" + no.id === location.hash) ?? elemento("visao");
+  for (const no of areas) no.hidden = no !== area;
+  for (const link of document.querySelectorAll(".sidebar nav a")) {
+    if (link.hash === "#" + area.id) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  if (focar) {
+    const titulo = [...area.querySelectorAll("h2")].find(no => !no.closest("[hidden]"));
+    if (titulo) {
+      titulo.tabIndex = -1;
+      titulo.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }
+  }
+}
+
+window.addEventListener("hashchange", () => {
+  if (location.hash !== "#conteudo") navegar(true);
+});
+navegar();
+
 async function chamar(caminho, opcoes) {
   const resposta = await fetch(raiz + caminho, opcoes);
   return { status: resposta.status, corpo: await resposta.json() };
@@ -141,7 +168,8 @@ function mostrarFalha(erro) {
   aviso.setAttribute("data-erro", "");
   aviso.hidden = false;
   if (erro.codigo === "ACESSO_NEGADO") {
-    document.querySelectorAll("main > section:not(#retorno-operacao)").forEach(secao => { secao.hidden = true; });
+    acessoNegado = true;
+    document.querySelectorAll("[data-area], .contexto").forEach(secao => { secao.hidden = true; });
   }
 }
 
@@ -177,11 +205,15 @@ async function catalogo() {
     const pagina = await consultar("/catalogo/recursos");
     const linhas = pagina.recursos.map(recurso => {
       recursos.set(recurso.id, recurso);
-      const linha = document.createElement("tr");
-      linha.append(texto("td", recurso.nome), texto("td", reais(recurso.custoMensal)));
-      return linha;
+      const familia = /^Amazon (EC2|RDS|S3|EBS)\b/i.exec(recurso.nome)?.[1].toLowerCase() ?? "catalogo";
+      const cartao = texto("li", "", "resource-card");
+      const icone = document.createElement("img");
+      icone.src = "/portal-assets/" + familia + ".svg";
+      icone.alt = "";
+      cartao.append(icone, texto("h3", recurso.nome), texto("span", "Custo mensal simulado"), texto("strong", reais(recurso.custoMensal)));
+      return cartao;
     });
-    mostrarLinhas(elemento("recursos"), linhas);
+    elemento("recursos").replaceChildren(...linhas);
     aviso.hidden = linhas.length > 0;
     aviso.textContent = "O catálogo está vazio.";
     if (!sessao.departamentoId || !linhas.length) {
@@ -266,10 +298,10 @@ async function pedidos(acrescentar = false) {
       const abrir = texto("button", pedido.id, "link-button");
       abrir.type = "button";
       abrir.setAttribute("aria-label", "Abrir requisição " + pedido.id);
-      abrir.addEventListener("click", () => detalhe(pedido.id, true));
+      abrir.addEventListener("click", () => { origemDetalhe = abrir; void detalhe(pedido.id, true); });
       id.append(abrir);
       const celulaEstado = document.createElement("td");
-      celulaEstado.append(texto("span", rotuloEstado(pedido.estado), "badge"));
+      celulaEstado.append(texto("span", rotuloEstado(pedido.estado), "badge " + pedido.estado));
       linha.append(id, celulaEstado, texto("td", rotuloMotivo(pedido.motivoRevisao)),
         texto("td", reais(pedido.custoTotalProjetado)));
       return linha;
@@ -278,6 +310,10 @@ async function pedidos(acrescentar = false) {
     aviso.textContent = "Nenhuma requisição encontrada.";
     aviso.hidden = tabela.rows.length > 0;
     cursorPedidos = pagina.proximoCursor;
+    if (!arquiteto) {
+      elemento("resumo-pedidos").textContent = tabela.rows.length ? "Requisições carregadas: " + tabela.rows.length : "Você ainda não tem requisições.";
+      document.querySelector('.atalhos a[href="#nova"] span').textContent = tabela.rows.length ? "Nova requisição" : "Criar primeira requisição";
+    }
   } catch (erro) {
     if (consulta.signal.aborted) return;
     aviso.textContent = "Requisições indisponíveis.";
@@ -294,6 +330,7 @@ async function pedidos(acrescentar = false) {
 function fecharDetalhe() {
   consultaDetalhe?.abort();
   pedidoAtual = null;
+  elemento("lista-pedidos").hidden = false;
   elemento("detalhe").hidden = true;
   if (arquiteto) elemento("filtrar-auditoria").hidden = true;
 }
@@ -305,6 +342,11 @@ async function detalhe(id, focar = false, silencioso = false) {
   const painel = elemento("detalhe");
   const aviso = elemento("situacao-detalhe");
   const mesmoPedido = pedidoAtual?.id === id;
+  if (focar) {
+    elemento("lista-pedidos").hidden = true;
+    painel.hidden = false;
+    painel.focus();
+  }
   if (!silencioso) {
     painel.hidden = false;
     if (!mesmoPedido) elemento("dados-detalhe").hidden = true;
@@ -316,7 +358,7 @@ async function detalhe(id, focar = false, silencioso = false) {
   if (arquiteto) elemento("filtrar-auditoria").hidden = true;
   try {
     const { requisicao } = await consultar("/requisicoes/" + id, consulta.signal);
-    if (consulta.signal.aborted) return;
+    if (consulta.signal.aborted || acessoNegado) return;
     pedidoAtual = requisicao;
     painel.hidden = false;
     aviso.hidden = true;
@@ -337,7 +379,7 @@ async function detalhe(id, focar = false, silencioso = false) {
     } else {
       elemento("submissao").hidden = requisicao.estado !== "INICIAL";
     }
-    if (focar) painel.focus();
+
   } catch (erro) {
     if (consulta.signal.aborted) return;
     aviso.hidden = false;
@@ -382,6 +424,9 @@ async function carregarDepartamentos(acrescentar = false) {
 }
 
 function mostrarOrcamento(departamento) {
+  elemento("resumo-valores").hidden = false;
+  elemento("resumo-teto").textContent = reais(departamento.tetoMensal);
+  elemento("resumo-saldo").textContent = reais(departamento.saldoDisponivel);
   elemento("valores").hidden = false;
   elemento("teto").textContent = reais(departamento.tetoMensal);
   elemento("saldo").textContent = reais(departamento.saldoDisponivel);
@@ -389,7 +434,14 @@ function mostrarOrcamento(departamento) {
 }
 
 function selecionarDepartamento() {
-  departamentoAtual = elemento("departamento").value;
+  const seletor = elemento("departamento");
+  const edicao = ["novo-teto", "justificativa-ajuste", "decisao", "justificativa-intervencao"].some(id => elemento(id).value);
+  if (departamentoAtual && edicao && !confirm("Descartar a edição e trocar para " + departamentos.get(seletor.value).nome + "?")) {
+    seletor.value = departamentoAtual;
+    return;
+  }
+  elemento("intervir").reset();
+  departamentoAtual = seletor.value;
   fecharDetalhe();
   elemento("ajustar").reset();
   filtroAuditoria = null;
@@ -541,8 +593,9 @@ async function executar(operacao, repetir = false) {
   }
   elemento("reconciliar").hidden = !resposta.pendente;
   elemento("consultar-operacao").hidden = false;
+  elemento("consultar-operacao").textContent = operacao.pedido ? "Ver requisição" : "Consultar situação atual";
   elemento("renovar-sessao").hidden = !resposta.pendente;
-  secao.scrollIntoView({ block: "nearest" });
+
 
   if (resposta.sucesso && (!resposta.repeticao || resposta.recuperada)) {
     if (operacao.criacao) {
@@ -554,10 +607,10 @@ async function executar(operacao, repetir = false) {
       elemento("intervir").reset();
     }
   }
-  if (!resposta.pendente) await consultarOperacao(operacao, resposta.sucesso);
+  if (!resposta.pendente) await consultarOperacao(operacao);
 }
 
-async function consultarOperacao(operacao, focar = false) {
+async function consultarOperacao(operacao, abrir = false) {
   if (!operacao) return;
   const tarefas = [pedidos()];
   if (arquiteto) {
@@ -565,7 +618,10 @@ async function consultarOperacao(operacao, focar = false) {
     if (departamentoAtual === operacao.departamento) tarefas.push(auditoria());
   }
   if (operacao.pedido && (!arquiteto || operacao.departamento === departamentoAtual)) {
-    tarefas.push(detalhe(operacao.pedido, focar, operacao.criacao && !focar));
+    if (abrir || pedidoAtual?.id === operacao.pedido) {
+      if (abrir) { location.hash = "pedidos"; navegar(); }
+      tarefas.push(detalhe(operacao.pedido, abrir));
+    }
   }
   await Promise.all(tarefas);
 }
@@ -644,14 +700,17 @@ async function iniciar() {
       void pedidos();
       if (pedidoAtual) void detalhe(pedidoAtual.id);
     });
-    elemento("fechar-detalhe").addEventListener("click", fecharDetalhe);
+    elemento("fechar-detalhe").addEventListener("click", () => {
+      fecharDetalhe();
+      (origemDetalhe?.isConnected ? origemDetalhe : elemento("atualizar-pedidos")).focus();
+    });
     elemento("reconciliar").addEventListener("click", () => executar(operacoes.pendente, true));
     elemento("repetir").addEventListener("click", () => {
       if (window.confirm("Repetir a operação registrada com o mesmo identificador e os mesmos dados?")) {
         void executar(operacoes.ultima, true);
       }
     });
-    elemento("consultar-operacao").addEventListener("click", () => consultarOperacao(ultimaExibida));
+    elemento("consultar-operacao").addEventListener("click", () => consultarOperacao(ultimaExibida, true));
     window.addEventListener("beforeunload", evento => {
       if (operacoes.pendente || operacoes.enviando) {
         evento.preventDefault();

@@ -171,3 +171,27 @@ td code { font-size: .86rem; }
 @media (min-width: 801px) {
   .sidebar { position: sticky; top: 0; align-self: start; min-height: 100vh; }
 }
+
+.sidebar nav a { display:flex; align-items:center; gap:.75rem; }
+.sidebar nav img { width:1.15rem; height:1.15rem; filter:invert(1); }
+.sidebar nav a[aria-current="page"] { background:#25475b; color:white; box-shadow:inset 3px 0 #81dcc8; }
+.overview { border-top:4px solid #21745f; }
+.atalhos,.catalog-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr)); gap:1rem; }
+.atalhos a,.resource-card { display:grid; align-content:start; gap:.75rem; padding:1.25rem; border:1px solid #ccdcd8; border-radius:.75rem; background:#fff; }
+.atalhos a { font-weight:650; color:#174f47; text-decoration:none; border-bottom:3px solid #368674; }
+.atalhos img,.resource-card img { width:2.5rem; height:2.5rem; padding:.5rem; background:#dff4ec; border-radius:.5rem; }
+.catalog-grid { list-style:none; padding:0; }
+.resource-card h3 { margin:0; line-height:1.45; font-size:1rem; }
+.resource-card span { color:#49635d; font-size:.85rem; }
+.resource-card strong { font-size:1.2rem; font-variant-numeric:tabular-nums; }
+.contexto { padding:0 0 .8rem; }
+.contexto .department-picker { margin:0; }
+.badge.REJEITADO { color:#832a36; background:#fce5e8; }
+.badge.REVISAO_PENDENTE,.badge[class*="AGUARDANDO_"] { color:#69400b; background:#ffedcf; }
+.badge.PROVISIONAMENTO_LIBERADO { color:#15523d; background:#d9f2e5; }
+@media(max-width:800px) { .sidebar nav a[aria-current="page"] { box-shadow:inset 0 -3px #81dcc8; } }
+
+
+.atalhos { margin-top: 1.25rem; }
+.resource-card { grid-template-rows: auto 1fr auto auto; }
+[data-area], #lista-pedidos, #detalhe { min-width: 0; }
