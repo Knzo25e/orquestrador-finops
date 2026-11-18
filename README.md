@@ -225,6 +225,6 @@ Esse procedimento se aplica ao problema observado. Outras falhas de acesso exige
 ## Guias de Homologação, Demonstração e Rastreabilidade
 
 - [Roteiro de Demonstração ao Vivo](docs/roteiro-demonstracao.md)
-- [Evidências de Homologação Ponta a Ponta do Portal](docs/evidencias/issue-121/homologacao-e2e-portal.md)
+- [Evidências de Homologação Ponta a Ponta do Portal](docs/evidencias/issue-118/homologacao-e2e-portal.md)
 - [Glossário de Domínio (Linguagem Ubíqua)](docs/glossario-dominio.md)
 - [Matriz de Rastreabilidade (Specs × UML × Testes)](docs/rastreabilidade-requisitos.md)
