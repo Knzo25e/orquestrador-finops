@@ -220,3 +220,11 @@ Esse procedimento se aplica ao problema observado. Outras falhas de acesso exige
 - [Mapa de Specs](docs/mapa-de-specs.md)
 - [SPEC-003 — Validação orçamentária](docs/casos-de-uso/SPEC-003-validar-orcamento.md)
 - [Roteiro local e critérios acadêmicos do MVP](docs/review/recorte-mvp-academico.md)
+
+
+## Guias de Homologação, Demonstração e Rastreabilidade
+
+- [Roteiro de Demonstração ao Vivo](docs/roteiro-demonstracao.md)
+- [Evidências de Homologação Ponta a Ponta do Portal](docs/evidencias/issue-121/homologacao-e2e-portal.md)
+- [Glossário de Domínio (Linguagem Ubíqua)](docs/glossario-dominio.md)
+- [Matriz de Rastreabilidade (Specs × UML × Testes)](docs/rastreabilidade-requisitos.md)
