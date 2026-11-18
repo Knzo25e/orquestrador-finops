@@ -283,6 +283,7 @@ async function pedidos(acrescentar = false) {
   if (departamentoAtual) parametros.set("departamentoId", departamentoAtual);
   if (acrescentar && cursorPedidos) parametros.set("apos", cursorPedidos);
   if (!acrescentar) {
+    elemento("atualizacao-pedidos").hidden = true;
     cursorPedidos = null;
     mostrarLinhas(tabela, []);
     aviso.textContent = "Carregando requisições…";
@@ -561,6 +562,7 @@ async function executar(operacao, repetir = false) {
     const secao = elemento("retorno-operacao");
     secao.hidden = false;
     secao.dataset.tipo = "";
+    elemento("consultar-operacao").hidden = true;
     elemento("mensagem-operacao").textContent = "Enviando operação…";
     const alvo = operacao.pedido ?? departamentos.get(operacao.departamento)?.nome;
     elemento("id-operacao").textContent = "Identificador: " + operacao.id
@@ -583,7 +585,7 @@ async function executar(operacao, repetir = false) {
     } else if (codigo === "CSRF_INVALIDO") {
       aviso.textContent = "A proteção da sessão precisa ser renovada. Você pode reenviar a mesma operação.";
     } else {
-      aviso.textContent = "A confirmação não chegou. Consulte o estado atual ou reenvie a mesma operação. Mantenha esta página aberta.";
+      aviso.textContent = "Confirmação desconhecida. A consulta mostra o estado atual. Para recuperar a resposta da operação, mantenha esta página aberta e use “Reenviar a mesma operação”.";
     }
   } else {
     const mensagem = resultados[resultado] ?? resposta.corpo?.erro?.mensagem ?? resultado ?? "Operação registrada.";
@@ -593,7 +595,8 @@ async function executar(operacao, repetir = false) {
   }
   elemento("reconciliar").hidden = !resposta.pendente;
   elemento("consultar-operacao").hidden = false;
-  elemento("consultar-operacao").textContent = operacao.pedido ? "Ver requisição" : "Consultar situação atual";
+  elemento("consultar-operacao").textContent = operacao.pedido && !resposta.pendente
+    ? "Ver requisição" : "Consultar situação atual";
   elemento("renovar-sessao").hidden = !resposta.pendente;
 
 
@@ -607,12 +610,15 @@ async function executar(operacao, repetir = false) {
       elemento("intervir").reset();
     }
   }
+  if (operacao.pedido && (!arquiteto || operacao.departamento === departamentoAtual)) {
+    elemento("atualizacao-pedidos").hidden = false;
+  }
   if (!resposta.pendente) await consultarOperacao(operacao);
 }
 
 async function consultarOperacao(operacao, abrir = false) {
   if (!operacao) return;
-  const tarefas = [pedidos()];
+  const tarefas = [];
   if (arquiteto) {
     tarefas.push(atualizarOrcamento(operacao.departamento).catch(mostrarFalha));
     if (departamentoAtual === operacao.departamento) tarefas.push(auditoria());
