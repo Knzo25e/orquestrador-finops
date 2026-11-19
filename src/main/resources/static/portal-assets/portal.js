@@ -1,5 +1,7 @@
 import { criarControleDeOperacoes, decimalMonetario, prepararOperacao } from "./operacoes.js";
 
+import { estimarItem, decimalDeCentavos } from "./estimativa.js";
+
 const elemento = id => document.getElementById(id);
 const raiz = "/api/v1";
 const arquiteto = document.body.dataset.perfil === "ARQUITETO_CLOUD";
@@ -214,6 +216,8 @@ async function catalogo() {
       return cartao;
     });
     elemento("recursos").replaceChildren(...linhas);
+    elemento("resumo-catalogo").textContent = String(linhas.length);
+    elemento("nota-catalogo").textContent = linhas.length ? "Disponíveis para consulta" : "Catálogo vazio";
     aviso.hidden = linhas.length > 0;
     aviso.textContent = "O catálogo está vazio.";
     if (!sessao.departamentoId || !linhas.length) {
@@ -225,6 +229,7 @@ async function catalogo() {
     adicionarItem();
     elemento("criar").hidden = false;
   } catch (erro) {
+    elemento("nota-catalogo").textContent = "Catálogo indisponível";
     aviso.textContent = "Catálogo indisponível.";
     mostrarFalha(erro);
   }
@@ -251,12 +256,28 @@ function adicionarItem() {
     linha.remove();
     atualizarItens();
   });
-  linha.append(recurso, rotulo, remover);
+  const subtotal = texto("div", "", "subtotal-item");
+  subtotal.append(texto("small", "Subtotal mensal"), texto("strong", "—"));
+  linha.append(recurso, rotulo, subtotal, remover);
   lista.append(linha);
   atualizarItens();
 }
 
+function atualizarPrevia() {
+  let completo = true;
+  let total = 0n;
+  for (const linha of elemento("itens-novos").children) {
+    const recurso = recursos.get(linha.querySelector("select").value);
+    const custo = estimarItem(recurso?.custoMensal, linha.querySelector("input").valueAsNumber);
+    linha.querySelector(".subtotal-item strong").textContent = custo === null ? "—" : reais(decimalDeCentavos(custo));
+    if (custo === null) completo = false;
+    else total += custo;
+  }
+  elemento("total-estimado").textContent = completo ? reais(decimalDeCentavos(total)) : "Complete os itens";
+}
+
 function atualizarItens() {
+  atualizarPrevia();
   const lista = elemento("itens-novos");
   for (const botao of lista.querySelectorAll("button")) botao.disabled = lista.children.length <= 1;
   elemento("adicionar-item").disabled = lista.children.length >= 100;
@@ -312,11 +333,16 @@ async function pedidos(acrescentar = false) {
     aviso.hidden = tabela.rows.length > 0;
     cursorPedidos = pagina.proximoCursor;
     if (!arquiteto) {
-      elemento("resumo-pedidos").textContent = tabela.rows.length ? "Requisições carregadas: " + tabela.rows.length : "Você ainda não tem requisições.";
+      elemento("resumo-pedidos").textContent = String(tabela.rows.length);
+      elemento("nota-pedidos").textContent = cursorPedidos ? "Parcial · há mais requisições" : "Consulta carregada por completo";
       document.querySelector('.atalhos a[href="#nova"] span').textContent = tabela.rows.length ? "Nova requisição" : "Criar primeira requisição";
     }
   } catch (erro) {
     if (consulta.signal.aborted) return;
+    if (!arquiteto) {
+      elemento("resumo-pedidos").textContent = acrescentar ? String(tabela.rows.length) : "—";
+      elemento("nota-pedidos").textContent = "Consulta indisponível";
+    }
     aviso.textContent = "Requisições indisponíveis.";
     aviso.hidden = false;
     mostrarFalha(erro);
@@ -748,6 +774,8 @@ async function iniciar() {
         }).catch(mostrarFalha)
       ]);
     } else {
+      elemento("itens-novos").addEventListener("input", atualizarPrevia);
+      elemento("itens-novos").addEventListener("change", atualizarPrevia);
       elemento("adicionar-item").addEventListener("click", adicionarItem);
       elemento("criar").addEventListener("submit", criar);
       elemento("submeter").addEventListener("click", submeter);

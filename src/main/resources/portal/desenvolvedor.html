@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Desenvolvedor | Orquestrador FinOps</title>
   <link rel="stylesheet" href="/portal-assets/portal.css">
+  <link rel="stylesheet" href="/portal-assets/previa.css">
   <script type="module" src="/portal-assets/portal.js"></script>
 </head>
 <body data-perfil="DESENVOLVEDOR">
@@ -38,7 +39,10 @@
       </section>
       <section id="visao" class="surface overview" data-area>
         <h2 tabindex="-1">Visão geral</h2>
-        <p id="resumo-pedidos" role="status"></p>
+        <dl class="dev-metrics">
+          <div><dt>Recursos no catálogo</dt><dd id="resumo-catalogo">—</dd><dd class="metric-note" id="nota-catalogo">Consultando catálogo…</dd></div>
+          <div><dt>Requisições carregadas</dt><dd id="resumo-pedidos">—</dd><dd class="metric-note" id="nota-pedidos" role="status">Consultando requisições…</dd></div>
+        </dl>
         <div class="atalhos">
           <a href="#catalogo"><img src="/portal-assets/catalogo.svg" alt=""><span>Catálogo de recursos</span></a>
           <a href="#nova"><img src="/portal-assets/nova.svg" alt=""><span>Nova requisição</span></a>
@@ -57,6 +61,10 @@
           <fieldset data-mutacao>
             <legend class="sr-only">Itens da requisição</legend>
             <div id="itens-novos" class="item-list"></div>
+            <div class="preview-summary">
+              <div><strong>Custo mensal estimado</strong><p>Prévia com os preços atuais do catálogo. A aprovação depende da validação financeira.</p></div>
+              <output id="total-estimado" aria-label="Custo mensal estimado"></output>
+            </div>
             <div class="actions">
               <button id="adicionar-item" type="button" class="button secondary">Adicionar item</button>
               <button type="submit" class="button primary">Salvar requisição</button>
