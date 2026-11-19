@@ -228,3 +228,8 @@ Esse procedimento se aplica ao problema observado. Outras falhas de acesso exige
 - [Evidências de Homologação Ponta a Ponta do Portal](docs/evidencias/issue-118/homologacao-e2e-portal.md)
 - [Glossário de Domínio (Linguagem Ubíqua)](docs/glossario-dominio.md)
 - [Matriz de Rastreabilidade (Specs × UML × Testes)](docs/rastreabilidade-requisitos.md)
+- [Considerações de Segurança e SSDLC](docs/seguranca-ssdlc.md)
+- [ADR-001: Arquitetura Hexagonal](docs/adr/ADR-001-arquitetura-hexagonal.md)
+- [ADR-002: Java Puro sem Frameworks](docs/adr/ADR-002-java-puro-sem-frameworks.md)
+- [ADR-003: Persistência MySQL e JDBC Transacional](docs/adr/ADR-003-persistencia-mysql-jdbc.md)
+- [ADR-004: Auditoria Imutável com Paginação por Cursor](docs/adr/ADR-004-auditoria-imutavel-cursor.md)
