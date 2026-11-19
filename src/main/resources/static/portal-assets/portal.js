@@ -1,3 +1,4 @@
+import { centavos, distribuicao } from "./orcamento-visual.js";
 import { criarControleDeOperacoes, decimalMonetario, prepararOperacao } from "./operacoes.js";
 
 import { estimarItem, decimalDeCentavos } from "./estimativa.js";
@@ -450,7 +451,65 @@ async function carregarDepartamentos(acrescentar = false) {
   }
 }
 
+function compararPrecos(lista) {
+  const ordenados = [...lista].sort((a, b) => {
+    const diferenca = centavos(a.custoMensal) - centavos(b.custoMensal);
+    return diferenca === 0n ? a.nome.localeCompare(b.nome, "pt-BR") : diferenca > 0n ? -1 : 1;
+  });
+  const maximo = ordenados.length ? centavos(ordenados[0].custoMensal) : 0n;
+  elemento("comparativo-precos").replaceChildren(...ordenados.map(recurso => {
+    const linha = document.createElement("li");
+    const barra = document.createElement("progress");
+    barra.max = 10000;
+    barra.value = maximo ? Number(centavos(recurso.custoMensal) * 10000n / maximo) : 0;
+    barra.setAttribute("aria-hidden", "true");
+    linha.append(texto("span", recurso.nome), texto("b", reais(recurso.custoMensal)), barra);
+    return linha;
+  }));
+  elemento("aviso-precos").textContent = ordenados.length ? "" : "Catálogo vazio.";
+}
+
+let consultaRecentes;
+async function recentes(id) {
+  consultaRecentes?.abort();
+  const consulta = new AbortController();
+  consultaRecentes = consulta;
+  const aviso = elemento("aviso-recentes");
+  const lista = elemento("recentes");
+  lista.replaceChildren();
+  aviso.textContent = "Consultando intervenções…";
+  try {
+    const pagina = await consultar("/departamentos/" + id + "/intervencoes?limite=5", consulta.signal);
+    if (consulta.signal.aborted || id !== departamentoAtual) return;
+    aviso.textContent = pagina.intervencoes.length ? "" : "Nenhuma intervenção registrada neste departamento.";
+    for (const evento of pagina.intervencoes) {
+      const linha = document.createElement("li");
+      const data = new Date(evento.instante).toLocaleString("pt-BR", {dateStyle: "short", timeStyle: "short", timeZone: "UTC"});
+      linha.append(texto("small", data + " UTC"), texto("strong", acoesAuditadas[evento.acao] ?? evento.acao),
+        texto("span", resultadosAuditados[evento.resultado] ?? evento.resultado));
+      lista.append(linha);
+    }
+  } catch (erro) {
+    if (consulta.signal.aborted) return;
+    aviso.textContent = "Atividades recentes indisponíveis.";
+    mostrarFalha(erro);
+  }
+}
+
 function mostrarOrcamento(departamento) {
+  const { comprometido, percentual } = distribuicao(departamento.tetoMensal, departamento.saldoDisponivel);
+  const uso = percentual === null ? "—" : percentual.toLocaleString("pt-BR") + "%";
+  elemento("aviso-financeiro").hidden = true;
+  elemento("resumo-compromisso").textContent = reais(comprometido);
+  elemento("resumo-utilizacao").textContent = uso;
+  elemento("uso-percentual").textContent = percentual === null ? "Teto de R$ 0,00" : uso;
+  elemento("uso-valores").textContent = reais(comprometido) + " de " + reais(departamento.tetoMensal) + " comprometidos";
+  elemento("legenda-compromisso").textContent = reais(comprometido);
+  elemento("legenda-saldo").textContent = reais(departamento.saldoDisponivel);
+  elemento("barra-uso").value = percentual ?? 0;
+  elemento("barra-uso").hidden = percentual === null;
+  elemento("arco-compromisso").setAttribute("stroke-dasharray", (percentual ?? 0) + " 100");
+  elemento("resumo-valores").classList.toggle("zero", percentual === null);
   elemento("resumo-valores").hidden = false;
   elemento("resumo-teto").textContent = reais(departamento.tetoMensal);
   elemento("resumo-saldo").textContent = reais(departamento.saldoDisponivel);
@@ -473,23 +532,42 @@ function selecionarDepartamento() {
   elemento("ajustar").reset();
   filtroAuditoria = null;
   mostrarOrcamento(departamentos.get(departamentoAtual));
+  void atualizarOrcamento(departamentoAtual);
+  void recentes(departamentoAtual);
   void pedidos();
   void auditoria();
 }
 
+let consultaOrcamento;
 async function atualizarOrcamento(id) {
+  if (departamentoAtual !== id) return;
+  consultaOrcamento?.abort();
+  const consulta = new AbortController();
+  consultaOrcamento = consulta;
   let cursor = null;
-  do {
-    const parametros = cursor ? "?apos=" + encodeURIComponent(cursor) : "";
-    const pagina = await consultar("/departamentos" + parametros);
-    const atual = pagina.departamentos.find(departamento => departamento.id === id);
-    if (atual) {
-      departamentos.set(id, atual);
-      if (departamentoAtual === id) mostrarOrcamento(atual);
-      return;
-    }
-    cursor = pagina.proximoCursor;
-  } while (cursor);
+  try {
+    do {
+      const parametros = cursor ? "?apos=" + encodeURIComponent(cursor) : "";
+      const pagina = await consultar("/departamentos" + parametros, consulta.signal);
+      if (consulta.signal.aborted || departamentoAtual !== id) return;
+      const atual = pagina.departamentos.find(departamento => departamento.id === id);
+      if (atual) {
+        departamentos.set(id, atual);
+        mostrarOrcamento(atual);
+        return;
+      }
+      cursor = pagina.proximoCursor;
+    } while (cursor);
+    throw new Error("Departamento indisponível.");
+  } catch (erro) {
+    if (consulta.signal.aborted) return;
+    elemento("resumo-valores").hidden = true;
+    elemento("valores").hidden = true;
+    elemento("ajustar").hidden = true;
+    elemento("aviso-financeiro").hidden = false;
+    elemento("aviso-financeiro").textContent = "Orçamento indisponível.";
+    mostrarFalha(erro);
+  }
 }
 
 function prepararIntervencao(estado, mesmoPedido) {
@@ -646,8 +724,8 @@ async function consultarOperacao(operacao, abrir = false) {
   if (!operacao) return;
   const tarefas = [];
   if (arquiteto) {
-    tarefas.push(atualizarOrcamento(operacao.departamento).catch(mostrarFalha));
-    if (departamentoAtual === operacao.departamento) tarefas.push(auditoria());
+    tarefas.push(atualizarOrcamento(operacao.departamento));
+    if (departamentoAtual === operacao.departamento) tarefas.push(auditoria(), recentes(departamentoAtual));
   }
   if (operacao.pedido && (!arquiteto || operacao.departamento === departamentoAtual)) {
     if (abrir || pedidoAtual?.id === operacao.pedido) {
@@ -770,8 +848,12 @@ async function iniciar() {
       await Promise.all([
         carregarDepartamentos(),
         consultar("/catalogo/recursos").then(pagina => {
+          compararPrecos(pagina.recursos);
           for (const recurso of pagina.recursos) recursos.set(recurso.id, recurso);
-        }).catch(mostrarFalha)
+        }).catch(erro => {
+          elemento("aviso-precos").textContent = "Preços indisponíveis.";
+          mostrarFalha(erro);
+        })
       ]);
     } else {
       elemento("itens-novos").addEventListener("input", atualizarPrevia);

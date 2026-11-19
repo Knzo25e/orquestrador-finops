@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Arquiteto Cloud | Orquestrador FinOps</title>
   <link rel="stylesheet" href="/portal-assets/portal.css">
+  <link rel="stylesheet" href="/portal-assets/painel-financeiro.css">
   <script type="module" src="/portal-assets/portal.js"></script>
 </head>
 <body data-perfil="ARQUITETO_CLOUD">
@@ -48,10 +49,29 @@
       </section>
       <section id="visao" class="surface overview" data-area>
         <h2 tabindex="-1">Visão geral</h2>
-        <dl class="metrics" id="resumo-valores" hidden>
-          <div><dt>Teto mensal</dt><dd id="resumo-teto"></dd></div>
-          <div><dt>Saldo disponível</dt><dd id="resumo-saldo"></dd></div>
-        </dl>
+        <p id="aviso-financeiro" class="muted" role="status">Aguardando dados do departamento.</p>
+        <div id="resumo-valores" hidden>
+          <dl class="finance-kpis">
+            <div><dt>Teto mensal</dt><dd id="resumo-teto"></dd></div>
+            <div><dt>Comprometido</dt><dd id="resumo-compromisso"></dd></div>
+            <div><dt>Saldo disponível</dt><dd id="resumo-saldo"></dd></div>
+            <div><dt>Utilização</dt><dd id="resumo-utilizacao"></dd></div>
+          </dl>
+          <div class="finance-grid">
+            <section class="finance-card"><h3>Distribuição do orçamento</h3>
+              <div class="finance-distribution"><svg viewBox="0 0 42 42" aria-hidden="true"><circle class="livre" cx="21" cy="21" r="16"/><circle id="arco-compromisso" cx="21" cy="21" r="16" pathLength="100" transform="rotate(-90 21 21)"/></svg>
+                <dl class="finance-key"><dt>Comprometido</dt><dd id="legenda-compromisso"></dd><dt>Disponível</dt><dd id="legenda-saldo"></dd></dl>
+              </div>
+            </section>
+            <section class="finance-card"><h3>Utilização financeira</h3><strong id="uso-percentual"></strong>
+              <progress id="barra-uso" max="100" value="0" aria-label="Percentual comprometido"></progress><p id="uso-valores"></p>
+            </section>
+          </div>
+        </div>
+        <div class="finance-grid">
+          <section class="finance-card"><h3>Preços mensais simulados</h3><p class="muted">Preço por unidade do catálogo, em reais.</p><p id="aviso-precos" role="status">Carregando catálogo…</p><ul class="price-list" id="comparativo-precos"></ul></section>
+          <section class="finance-card"><h3>Atividades recentes</h3><p class="muted">Últimas cinco intervenções do departamento.</p><p id="aviso-recentes" role="status">Selecione um departamento.</p><ol class="activity-list" id="recentes"></ol></section>
+        </div>
         <div class="atalhos">
           <a href="#pedidos"><img src="/portal-assets/pedidos.svg" alt=""><span>Análise de requisições</span></a>
           <a href="#orcamento"><img src="/portal-assets/orcamento.svg" alt=""><span>Gestão orçamentária</span></a>
