@@ -233,3 +233,6 @@ Esse procedimento se aplica ao problema observado. Outras falhas de acesso exige
 - [ADR-002: Java Puro sem Frameworks](docs/adr/ADR-002-java-puro-sem-frameworks.md)
 - [ADR-003: Persistência MySQL e JDBC Transacional](docs/adr/ADR-003-persistencia-mysql-jdbc.md)
 - [ADR-004: Auditoria Imutável com Paginação por Cursor](docs/adr/ADR-004-auditoria-imutavel-cursor.md)
+- [ADR-005: Estratégia de Autenticação, Sessão e Autorização](docs/adr/ADR-005-estrategia-autenticacao-autorizacao.md)
+- [Estratégia de Testes e Evidências de Qualidade](docs/estrategia-testes.md)
+- [Revisão Multidimensional: Observabilidade e Resiliência](docs/review/observabilidade-resiliencia.md)
