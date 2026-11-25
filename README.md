@@ -236,3 +236,4 @@ Esse procedimento se aplica ao problema observado. Outras falhas de acesso exige
 - [ADR-005: Estratégia de Autenticação, Sessão e Autorização](docs/adr/ADR-005-estrategia-autenticacao-autorizacao.md)
 - [Estratégia de Testes e Evidências de Qualidade](docs/estrategia-testes.md)
 - [Revisão Multidimensional: Observabilidade e Resiliência](docs/review/observabilidade-resiliencia.md)
+- [Checkpoints de Acompanhamento e Evolução Incremental](docs/checkpoints-evolucao.md)
